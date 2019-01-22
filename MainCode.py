@@ -20,7 +20,7 @@ class ModifyFieldDialog(wx.Dialog):
         self.edit_field = edit_field
 
         self.InitUI()
-        self.SetSize((500, 160)) #NEEDS FINESSE FOR TYPE OF PASS
+        self.SetSize((500, 160)) #NEEDS FINESSE FOR TYPE OF PASS!
         self.SetTitle('Editing {0} of part {1}'.format(self.field_name, self.part_number))
 
 
