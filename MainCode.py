@@ -40,10 +40,10 @@ class ModifyFieldDialog(wx.Dialog):
         pnl.SetSizer(sbs)
 
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        okButton = wx.Button(self, label='Commit')
-        closeButton = wx.Button(self, label='Cancel')
-        hbox2.Add(okButton)
-        hbox2.Add(closeButton, flag=wx.LEFT, border=5)
+        ok_button = wx.Button(self, label='Commit')
+        close_button = wx.Button(self, label='Cancel')
+        hbox2.Add(ok_button)
+        hbox2.Add(close_button, flag=wx.LEFT, border=5)
 
         vbox.Add(pnl, proportion=1,
             flag=wx.ALL|wx.EXPAND, border=5)
@@ -51,9 +51,9 @@ class ModifyFieldDialog(wx.Dialog):
 
         self.SetSizer(vbox)
 
-        okButton.Bind(wx.EVT_BUTTON, self.OnCommit)
-        closeButton.Bind(wx.EVT_BUTTON, self.OnCancel)
-        #okButton.Bind(wx.EVT_BUTTON, lambda event: self.OnClose(event))
+        ok_button.Bind(wx.EVT_BUTTON, self.OnCommit)
+        close_button.Bind(wx.EVT_BUTTON, self.OnCancel)
+        #ok_button.Bind(wx.EVT_BUTTON, lambda event: self.OnClose(event))
 
     def OnCommit(self, e):
         self.edit_field.SetLabel(self.importanttextbox.GetValue())
@@ -81,12 +81,12 @@ class PartsTabPanel(wx.Panel):
         wx.Panel.__init__(self, size=(0,0), *args, **kwargs) #Needs size parameter to not black-square strobe the user
         #self.SetBackgroundColour(random.choice(COLORS))
 
+        self.SetDoubleBuffered(True)  # Remove slight strobiong on tab switch
+
         #Text Widgets
         self.part_number_text = wx.StaticText(self, size = (60, -1), label = self.part_number, style = wx.ALIGN_CENTER)
         self.part_type_text = wx.StaticText(self, size = (100, -1), label = self.part_type, style = wx.ALIGN_CENTER)
         self.short_descrip_text = wx.StaticText(self, size = (-1, -1), label = self.short_description, style = wx.ST_ELLIPSIZE_END)
-
-        self.listBox = wx.ListBox(self, size=(-1, 200), choices=NUMBERS, style=wx.LB_SINGLE)
 
 
         ## EVENTUALLY SWAP OUT FOR ULTIMATELISTBOX
@@ -103,21 +103,40 @@ class PartsTabPanel(wx.Panel):
          #   temp+=1
 
         self.sup_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUPLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
+        #self.sup_assembly_list = wx.ListCtrl(self, size=(-1, -1), style=wx.LC_REPORT | wx.BORDER_SUNKEN)  # , size=(-1, 200), style=wx.LB_SINGLE)
+        #self.sup_assembly_list.InsertColumn(0, 'Super-Assemblies', width=125)
+        #self.sup_assembly_list.InsertItem(0,'Supelies')
+        #self.sup_assembly_list.InsertItem(1, 'Supelies')
 
-        self.long_descrip_text = wx.TextCtrl(self, -1, self.long_description, style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY)
+        self.long_descrip_text = wx.TextCtrl(self, -1, self.long_description, size=(-1, 35), style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE)
+        self.sizer_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
+        self.sizer_long_descrip.Add(self.long_descrip_text, flag=wx.ALL | wx.EXPAND)
+
+        self.notes_header = wx.StaticText(self, -1, "PM\tDATE\t\tNOTE")
+        self.notes_list = wx.ListBox(self, size=(-1, -1), choices=NUMBERS, style=wx.LB_SINGLE | wx.BORDER_NONE)
+
+        self.sizer_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
+        self.sizer_notes.Add(self.notes_header, border=2, flag=wx.ALL | wx.EXPAND)
+        self.sizer_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+        self.sizer_notes.Add(self.notes_list, flag=wx.ALL | wx.EXPAND)
+
+        self.temptemptemp = wx.TextCtrl(self, -1, self.long_description, size=(-1, -1),
+                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY)
 
         #Revision Binds
         self.revision_bind(self.short_descrip_text, 'Short Description', self.part_number)
 
         self.sub_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.sub_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
         self.sup_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.sup_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
 
 
         #LEGACY BIND FOR FIDELITY -- self.shortdescriptext.Bind(wx.EVT_LEFT_DCLICK,
         #                           lambda event: self.revision_dialogue(event, self.part_number, self.shortdescriptext))
 
 
-        image = wx.Image('T:\Dark Storage\Software\Fantasy Grounds II\data\portraits\whitewitch.jpg', wx.BITMAP_TYPE_ANY)
+        image = wx.Image('whitewitch.jpg', wx.BITMAP_TYPE_ANY)
         imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(image.Rescale(250,250)))
         #print(self.shortdescriptext.label)
 
@@ -125,40 +144,56 @@ class PartsTabPanel(wx.Panel):
 
         #wx.Button(self, size=(200, -1), label="Something else here? Maybe!")
 
-        self.sizer_one = wx.BoxSizer()
-        self.sizer_two = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_master = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_master_horizontal = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_master_horizontal2 = wx.BoxSizer(wx.HORIZONTAL)
+        #blep=wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER)
+        #blep.SetBackgroundColour("purple")
+        #self.sizer_master.Add(blep, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
+
+        self.sizer_master_left = wx.BoxSizer(wx.VERTICAL)
         #self.test = wx.StaticBox(self, -1, "textbitches", flag=wx.Font(8))
-        self.partline = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_partline = wx.BoxSizer(wx.HORIZONTAL)
         #self.partnumtext.SetBackgroundColour("purple")
-        self.partline.Add(self.part_number_text, border=5, flag=wx.ALL)
-        self.partline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
-        self.partline.Add(self.part_type_text, border=5, flag=wx.ALL)
-        self.partline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
-        self.partline.Add(self.short_descrip_text, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_partline.Add(self.part_number_text, border=5, flag=wx.ALL)
+        self.sizer_partline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
+        self.sizer_partline.Add(self.part_type_text, border=5, flag=wx.ALL)
+        self.sizer_partline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
+        self.sizer_partline.Add(self.short_descrip_text, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
 
-        self.sizer_two.Add(self.partline, flag=wx.ALL | wx.EXPAND)
-        self.sizer_two.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
-        self.sizer_two.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
-        self.sizer_two.AddSpacer(5)
+        self.sizer_master_left.Add(self.sizer_partline, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+        self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+        self.sizer_master_left.AddSpacer(5)
+
+        self.sizer_master_left.Add(self.sizer_long_descrip, flag=wx.ALL | wx.EXPAND)  # , border=15)
+        self.sizer_master_left.Add(self.sizer_notes, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
+        self.sizer_master_left.Add(self.temptemptemp, proportion=1, flag=wx.ALL | wx.EXPAND)
+        #self.sizer_master_left.Add(self.listBox, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
 
 
-        self.sizer_two.Add(self.long_descrip_text, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
-        self.sizer_two.Add(self.listBox, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
+        #Assembly Sizers
+        self.sizer_assembly_left = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_assembly_left.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly_left.Add(self.sub_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
 
+        self.sizer_assembly_right = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_assembly_right.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly_right.Add(self.sup_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
 
-        self.assembly_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.assembly_sizer.Add(self.sub_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.assembly_sizer.Add(self.sup_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_assembly.Add(self.sizer_assembly_left, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly.Add(self.sizer_assembly_right, proportion=1, flag=wx.ALL | wx.EXPAND)
 
-        self.sizer_one.Add(self.sizer_two, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_one.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
+        self.sizer_master.Add(self.sizer_master_left, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
 
-        self.rightcolumnsizer = wx.BoxSizer(wx.VERTICAL)
-        self.rightcolumnsizer.Add(imageBitmap, flag=wx.ALL | wx.EXPAND)
-        self.rightcolumnsizer.Add(self.assembly_sizer, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_one.Add(self.rightcolumnsizer, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master_right = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_master_right.Add(imageBitmap, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master_right.Add(self.sizer_assembly, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master.Add(self.sizer_master_right, flag=wx.ALL | wx.EXPAND)
 
-        self.SetSizer(self.sizer_one)
+        self.SetSizer(self.sizer_master)
 
 
     def revision_bind(self, target, field, pn):
@@ -177,6 +212,28 @@ class PartsTabPanel(wx.Panel):
         self.parent.fuck(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
         event.GetEventObject().SetSelection(wx.NOT_FOUND)
         #self.text.SetValue(self.MESSAGE_FIELD_TYPES['1'][index])
+
+    def updateTooltip(self, event):
+        """
+        Update the tooltip!
+        """
+
+        pos = wx.GetMousePosition()
+        mouse_pos = self.sub_assembly_list.ScreenToClient(pos)
+        item_index = self.sub_assembly_list.HitTest(mouse_pos)
+
+
+
+
+        if item_index != -1:
+            a = "%s is a good book!" % self.sub_assembly_list.GetString(item_index)
+            if self.sub_assembly_list.GetToolTipText() != a:
+                msg = a
+                self.sub_assembly_list.SetToolTip(msg)
+        else:
+            self.sub_assembly_list.SetToolTip("")
+
+        event.Skip()
 
 
 class InterfaceTabs(wx.Notebook):
@@ -212,7 +269,7 @@ class InterfacePanel(wx.Panel):
 #        self.button = wx.Button(self, label="Something else here? Maybe!")
 
         self.sizer = wx.BoxSizer()
-        self.sizer.Add(self.notebook, wx.EXPAND)
+        self.sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
 #        self.sizer.Add(self.button, proportion=0)
         self.SetSizer(self.sizer)
 
