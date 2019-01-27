@@ -1,15 +1,114 @@
 #asgnkljaenrhasedlhnmsrthjsaftgjmsfyks
 COLORS = ["red", "blue", "black", "yellow", "green"]
-NUMBERS = ['0', '1', '2', '3', '4']
+NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019','moretext for my othershit'), "{:<6}|{:<25}|{}".format('J1','23-J019','moretext for my othershit'), '2', '3', '4']
 PANELS = ["107-00107", "G39-00107", "777-00107"]
 SUBLIST = ["999-00107", "G39-00107", "767-00107"]
 SUPLIST = ["456-00107", "G39-06767", "776-04577"]
 
 import random
 import wx
-import sys
+import sys, os
 import wx.lib.agw.flatnotebook as fnb
 import wx.lib.agw.ultimatelistctrl as ulc
+import wx.lib.scrolledpanel as scrolled
+import glob
+from math import ceil
+
+def crop_box(image):
+    if image.Height > image.Width:
+        min_edge = image.Width
+        posx = 0
+        posy = (image.Width - image.Height) / 2
+    else:
+        min_edge = image.Height
+        posx = (image.Height - image.Width) / 2
+        posy = 0
+
+    image.Resize(size=(min_edge, min_edge), pos=(posx, posy))
+    return image
+
+
+class ImgPanel(scrolled.ScrolledPanel):
+    def __init__(self, parent):
+        super(ImgPanel, self).__init__(parent, style = wx.SUNKEN_BORDER)
+
+        self.icon_size=100
+        self.hyster_low=5
+        self.hyster_high=self.icon_size-self.hyster_low
+        self.icon_gap = 5
+        self.parent=parent
+
+        self.imgs = glob.glob(r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\img*.png')
+
+        #imagelist = []
+        #for i in range(10):
+        #    imagelist.append(wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_box(wx.Image('whitewitch.jpg')).Rescale(100, 100))))
+        self.nrows, self.ncols = 1, len(self.imgs)
+        self.sizer_grid = wx.GridSizer(rows=self.nrows, cols=self.ncols, hgap=self.icon_gap, vgap=self.icon_gap)
+
+
+        # Add images to the grid.
+        for r in range(self.nrows):
+            for c in range(self.ncols):
+                _n = self.ncols * r + c
+                _tmp = wx.Image(self.imgs[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
+                _temp = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(_tmp))
+                self.sizer_grid.Add(_temp, 0, wx.EXPAND)
+
+        # self.grid.Fit(self)
+
+        self.SetSizer(self.sizer_grid)
+
+
+        #self.imgSizer = wx.BoxSizer(wx.VERTICAL)
+        #for each in imagelist:
+        #    self.imgSizer.Add(each, 1, flag=wx.ALL | wx.EXPAND, border=10)
+        #self.SetSizer(self.imgSizer)
+
+        self.SetAutoLayout(1)
+        self.SetupScrolling()
+        #self.Bind(wx.EVT_PAINT, self.OnPaint)
+        #self.bitmap.Bind(wx.EVT_MOTION, self.OnMove)
+        #self.bitmap.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        #self.bitmap.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.IsRectReady = False
+        self.newRectPara=[0,0,0,0]
+
+        self.Bind(wx.EVT_SIZE, self.resize_space)
+
+    def resize_space(self, size):
+        (w, h) = self.GetSize()#self.get_best_size()
+
+        if self.ncols > 1 and w < self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap - 0 * self.hyster_low:
+            self.ncols -= 1
+            self.nrows = ceil(len(self.imgs) / self.ncols)
+            self.sizer_grid.SetCols(self.ncols)
+            self.sizer_grid.SetRows(self.nrows)
+            #self.grid.Clear(True)
+            #self.grid = wx.GridSizer(rows=self.nrows, cols=self.ncols, hgap=self.icon_gap, vgap=self.icon_gap)
+            # Add images to the grid.
+            #for r in range(self.nrows):
+            #    for c in range(self.ncols):
+            #       _n = self.ncols * r + c
+            #        _tmp = wx.Image(self.imgs[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
+            #        _temp = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(_tmp))
+           #         self.grid.Add(_temp, 0, wx.EXPAND)
+
+           #self.SetSizer(self.grid)
+
+        if w > self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap + self.hyster_high:
+            print(self.ncols, len(self.imgs))
+            self.ncols += 1
+            self.nrows = ceil(len(self.imgs) / self.ncols)
+            self.sizer_grid.SetCols(self.ncols)
+            #self.grid.SetRows(self.nrows)
+
+        #sizer.Clear(True)
+
+        #self.s_image = self.image.Scale(w, h)
+        #self.bitmap = wx.BitmapFromImage(self.s_image)
+        #self.dc.DrawBitmap(self.bitmap, 0, 0, useMask=False)
+
 
 class ModifyFieldDialog(wx.Dialog):
 
@@ -83,6 +182,7 @@ class PartsTabPanel(wx.Panel):
 
         self.SetDoubleBuffered(True)  # Remove slight strobiong on tab switch
 
+
         #Text Widgets
         self.part_number_text = wx.StaticText(self, size = (60, -1), label = self.part_number, style = wx.ALIGN_CENTER)
         self.part_type_text = wx.StaticText(self, size = (100, -1), label = self.part_type, style = wx.ALIGN_CENTER)
@@ -112,7 +212,7 @@ class PartsTabPanel(wx.Panel):
         self.sizer_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
         self.sizer_long_descrip.Add(self.long_descrip_text, flag=wx.ALL | wx.EXPAND)
 
-        self.notes_header = wx.StaticText(self, -1, "PM\tDATE\t\tNOTE")
+        self.notes_header = wx.StaticText(self, -1, "{:<6}{:<25}{}".format("PM","DATE","NOTE"))
         self.notes_list = wx.ListBox(self, size=(-1, -1), choices=NUMBERS, style=wx.LB_SINGLE | wx.BORDER_NONE)
 
         self.sizer_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
@@ -120,8 +220,10 @@ class PartsTabPanel(wx.Panel):
         self.sizer_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
         self.sizer_notes.Add(self.notes_list, flag=wx.ALL | wx.EXPAND)
 
-        self.temptemptemp = wx.TextCtrl(self, -1, self.long_description, size=(-1, -1),
-                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY)
+        self.temptemptemp = ImgPanel(self)#ListCtrl(self, size=(-1,100), style=wx.LC_ICON | wx.BORDER_SUNKEN)
+        #self.temptemptemp.InsertColumn(0, 'Subject')
+        #self.temptemptemp = wx.TextCtrl(self, -1, self.long_description, size=(-1, -1),
+        #                                style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY)
 
         #Revision Binds
         self.revision_bind(self.short_descrip_text, 'Short Description', self.part_number)
@@ -136,8 +238,8 @@ class PartsTabPanel(wx.Panel):
         #                           lambda event: self.revision_dialogue(event, self.part_number, self.shortdescriptext))
 
 
-        image = wx.Image('whitewitch.jpg', wx.BITMAP_TYPE_ANY)
-        imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(image.Rescale(250,250)))
+        image = wx.Image('whitewitch2.jpg', wx.BITMAP_TYPE_ANY)
+        imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_box(image).Rescale(250, 250)))
         #print(self.shortdescriptext.label)
 
 
@@ -168,7 +270,7 @@ class PartsTabPanel(wx.Panel):
 
         self.sizer_master_left.Add(self.sizer_long_descrip, flag=wx.ALL | wx.EXPAND)  # , border=15)
         self.sizer_master_left.Add(self.sizer_notes, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
-        self.sizer_master_left.Add(self.temptemptemp, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master_left.Add(self.temptemptemp, proportion=2, flag=wx.ALL | wx.EXPAND)
         #self.sizer_master_left.Add(self.listBox, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
 
 
