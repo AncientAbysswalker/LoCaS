@@ -12,7 +12,8 @@ import wx.lib.agw.flatnotebook as fnb
 import wx.lib.agw.ultimatelistctrl as ulc
 import wx.lib.scrolledpanel as scrolled
 import glob
-from math import ceil
+from math import ceil, floor
+from custom_dialog import *
 
 def crop_box(image):
     if image.Height > image.Width:
@@ -28,9 +29,21 @@ def crop_box(image):
     return image
 
 
-class ImgPanel(scrolled.ScrolledPanel):
+class ImgGridPanel(scrolled.ScrolledPanel):
+    """Summary of class here.
+
+    Longer class information....
+    Longer class information....
+
+    Attributes:
+        likes_spam: A boolean indicating if we like SPAM or not.
+        eggs: An integer count of the eggs we have laid.
+    """
+
+
     def __init__(self, parent):
-        super(ImgPanel, self).__init__(parent, style = wx.SUNKEN_BORDER)
+        """Inits ImgGridPanel with reference to parent panel or frame."""
+        super(ImgGridPanel, self).__init__(parent, style = wx.BORDER_SIMPLE)
 
         self.icon_size=100
         self.hyster_low=5
@@ -53,6 +66,8 @@ class ImgPanel(scrolled.ScrolledPanel):
                 _n = self.ncols * r + c
                 _tmp = wx.Image(self.imgs[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
                 _temp = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(_tmp))
+                print(self.imgs[_n])
+                _temp.Bind(wx.EVT_LEFT_UP, lambda event: self.image_dialogue(event, self.imgs[_n]))
                 self.sizer_grid.Add(_temp, 0, wx.EXPAND)
 
         # self.grid.Fit(self)
@@ -74,92 +89,44 @@ class ImgPanel(scrolled.ScrolledPanel):
         self.IsRectReady = False
         self.newRectPara=[0,0,0,0]
 
-        self.Bind(wx.EVT_SIZE, self.resize_space)
+        self.Bind(wx.EVT_SIZE, self.resize_grid)
 
-    def resize_space(self, size):
-        (w, h) = self.GetSize()#self.get_best_size()
+    def image_dialogue(self, event, image):
+        dialog = ImageDialog(image,None)
+        dialog.ShowModal()
+        dialog.Destroy()
 
-        if self.ncols > 1 and w < self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap - 0 * self.hyster_low:
+
+    def resize_grid(self, size):
+        """Resize the image grid
+
+        Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
+
+        Args:
+            self: A reference to the parent instance of ImgPanel.
+            size: A size object passed from the resize event.
+        """
+
+        (w, h) = self.GetSize()
+
+        if self.ncols > 1 and w < self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap - self.hyster_low:
             self.ncols -= 1
-            self.nrows = ceil(len(self.imgs) / self.ncols)
+            self.nrows = max(ceil(len(self.imgs) / self.ncols), ceil((h + self.icon_gap)/(self.icon_size + self.icon_gap)))
             self.sizer_grid.SetCols(self.ncols)
             self.sizer_grid.SetRows(self.nrows)
-            #self.grid.Clear(True)
-            #self.grid = wx.GridSizer(rows=self.nrows, cols=self.ncols, hgap=self.icon_gap, vgap=self.icon_gap)
-            # Add images to the grid.
-            #for r in range(self.nrows):
-            #    for c in range(self.ncols):
-            #       _n = self.ncols * r + c
-            #        _tmp = wx.Image(self.imgs[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
-            #        _temp = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(_tmp))
-           #         self.grid.Add(_temp, 0, wx.EXPAND)
-
-           #self.SetSizer(self.grid)
-
-        if w > self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap + self.hyster_high:
-            print(self.ncols, len(self.imgs))
+        elif w > self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap + self.hyster_high:
             self.ncols += 1
-            self.nrows = ceil(len(self.imgs) / self.ncols)
+            self.nrows = max(ceil(len(self.imgs) / self.ncols), ceil((h + self.icon_gap)/(self.icon_size + self.icon_gap)))
             self.sizer_grid.SetCols(self.ncols)
-            #self.grid.SetRows(self.nrows)
+            self.sizer_grid.SetRows(self.nrows)
 
-        #sizer.Clear(True)
+        if self.nrows > 1 and h < self.nrows * self.icon_size + (self.nrows + 1) * self.icon_gap - self.hyster_low:
+            self.nrows = max(ceil(len(self.imgs) / self.ncols), ceil((h + self.icon_gap)/(self.icon_size + self.icon_gap)))
+            self.sizer_grid.SetRows(self.nrows)
+        elif h > self.nrows * self.icon_size + (self.nrows + 1) * self.icon_gap + self.hyster_high:
+            self.nrows = max(ceil(len(self.imgs) / self.ncols), ceil((h + self.icon_gap)/(self.icon_size + self.icon_gap)))
+            self.sizer_grid.SetRows(self.nrows)
 
-        #self.s_image = self.image.Scale(w, h)
-        #self.bitmap = wx.BitmapFromImage(self.s_image)
-        #self.dc.DrawBitmap(self.bitmap, 0, 0, useMask=False)
-
-
-class ModifyFieldDialog(wx.Dialog):
-
-    def __init__(self, part_number, field_name, edit_field, *args, **kw):
-        super(ModifyFieldDialog, self).__init__(*args, **kw)
-
-        self.part_number = part_number
-        self.field_name = field_name
-        self.edit_field = edit_field
-
-        self.InitUI()
-        self.SetSize((500, 160)) #NEEDS FINESSE FOR TYPE OF PASS!
-        self.SetTitle('Editing {0} of part {1}'.format(self.field_name, self.part_number))
-
-
-    def InitUI(self):
-
-        pnl = wx.Panel(self)
-        vbox = wx.BoxSizer(wx.VERTICAL)
-
-        sb = wx.StaticBox(pnl, label='Editing {0} of part {1}'.format(self.field_name, self.part_number))
-        sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
-
-        self.importanttextbox=wx.TextCtrl(pnl, value = self.edit_field.GetLabel())
-
-        sbs.Add(self.importanttextbox, flag=wx.ALL | wx.EXPAND, border=5)
-
-        pnl.SetSizer(sbs)
-
-        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        ok_button = wx.Button(self, label='Commit')
-        close_button = wx.Button(self, label='Cancel')
-        hbox2.Add(ok_button)
-        hbox2.Add(close_button, flag=wx.LEFT, border=5)
-
-        vbox.Add(pnl, proportion=1,
-            flag=wx.ALL|wx.EXPAND, border=5)
-        vbox.Add(hbox2, flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
-
-        self.SetSizer(vbox)
-
-        ok_button.Bind(wx.EVT_BUTTON, self.OnCommit)
-        close_button.Bind(wx.EVT_BUTTON, self.OnCancel)
-        #ok_button.Bind(wx.EVT_BUTTON, lambda event: self.OnClose(event))
-
-    def OnCommit(self, e):
-        self.edit_field.SetLabel(self.importanttextbox.GetValue())
-        self.Destroy()
-
-    def OnCancel(self, e):
-        self.Destroy()
 
 class PartsTabPanel(wx.Panel):
     def __init__(self, pn, *args, **kwargs):
@@ -220,7 +187,7 @@ class PartsTabPanel(wx.Panel):
         self.sizer_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
         self.sizer_notes.Add(self.notes_list, flag=wx.ALL | wx.EXPAND)
 
-        self.temptemptemp = ImgPanel(self)#ListCtrl(self, size=(-1,100), style=wx.LC_ICON | wx.BORDER_SUNKEN)
+        self.temptemptemp = ImgGridPanel(self)#ListCtrl(self, size=(-1,100), style=wx.LC_ICON | wx.BORDER_SUNKEN)
         #self.temptemptemp.InsertColumn(0, 'Subject')
         #self.temptemptemp = wx.TextCtrl(self, -1, self.long_description, size=(-1, -1),
         #                                style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY)
