@@ -4,6 +4,7 @@ NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019','moretext for my othersh
 PANELS = ["107-00107", "G39-00107", "777-00107"]
 SUBLIST = ["999-00107", "G39-00107", "767-00107"]
 SUPLIST = ["456-00107", "G39-06767", "776-04577"]
+DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
 
 import random
 import wx
@@ -14,6 +15,8 @@ import wx.lib.scrolledpanel as scrolled
 import glob
 from math import ceil, floor
 from custom_dialog import *
+import copy
+#from os import path, makedirs, rename
 
 def crop_box(image):
     if image.Height > image.Width:
@@ -27,6 +30,12 @@ def crop_box(image):
 
     image.Resize(size=(min_edge, min_edge), pos=(posx, posy))
     return image
+
+def part_to_dir(pn):
+    dir1, temp = pn.split('-')
+    dir2 = temp[:2]
+    dir3 = temp[2:]
+    return [dir1, dir2, dir3]
 
 
 class ImgGridPanel(scrolled.ScrolledPanel):
@@ -45,18 +54,30 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         """Inits ImgGridPanel with reference to parent panel or frame."""
         super(ImgGridPanel, self).__init__(parent, style = wx.BORDER_SIMPLE)
 
+        #Variables
         self.icon_size=100
         self.hyster_low=5
         self.hyster_high=self.icon_size-self.hyster_low
         self.icon_gap = 5
         self.parent=parent
 
-        self.imgs = glob.glob(r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\img*.png')
+        #Load list of images
+        self.images = [x for x in glob.glob(os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), '*'))
+                       for y in ['.png', '.jpg', '.gif'] if y in x]
 
-        #imagelist = []
-        #for i in range(10):
-        #    imagelist.append(wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_box(wx.Image('whitewitch.jpg')).Rescale(100, 100))))
-        self.nrows, self.ncols = 1, len(self.imgs)
+        #Load dict of image comments
+        self.comments = {}
+        try:
+            with open(os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), 'comments.txt')) as comfile:
+                _entries = comfile.read().split('\n' + chr(00) + '\n')
+                for entry in _entries:
+                    _name, _comment = entry.split('<' + chr(00) + '>')
+                    self.comments[_name] = _comment
+        except FileNotFoundError:
+            pass
+
+
+        self.nrows, self.ncols = 1, len(self.images)
         self.sizer_grid = wx.GridSizer(rows=self.nrows, cols=self.ncols, hgap=self.icon_gap, vgap=self.icon_gap)
 
 
@@ -64,11 +85,18 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         for r in range(self.nrows):
             for c in range(self.ncols):
                 _n = self.ncols * r + c
-                _tmp = wx.Image(self.imgs[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
-                _temp = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(_tmp))
-                print(self.imgs[_n])
-                _temp.Bind(wx.EVT_LEFT_UP, lambda event: self.image_dialogue(event, self.imgs[_n]))
-                self.sizer_grid.Add(_temp, 0, wx.EXPAND)
+                _tmp = wx.Image(self.images[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
+                _temp = wx.StaticBitmap(self, id=_n, bitmap=wx.BitmapFromImage(_tmp))
+                _temp.Bind(wx.EVT_LEFT_UP, self.image_click_event)
+                self.sizer_grid.Add(_temp, wx.EXPAND) #THROUGH ID??
+
+        # for r in range(self.nrows):
+        #     c=1#for c in range(self.ncols):
+        #     _n = self.ncols * r + c
+        #     _tmp = wx.Image(self.imgs[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
+        #     _temp2 = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(_tmp))
+        #     _temp2.Bind(wx.EVT_LEFT_UP, lambda event: self.image_click_event(event, self.imgs, _n))
+        #     self.sizer_grid.Add(_temp2, wx.EXPAND)
 
         # self.grid.Fit(self)
 
@@ -91,11 +119,6 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
         self.Bind(wx.EVT_SIZE, self.resize_grid)
 
-    def image_dialogue(self, event, image):
-        dialog = ImageDialog(image,None)
-        dialog.ShowModal()
-        dialog.Destroy()
-
 
     def resize_grid(self, size):
         """Resize the image grid
@@ -111,21 +134,26 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
         if self.ncols > 1 and w < self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap - self.hyster_low:
             self.ncols -= 1
-            self.nrows = max(ceil(len(self.imgs) / self.ncols), ceil((h + self.icon_gap)/(self.icon_size + self.icon_gap)))
+            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
             self.sizer_grid.SetCols(self.ncols)
             self.sizer_grid.SetRows(self.nrows)
         elif w > self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap + self.hyster_high:
             self.ncols += 1
-            self.nrows = max(ceil(len(self.imgs) / self.ncols), ceil((h + self.icon_gap)/(self.icon_size + self.icon_gap)))
+            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
             self.sizer_grid.SetCols(self.ncols)
             self.sizer_grid.SetRows(self.nrows)
 
         if self.nrows > 1 and h < self.nrows * self.icon_size + (self.nrows + 1) * self.icon_gap - self.hyster_low:
-            self.nrows = max(ceil(len(self.imgs) / self.ncols), ceil((h + self.icon_gap)/(self.icon_size + self.icon_gap)))
+            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
             self.sizer_grid.SetRows(self.nrows)
         elif h > self.nrows * self.icon_size + (self.nrows + 1) * self.icon_gap + self.hyster_high:
-            self.nrows = max(ceil(len(self.imgs) / self.ncols), ceil((h + self.icon_gap)/(self.icon_size + self.icon_gap)))
+            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
             self.sizer_grid.SetRows(self.nrows)
+
+    def image_click_event(self, event):
+        dialog = ImageDialog(self.images, event.GetEventObject().GetId(), os.path.join(DATADIR, "img", *part_to_dir(self.parent.part_number), self.parent.part_number + ".cmt"))
+        dialog.ShowModal()
+        dialog.Destroy()
 
 
 class PartsTabPanel(wx.Panel):
@@ -205,7 +233,7 @@ class PartsTabPanel(wx.Panel):
         #                           lambda event: self.revision_dialogue(event, self.part_number, self.shortdescriptext))
 
 
-        image = wx.Image('whitewitch2.jpg', wx.BITMAP_TYPE_ANY)
+        image = wx.Image(os.path.join(DATADIR, r'whitewitch2.jpg'), wx.BITMAP_TYPE_ANY)
         imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_box(image).Rescale(250, 250)))
         #print(self.shortdescriptext.label)
 
@@ -243,11 +271,11 @@ class PartsTabPanel(wx.Panel):
 
         #Assembly Sizers
         self.sizer_assembly_left = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_assembly_left.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly_left.Add(wx.StaticText(self, label="Children", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly_left.Add(self.sub_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
 
         self.sizer_assembly_right = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_assembly_right.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly_right.Add(wx.StaticText(self, label="Parents", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly_right.Add(self.sup_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
 
         self.sizer_assembly = wx.BoxSizer(wx.HORIZONTAL)
@@ -270,7 +298,7 @@ class PartsTabPanel(wx.Panel):
 
 
     def revision_dialogue(self, event, pn, field):
-        dialog=ModifyFieldDialog(pn, field, event.GetEventObject(), None)#, title='mytitle')
+        dialog=ModifyFieldDialog(event.GetEventObject(), "Editing {0} of part {1}".format(field, pn))
         dialog.ShowModal()
         dialog.Destroy()
         #wx.MessageBox('Pythonspot wxWidgets demo', 'Editing __ of part ' + 'stringhere', wx.OK | wx.ICON_INFORMATION)
