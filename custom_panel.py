@@ -1,4 +1,16 @@
-#asgnkljaenrhasedlhnmsrthjsaftgjmsfyks
+# -*- coding: utf-8 -*-
+"""This module contains custom dialog boxes to work with the main code base.
+
+Attributes:
+    module_level_variable1 (int): Module level variables may be documented in
+        either the ``Attributes`` section of the module docstring, or in an
+        inline docstring immediately following the variable.
+
+        Either form is acceptable, but the two should not be mixed. Choose
+        one convention to document module level variables and be consistent
+        with it.
+"""
+
 COLORS = ["red", "blue", "black", "yellow", "green"]
 NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019','moretext for my othershit'), "{:<6}|{:<25}|{}".format('J1','23-J019','moretext for my othershit'), '2', '3', '4']
 PANELS = ["107-00107", "G39-00107", "777-00107"]
@@ -6,19 +18,19 @@ SUBLIST = ["999-00107", "G39-00107", "767-00107"]
 SUPLIST = ["456-00107", "G39-06767", "776-04577"]
 DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
 
-import random
 import wx
-import sys, os
-import wx.lib.agw.flatnotebook as fnb
-import wx.lib.agw.ultimatelistctrl as ulc
-import wx.lib.scrolledpanel as scrolled
 import glob
+import os
+
+import random
+#import wx.lib.agw.flatnotebook as fnb
+#import wx.lib.agw.ultimatelistctrl as ulc
+import wx.lib.scrolledpanel as scrolled
 from math import ceil, floor
 from custom_dialog import *
-import copy
-#from os import path, makedirs, rename
 
-def crop_box(image):
+
+def crop_square(image):
     if image.Height > image.Width:
         min_edge = image.Width
         posx = 0
@@ -49,15 +61,14 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         eggs: An integer count of the eggs we have laid.
     """
 
-
     def __init__(self, parent):
-        """Inits ImgGridPanel with reference to parent panel or frame."""
-        super(ImgGridPanel, self).__init__(parent, style = wx.BORDER_SIMPLE)
+        """Constructor"""
+        super(ImgGridPanel, self).__init__(parent, style=wx.BORDER_SIMPLE)
 
         #Variables
-        self.icon_size=100
-        self.hyster_low=5
-        self.hyster_high=self.icon_size-self.hyster_low
+        self.icon_size = 100
+        self.hyster_low = 5
+        self.hyster_high = self.icon_size-self.hyster_low
         self.icon_gap = 5
         self.parent=parent
 
@@ -159,6 +170,8 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 class PartsTabPanel(wx.Panel):
     def __init__(self, pn, *args, **kwargs):
         """Constructor"""
+        wx.Panel.__init__(self, size=(0, 0), *args, **kwargs)  # Needs size parameter to remove black-square
+        self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
 
         self.parent=args[0]
         self.part_number = pn
@@ -172,19 +185,12 @@ class PartsTabPanel(wx.Panel):
                                 "ultricies posuere mi finibus id. Nulla convallis velit ante, sed egestas nulla " \
                                 "dignissim ac. "
 
-        wx.Panel.__init__(self, size=(0,0), *args, **kwargs) #Needs size parameter to not black-square strobe the user
-        #self.SetBackgroundColour(random.choice(COLORS))
+        # Text Widgets
+        self.part_number_text = wx.StaticText(self, size=(60, -1), label=self.part_number, style=wx.ALIGN_CENTER)
+        self.part_type_text = wx.StaticText(self, size=(100, -1), label=self.part_type, style=wx.ALIGN_CENTER)
+        self.short_descrip_text = wx.StaticText(self, size=(-1, -1), label=self.short_description, style=wx.ST_ELLIPSIZE_END)
 
-        self.SetDoubleBuffered(True)  # Remove slight strobiong on tab switch
-
-
-        #Text Widgets
-        self.part_number_text = wx.StaticText(self, size = (60, -1), label = self.part_number, style = wx.ALIGN_CENTER)
-        self.part_type_text = wx.StaticText(self, size = (100, -1), label = self.part_type, style = wx.ALIGN_CENTER)
-        self.short_descrip_text = wx.StaticText(self, size = (-1, -1), label = self.short_description, style = wx.ST_ELLIPSIZE_END)
-
-
-        ## EVENTUALLY SWAP OUT FOR ULTIMATELISTBOX
+        # EVENTUALLY SWAP OUT FOR ULTIMATELISTBOX
         self.sub_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUBLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
 
 
@@ -234,7 +240,7 @@ class PartsTabPanel(wx.Panel):
 
 
         image = wx.Image(os.path.join(DATADIR, r'whitewitch2.jpg'), wx.BITMAP_TYPE_ANY)
-        imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_box(image).Rescale(250, 250)))
+        imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image).Rescale(250, 250)))
         #print(self.shortdescriptext.label)
 
 
@@ -298,7 +304,7 @@ class PartsTabPanel(wx.Panel):
 
 
     def revision_dialogue(self, event, pn, field):
-        dialog=ModifyFieldDialog(event.GetEventObject(), "Editing {0} of part {1}".format(field, pn))
+        dialog = ModifyFieldDialog(event.GetEventObject(), "Editing {0} of part {1}".format(field, pn))
         dialog.ShowModal()
         dialog.Destroy()
         #wx.MessageBox('Pythonspot wxWidgets demo', 'Editing __ of part ' + 'stringhere', wx.OK | wx.ICON_INFORMATION)
@@ -355,48 +361,3 @@ class InterfaceTabs(wx.Notebook):
                 self.SetSelection(self.GetPageCount() - 1)
         elif not opt_stay:
             self.SetSelection([pnl.part_number for pnl in self.panels].index(name))
-
-
-
-class InterfacePanel(wx.Panel):
-    def __init__(self, *args, **kwargs):
-        wx.Panel.__init__(self, *args, **kwargs)
-
-        self.notebook = InterfaceTabs(self)#, wx.EXPAND)#size=(400, -1))
-#        self.button = wx.Button(self, label="Something else here? Maybe!")
-
-        self.sizer = wx.BoxSizer()
-        self.sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
-#        self.sizer.Add(self.button, proportion=0)
-        self.SetSizer(self.sizer)
-
-
-class InterfaceWindow(wx.Frame):
-    def __init__(self, *args, **kwargs):
-        wx.Frame.__init__(self, *args, **kwargs)
-        self.panel = InterfacePanel(self)
-
-        self.status = self.CreateStatusBar() #???Bottom bar
-
-        self.menubar = wx.MenuBar()
-        first=wx.Menu()
-        second=wx.Menu()
-        first.Append(wx.NewId(), "New", "Creates A new file")
-        buttonfish=first.Append(wx.NewId(), "ADID", "Yo")
-        self.Bind(wx.EVT_MENU, self.onAdd, buttonfish)
-        self.menubar.Append(first, "File")
-        self.menubar.Append(second, "Edit")
-        self.SetMenuBar(self.menubar)
-
-        self.Show()
-
-    def onAdd(self, event):
-        self.panel.notebook.fuck("fuck")
-        #PANELS.append("rrr")
-        #print("sdgsrg")
-
-
-app = wx.App(False)
-win = InterfaceWindow(None, size=(1200, 600))
-win.SetIcon(wx.Icon('CH.png'))
-app.MainLoop()

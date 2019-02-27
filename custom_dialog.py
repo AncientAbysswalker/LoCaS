@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module contains custom dialog boxes for the main code base.
+"""This module contains custom dialog boxes to work with the main code base.
 
 Attributes:
     module_level_variable1 (int): Module level variables may be documented in
@@ -9,10 +9,6 @@ Attributes:
         Either form is acceptable, but the two should not be mixed. Choose
         one convention to document module level variables and be consistent
         with it.
-
-Todo:
-    * Complete implementation of ImageDialog, along with hook for image index
-
 """
 
 import wx
@@ -23,64 +19,63 @@ import os
 class ModifyFieldDialog(wx.Dialog):
     """Opens a dialog to modify the intended property.
 
+        Args:
+            edit_field (ptr): Reference to the wx.object we are editing
+            header_text (str, optional): String to display in the dialog header
+
         Attributes:
-            header_text: String to display in the dialog header
-            edit_field: Reference to the wx.object we are editing
-            self.orig_field_text: Original text to display when editing
+            edit_field (ptr): Reference to the wx.object we are editing
+            header_text (str): String to display in the dialog header
+            orig_field_text (str): Original text to display when editing
     """
 
     def __init__(self, edit_field, header_text="", *args, **kw):
-        """Initializes ModifyFieldDialog with given arguments"""
+        """Constructor"""
         super(ModifyFieldDialog, self).__init__(None, *args, **kw)
 
         self.header_text = header_text
         self.edit_field = edit_field
         self.orig_field_text = self.edit_field.GetLabel()
 
-        self.InitUI()
-        self.SetSize((500, 160)) #NEEDS FINESSE FOR TYPE OF PASS!
+        self.init_dialog()
+        self.SetSize((500, 160))
         self.SetTitle(self.header_text)
 
-
-    def InitUI(self):
+    def init_dialog(self):
         """Draw the UI for the modification dialog"""
-        pnl = wx.Panel(self)
-        sizer_vertical = wx.BoxSizer(wx.VERTICAL)
 
-        sb = wx.StaticBox(pnl, label=self.header_text)
+        # Editable box and outline box
+        sb = wx.StaticBox(self, label=self.header_text)
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
+        self.editbox = wx.TextCtrl(self, value=self.orig_field_text)
+        sbs.Add(self.editbox, flag=wx.ALL | wx.EXPAND, border=5)
 
-        self.importanttextbox = wx.TextCtrl(pnl, value=self.orig_field_text)
+        # Dialog buttons with binds
+        button_commit = wx.Button(self, label='Commit')
+        button_commit.Bind(wx.EVT_BUTTON, self.event_commit)
+        button_cancel = wx.Button(self, label='Cancel')
+        button_cancel.Bind(wx.EVT_BUTTON, self.event_cancel)
 
-        sbs.Add(self.importanttextbox, flag=wx.ALL | wx.EXPAND, border=5)
-
-        pnl.SetSizer(sbs)
-
+        # Dialog button sizer
         sizer_buttons = wx.BoxSizer(wx.HORIZONTAL)
-        ok_button = wx.Button(self, label='Commit')
-        close_button = wx.Button(self, label='Cancel')
-        sizer_buttons.Add(ok_button)
-        sizer_buttons.Add(close_button, flag=wx.LEFT, border=5)
+        sizer_buttons.Add(button_commit)
+        sizer_buttons.Add(button_cancel, flag=wx.LEFT, border=5)
 
-        sizer_vertical.Add(pnl, proportion=1,
-            flag=wx.ALL|wx.EXPAND, border=5)
-        sizer_vertical.Add(sizer_buttons, flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
+        # Add everything to master sizer and set sizer for pane
+        sizer_master = wx.BoxSizer(wx.VERTICAL)
+        sizer_master.Add(sbs, proportion=1, flag=wx.ALL|wx.EXPAND, border=5)
+        sizer_master.Add(sizer_buttons, flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
+        self.SetSizer(sizer_master)
 
-        self.SetSizer(sizer_vertical)
-
-        ok_button.Bind(wx.EVT_BUTTON, self.OnCommit)
-        close_button.Bind(wx.EVT_BUTTON, self.OnCancel)
-        #LAMBDA BINDING ok_button.Bind(wx.EVT_BUTTON, lambda event: self.OnClose(event))
-
-    def OnCommit(self, e):
+    def event_commit(self, evt):
         """Execute when committing a change"""
-        _rewrite_value = self.importanttextbox.GetValue()
+        _rewrite_value = self.editbox.GetValue()
         _original_value = self.edit_field.GetLabel()
         self.edit_field.SetLabel(_rewrite_value)
 
         self.Destroy()
 
-    def OnCancel(self, e):
+    def event_cancel(self, evt):
         """Execute when cancelling a change"""
         self.Destroy()
 
@@ -88,16 +83,22 @@ class ModifyFieldDialog(wx.Dialog):
 class ModifyImageCommentDialog(ModifyFieldDialog):
     """Opens a dialog to modify an image comment.
 
+        Args:
+            header_text (str): String to display in the dialog header
+            edit_field (wx.obj): Reference to the wx.object we are editing
+            comment_key (str): Key in the image:comment dict
+            comment_path (str): Path of the image:comment dict file
+
         Attributes:
-            header_text: String to display in the dialog header
-            edit_field: Reference to the wx.object we are editing
-            comment_key: Key in the image:comment dict
-            comment_path: Path of the image:comment dict file
-            self.orig_field_text: Original text to display when editing
+            header_text (str): String to display in the dialog header
+            edit_field (wx.obj): Reference to the wx.object we are editing
+            comment_key (str): Key in the image:comment dict
+            comment_path (str): Path of the image:comment dict file
+            orig_field_text (str): Original text to display when editing
     """
 
     def __init__(self, edit_field, comment_key, comment_path, header_text="", *args, **kw):
-        """Initializes ModifyFieldDialog with given arguments"""
+        """Constructor"""
         super(ModifyFieldDialog, self).__init__(None, *args, **kw)
 
         self.header_text = header_text
@@ -109,53 +110,61 @@ class ModifyImageCommentDialog(ModifyFieldDialog):
         if self.orig_field_text == "There is no comment recorded":
             self.orig_field_text = ""
 
-        self.InitUI()
-        self.SetSize((500, 160)) #NEEDS FINESSE FOR TYPE OF PASS!
+        self.init_dialog()
+        self.SetSize((500, 160))
         self.SetTitle(self.header_text)
 
-    def OnCommit(self, e):
+    def event_commit(self, e):
         """Execute when committing a change"""
+
         _original_value = self.edit_field.GetLabel()
-        _rewrite_value = self.importanttextbox.GetValue()
+        _rewrite_value = self.editbox.GetValue()
         self.edit_field.SetLabel(_rewrite_value)
 
         _temp = open(self.comment_path).read()
         _check = _temp.find(self.comment_key + '<' + chr(00) + '>')
-        if _check != -1:
+        if _check != -1:  # Modify existing dict file
             _start = _check + len(self.comment_key) + 3
             _end = _temp.find(_original_value) + len(_original_value)
             _temp = _temp[:_start] + _rewrite_value + _temp[_end:]
 
-            with  open(self.comment_path, 'w') as comfile:
-                comfile.write(_temp)
-        else:
+            with open(self.comment_path, 'w') as comment_file:
+                comment_file.write(_temp)
+        else:  # Append to existing dict file
             _temp += '\n' + chr(00) + '\n' + self.comment_key + '<' + chr(00) + '>' + _rewrite_value
 
-            with  open(self.comment_path, 'w') as comfile:
-                comfile.write(_temp)
+            with open(self.comment_path, 'w') as comment_file:
+                comment_file.write(_temp)
 
         self.Destroy()
 
 
 class ImageDialog(wx.Dialog):
-    """Opens a dialog to show a selected image
+    """Opens a dialog to display images relating to part
+
+        Args:
+            image_list (list of str): List of string paths of images
+            image_index (int): Index of current image in image_list
+            comment_path (str): Path of the image:comment dict file
 
         Attributes:
-            part_number: A boolean indicating if we like SPAM or not.
-            field_name: An integer count of the eggs we have laid.
-            edit_field
+            image_list (list of str): List of string paths of images
+            image_index (int): Index of current image in image_list
+            comment_path (str): Path of the image:comment dict file
+            comments (list of str): List of string comments for images
     """
 
-    def __init__(self, imagelist, index, compath, *args, **kw):
+    def __init__(self, image_list, image_index, comment_path, *args, **kw):
+        """Constructor"""
         super(ImageDialog, self).__init__(None, *args, **kw)
 
-        self.SetSize((500, 400))
-        self.imagelist = imagelist
-        self.index = index
-        self.compath = compath
+        self.image_list = image_list
+        self.image_index = image_index
+        self.comment_path = comment_path
+
         self.comments = {}
         try:
-            with open(self.compath) as comfile:
+            with open(self.comment_path) as comfile:
                 _entries = comfile.read().split('\n' + chr(00) + '\n')
                 for entry in _entries:
                     _name, _comment = entry.split('<' + chr(00) + '>')
@@ -163,93 +172,91 @@ class ImageDialog(wx.Dialog):
         except FileNotFoundError:
             pass
 
-        print(self.comments)
+        self.init_dialog()
+        self.SetSize((500, 400))
 
-        self.InitUI()
+    def init_dialog(self):
+        """Draw the UI for the image dialog"""
 
-    def InitUI(self):
-        pnl = wx.Panel(self)
-
-        #Set image comment
+        # Set image comment
         self.comment_text = wx.StaticText(self, size=(60, 60), label="There is no comment recorded", style=wx.ALIGN_CENTER)
         try:
-            self.comment_text.SetLabel(self.comments[os.path.split(self.imagelist[self.index])[1]])
+            self.comment_text.SetLabel(self.comments[os.path.split(self.image_list[self.image_index])[1]])
         except KeyError:
             pass
+        self.comment_text.Bind(wx.EVT_LEFT_DCLICK, self.event_comment_edit)
 
-        self.sizer_main = wx.BoxSizer(wx.VERTICAL)
-        sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
-
-        _tmp_image = wx.Image(self.imagelist[self.index], wx.BITMAP_TYPE_ANY)
+        #Create and scale image
+        _tmp_image = wx.Image(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY)
         _tmp_height = _tmp_image.GetHeight()
-
 
         _tmp_height2 = min(_tmp_image.GetHeight(), 250)
         _tmp_width2 = (_tmp_height2 / _tmp_height) * _tmp_image.GetWidth()
 
         self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(_tmp_image.Scale(_tmp_width2, _tmp_height2)))
 
-        prev_button = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\l_arr.png", wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
-        next_button = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\r_arr.png", wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        # Control buttons
+        button_prev = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\l_arr.png", wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_prev.Bind(wx.EVT_LEFT_UP, self.event_prev_image)
+        button_next = wx.BitmapButton(self, wx.ID_ANY, wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\r_arr.png", wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_next.Bind(wx.EVT_LEFT_UP, self.event_next_image)
 
-        sizer_controls.Add(prev_button, border=5, flag=wx.ALL | wx.EXPAND)
-        sizer_controls.Add(next_button, border=5, flag=wx.ALL | wx.EXPAND)
+        # Control button sizer
+        sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_controls.Add(button_prev, border=5, flag=wx.ALL | wx.EXPAND)
+        sizer_controls.Add(button_next, border=5, flag=wx.ALL | wx.EXPAND)
 
+        # Add everything to master sizer and set sizer for pane
+        self.sizer_master = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_master.Add(self.imageBitmap, border=5, flag=wx.CENTER)
+        self.sizer_master.Add(sizer_controls, border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master.Add(self.comment_text, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
+        self.SetSizer(self.sizer_master)
 
-        self.sizer_main.Add(self.imageBitmap, border=5, flag=wx.CENTER)
-        self.sizer_main.Add(sizer_controls, border=5, flag=wx.ALL | wx.EXPAND)
-        self.sizer_main.Add(self.comment_text, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
+    def event_next_image(self, evt):
+        """If image is not last image, switch to next image"""
 
-        self.SetSizer(self.sizer_main)
+        if self.image_index < len(self.image_list) - 1:
+            self.image_index += 1
+            self.imageBitmap.SetBitmap(wx.Bitmap(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY))
 
-        prev_button.Bind(wx.EVT_LEFT_UP, self.prev_image)
-        next_button.Bind(wx.EVT_LEFT_UP, self.next_image)
-        self.comment_text.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.event_revision(event, ""))
-
-    def OnCommit(self, e):
-        self.edit_field.SetLabel(self.importanttextbox.GetValue())
-        self.Destroy()
-
-    def OnCancel(self, e):
-        self.Destroy()
-
-    def next_image(self, evt):
-        if self.index < len(self.imagelist) - 1:
-            self.index += 1
-            self.imageBitmap.SetBitmap(wx.Bitmap(self.imagelist[self.index], wx.BITMAP_TYPE_ANY))
-
-            ##KHJSBDGUKJNSA
-            self.imageBitmap.SetSize(100-10*self.index, 100-10*self.index)
+            ##REWRITE
+            self.imageBitmap.SetSize(100 - 10 * self.image_index, 100 - 10 * self.image_index)
 
             try:
-                self.comment_text.SetLabel(self.comments[os.path.split(self.imagelist[self.index])[1]])
+                self.comment_text.SetLabel(self.comments[os.path.split(self.image_list[self.image_index])[1]])
             except KeyError:
                 self.comment_text.SetLabel("There is no comment recorded")
                 pass
 
-            self.sizer_main.RecalcSizes()
+            self.sizer_master.RecalcSizes()
         evt.Skip()
 
-    def prev_image(self, evt):
-        if self.index > 0:
-            self.index -= 1
-            self.imageBitmap.SetBitmap(wx.Bitmap(self.imagelist[self.index], wx.BITMAP_TYPE_ANY))
+    def event_prev_image(self, evt):
+        """If image is not first image, switch to previous image"""
 
-            ##KHJSBDGUKJNSA
+        if self.image_index > 0:
+            self.image_index -= 1
+            self.imageBitmap.SetBitmap(wx.Bitmap(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY))
+
+            ##REWRITE
             self.imageBitmap.SetSize(10, 10)
 
             try:
-                self.comment_text.SetLabel(self.comments[os.path.split(self.imagelist[self.index])[1]])
+                self.comment_text.SetLabel(self.comments[os.path.split(self.image_list[self.image_index])[1]])
             except KeyError:
                 self.comment_text.SetLabel("There is no comment recorded")
                 pass
 
-            self.sizer_main.RecalcSizes()
+            self.sizer_master.RecalcSizes()
         evt.Skip()
 
-    def event_revision(self, evt, field):
-        dialog=ModifyImageCommentDialog(evt.GetEventObject(), os.path.split(self.imagelist[self.index])[1], self.compath, "Editing image comment")
+    def event_comment_edit(self, evt):
+        """Open dialog to revise image comment"""
+
+        dialog = ModifyImageCommentDialog(evt.GetEventObject(), os.path.split(self.image_list[self.image_index])[1],
+                                          self.comment_path, "Editing image comment")
         dialog.ShowModal()
         dialog.Destroy()
-        self.sizer_main.RecalcSizes()
+        self.sizer_master.RecalcSizes()
         evt.Skip()
