@@ -1,15 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module governs login behaviour through various methods
-
-Attributes:
-    module_level_variable1 (int): Module level variables may be documented in
-        either the ``Attributes`` section of the module docstring, or in an
-        inline docstring immediately following the variable.
-
-        Either form is acceptable, but the two should not be mixed. Choose
-        one convention to document module level variables and be consistent
-        with it.
-"""
+"""This module defines login panels and various login behaviours"""
 
 import wx
 import hashlib
@@ -17,17 +7,17 @@ import datetime
 
 
 class LoginDebug(wx.Panel):
-    """Debug login panel class. Does not pass login check to following (landing) page
+    """Debug login panel class. Automatically passes login check to following (landing) page
 
         Args:
             parent (ptr): Reference to the wx.object this panel belongs to
             sizer_landing (ptr): Reference to the sizer (of the parent) the landing pane belongs to
             pane_landing (ptr): Reference to the landing pane
             bound_text (str, optional): String to display in the login panel bounding box
-            user_text (str, optional): String to display preceding the "user" textbox
-            pass_text (str, optional): String to display preceding the "passkey" textbox
             user_last (str, optional): String to initially display within the "user" textbox
             pass_last (str, optional): String to initially display within the "passkey" textbox
+            user_text (str, optional): String to display preceding the "user" textbox
+            pass_text (str, optional): String to display preceding the "passkey" textbox
 
         Attributes:
             parent (ptr): Reference to the wx.object this panel belongs to
@@ -38,7 +28,7 @@ class LoginDebug(wx.Panel):
     """
 
     def __init__(self, parent, sizer_landing, pane_landing, bound_text="Please enter registry info",
-                 user_text="Username:", pass_text="Password:", user_last="", pass_last="", *args, **kwargs):
+                 user_last="", pass_last="", user_text="Username:", pass_text="Password:", *args, **kwargs):
         """Constructor"""
         wx.Panel.__init__(self, parent, *args, **kwargs)
 
@@ -76,8 +66,11 @@ class LoginDebug(wx.Panel):
         self.SetSizer(sizer_login)
 
     def event_login(self, event):
-        """Execute when attempting to login - Debug only, prints to console"""
-        print("LOGIN PASSED")
+        """Execute when attempting to login - Always hides login pane and shows landing pane"""
+        self.parent.Hide()
+        self.pane_landing.Show()
+        self.parent.parent.SetSizer(self.sizer_landing)
+        self.parent.parent.Layout()
 
 
 class LoginCrypto(LoginDebug):
@@ -102,7 +95,7 @@ class LoginCrypto(LoginDebug):
     """
 
     def event_login(self, event):
-        """Execute when attempting to login - Hide login pane and show landing pane"""
+        """Execute when attempting to login - Hide login pane and show landing pane if cryptographically correct"""
         if self.pair_correct(self.login_user.GetValue(), self.login_pass.GetValue()):
             self.parent.Hide()
             self.pane_landing.Show()
@@ -132,4 +125,5 @@ class LoginCrypto(LoginDebug):
         """
 
         _d = str(datetime.datetime.now().year)
-        return True# hashlib.sha3_256((_d[:2] + _u + _d[2:] + "Rakuyo").encode('utf-8')).hexdigest() == _p
+        print(hashlib.sha3_256((_d[:2] + _u + _d[2:] + "Rakuyo").encode('utf-8')).hexdigest() == _p)
+        return True#

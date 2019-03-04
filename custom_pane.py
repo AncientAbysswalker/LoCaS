@@ -1,74 +1,56 @@
 # -*- coding: utf-8 -*-
-"""This module contains custom dialog boxes to work with the main code base.
-
-Attributes:
-    module_level_variable1 (int): Module level variables may be documented in
-        either the ``Attributes`` section of the module docstring, or in an
-        inline docstring immediately following the variable.
-
-        Either form is acceptable, but the two should not be mixed. Choose
-        one convention to document module level variables and be consistent
-        with it.
-"""
-
-COLORS = ["red", "blue", "black", "yellow", "green"]
-NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019','moretext for my othershit'), "{:<6}|{:<25}|{}".format('J1','23-J019','moretext for my othershit'), '2', '3', '4']
-PANELS = ["107-00107", "G39-00107", "777-00107"]
-SUBLIST = ["999-00107", "G39-00107", "767-00107"]
-SUPLIST = ["456-00107", "G39-06767", "776-04577"]
-DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
+"""This module defines panes - master panels that act as direct children of the progenitor frame"""
 
 import wx
-from custom_panel import *
 import login
+import custom_panel
 
 
 class InterfacePanel(wx.Panel):
-    """Opens a dialog to modify the intended property.
+    """Master pane that deals with login behaviour for the application.
 
             Args:
-                edit_field (ptr): Reference to the wx.object we are editing
-                header_text (str, optional): String to display in the dialog header
+                parent (ptr): Reference to the wx.object this panel belongs to
 
             Attributes:
-                edit_field (ptr): Reference to the wx.object we are editing
-                header_text (str): String to display in the dialog header
-                orig_field_text (str): Original text to display when editing
+                parent (ptr): Reference to the wx.object this panel belongs to
     """
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, parent, *args, **kwargs):
         """Constructor"""
-        wx.Panel.__init__(self, *args, **kwargs)
+        wx.Panel.__init__(self, parent, *args, **kwargs)
 
-        self.textextext = wx.StaticText(self, size=(60, -1), label="WORDSFSBNGJGBNG", style = wx.ALIGN_CENTER)
-        self.notebook = InterfaceTabs(self)
-#        self.button = wx.Button(self, label="Something else here? Maybe!")
+        self.parent = parent
+        #self.textextext = wx.StaticText(self, size=(60, -1), label="WORDSFSBNGJGBNG", style = wx.ALIGN_CENTER)
+        self.notebook = custom_panel.InterfaceTabs(self)
 
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.textextext, flag=wx.EXPAND)
-        self.sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
-#        self.sizer.Add(self.button, proportion=0)
-        self.SetSizer(self.sizer)
+        # Main Sizer
+        self.sizer_main = wx.BoxSizer(wx.VERTICAL)
+        #self.sizer_main.Add(self.textextext, flag=wx.EXPAND)
+        self.sizer_main.Add(self.notebook, proportion=1, flag=wx.EXPAND)
+
+        self.SetSizer(self.sizer_main)
 
 
 class LoginPane(wx.Panel):
-    """Opens a dialog to modify the intended property.
+    """Master pane that deals with login behaviour for the application.
 
             Args:
-                edit_field (ptr): Reference to the wx.object we are editing
-                header_text (str, optional): String to display in the dialog header
+                parent (ptr): Reference to the wx.object this panel belongs to
+                sizer_landing (ptr): Reference to the sizer (of the parent) the landing pane belongs to
+                pane_landing (ptr): Reference to the landing pane
 
             Attributes:
-                edit_field (ptr): Reference to the wx.object we are editing
-                header_text (str): String to display in the dialog header
-                orig_field_text (str): Original text to display when editing
+                parent (ptr): Reference to the wx.object this panel belongs to
     """
+
     def __init__(self, parent, sizer_landing, pane_landing, *args, **kwargs):
         """Constructor"""
         wx.Panel.__init__(self, parent, *args, **kwargs)
+
         self.SetDoubleBuffered(True)  # Remove slight strobing on failed login
 
         self.parent = parent
-
         login_panel = login.LoginCrypto(self, sizer_landing, pane_landing)
 
         # Main Sizer
