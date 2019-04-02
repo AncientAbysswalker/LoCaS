@@ -28,20 +28,21 @@ import random
 import wx.lib.scrolledpanel as scrolled
 from math import ceil, floor
 from custom_dialog import *
+import sqlite3
 
 
 def crop_square(image):
     if image.Height > image.Width:
         min_edge = image.Width
         posx = 0
-        posy = (image.Width - image.Height) / 2
+        posy = int((image.Height - image.Width) / 2)
     else:
         min_edge = image.Height
-        posx = (image.Height - image.Width) / 2
+        posx = int((image.Width - image.Height) / 2)
         posy = 0
 
-    image.Resize(size=(min_edge, min_edge), pos=(posx, posy))
-    return image
+    return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
+
 
 def part_to_dir(pn):
     dir1, temp = pn.split('-')
@@ -65,41 +66,53 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         """Constructor"""
         super(ImgGridPanel, self).__init__(parent, style=wx.BORDER_SIMPLE)
 
-        #Variables
+        # Variables
         self.icon_size = 100
         self.hyster_low = 5
-        self.hyster_high = self.icon_size-self.hyster_low
+        self.hyster_high = self.icon_size - self.hyster_low
         self.icon_gap = 5
-        self.parent=parent
+        self.parent = parent
 
-        #Load list of images
-        self.images = [x for x in glob.glob(os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), '*'))
-                       for y in ['.png', '.jpg', '.gif'] if y in x]
+        # Load list of images from database
+        conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        crsr = conn.cursor()
+        crsr.execute("SELECT image FROM Images WHERE part_num='" + self.parent.part_number +
+                     "' AND part_rev='" + self.parent.part_revision + "'")
+        self.image_list = [i[0] for i in crsr.fetchall()]
+        print(self.image_list)
+        conn.close()
 
-        #Load dict of image comments
-        self.comments = {}
-        try:
-            with open(os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), 'comments.txt')) as comfile:
-                _entries = comfile.read().split('\n' + chr(00) + '\n')
-                for entry in _entries:
-                    _name, _comment = entry.split('<' + chr(00) + '>')
-                    self.comments[_name] = _comment
-        except FileNotFoundError:
-            pass
+        self.images = [os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), y) for y in self.image_list]
 
+
+        #Load dict of image comments from sql database
+        #self.comments = {}
+        # try:
+        #     with open(os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), 'comments.txt')) as comfile:
+        #         _entries = comfile.read().split('\n' + chr(00) + '\n')
+        #         for entry in _entries:
+        #             _name, _comment = entry.split('<' + chr(00) + '>')
+        #             self.comments[_name] = _comment
+        # except FileNotFoundError:
+        #     pass
 
         self.nrows, self.ncols = 1, len(self.images)
-        self.sizer_grid = wx.GridSizer(rows=self.nrows, cols=self.ncols, hgap=self.icon_gap, vgap=self.icon_gap)
+        self.sizer_grid = wx.GridSizer(rows=self.nrows + 1, cols=self.ncols, hgap=self.icon_gap, vgap=self.icon_gap)
 
 
         # Add images to the grid.
         for r in range(self.nrows):
             for c in range(self.ncols):
                 _n = self.ncols * r + c
-                _tmp = wx.Image(self.images[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
+                _tmp = crop_square(wx.Image(self.images[_n], wx.BITMAP_TYPE_ANY)).Rescale(self.icon_size, self.icon_size)
                 _temp = wx.StaticBitmap(self, id=_n, bitmap=wx.BitmapFromImage(_tmp))
                 _temp.Bind(wx.EVT_LEFT_UP, self.image_click_event)
-                self.sizer_grid.Add(_temp, wx.EXPAND) #THROUGH ID??
+                self.sizer_grid.Add(_temp, wx.EXPAND)
+
+        _tmp = wx.Image(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\plus.png", wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
+        _temp0 = wx.StaticBitmap(self, bitmap=wx.BitmapFromImage(_tmp))
+        _temp0.Bind(wx.EVT_LEFT_UP, self.add_image_event)
+        self.sizer_grid.Add(_temp0, wx.EXPAND)
 
         # for r in range(self.nrows):
         #     c=1#for c in range(self.ncols):
@@ -126,19 +139,19 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         #self.bitmap.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         #self.bitmap.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.IsRectReady = False
-        self.newRectPara=[0,0,0,0]
+        self.newRectPara = [0, 0, 0, 0]
 
         self.Bind(wx.EVT_SIZE, self.resize_grid)
 
 
-    def resize_grid(self, size):
+    def resize_grid(self, *args):
         """Resize the image grid
 
         Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
 
         Args:
             self: A reference to the parent instance of ImgPanel.
-            size: A size object passed from the resize event.
+            args[0]: A size object passed from the resize event.
         """
 
         (w, h) = self.GetSize()
@@ -162,7 +175,27 @@ class ImgGridPanel(scrolled.ScrolledPanel):
             self.sizer_grid.SetRows(self.nrows)
 
     def image_click_event(self, event):
-        dialog = ImageDialog(self.images, event.GetEventObject().GetId(), os.path.join(DATADIR, "img", *part_to_dir(self.parent.part_number), self.parent.part_number + ".cmt"))
+        """Open image dialog"""
+        dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
+        dialog.ShowModal()
+        dialog.Destroy()
+
+    def add_image_event(self, event):
+
+        with wx.FileDialog(None, "Open", "", "",
+                           "BMP and GIF files (*.bmp;*.gif)|*.png;*.gif|PNG files (*.png)|*.png",
+                           wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return  # The user changed their mind
+
+            selected_files = fileDialog.GetPaths()
+
+        # Proceed loading the file chosen by the user
+        print(selected_files)
+
+        # dialog = ImageAddDialog(selected_files, os.path.join(DATADIR, "img", *part_to_dir(self.parent.part_number), self.parent.part_number + ".json"))
+        dialog = ImageAddDialog(selected_files, self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -172,9 +205,11 @@ class PartsTabPanel(wx.Panel):
         """Constructor"""
         wx.Panel.__init__(self, size=(0, 0), *args, **kwargs)  # Needs size parameter to remove black-square
         self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
+        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))  # Ensure that edit cursor does not show by default
 
-        self.parent=args[0]
+        self.parent = args[0]
         self.part_number = pn
+        self.part_revision = "0"
         self.part_type = "Finished Product"
         self.short_description = "These are a short descrip for a part!"
         self.long_description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque tempor, elit " \
@@ -186,7 +221,8 @@ class PartsTabPanel(wx.Panel):
                                 "dignissim ac. "
 
         # Text Widgets
-        self.part_number_text = wx.StaticText(self, size=(60, -1), label=self.part_number, style=wx.ALIGN_CENTER)
+        self.part_number_text = wx.StaticText(self, label=self.part_number, style=wx.ALIGN_CENTER)
+        self.text_rev_number = wx.StaticText(self, label="R" + self.part_revision, style=wx.ALIGN_CENTER)
         self.part_type_text = wx.StaticText(self, size=(100, -1), label=self.part_type, style=wx.ALIGN_CENTER)
         self.short_descrip_text = wx.StaticText(self, size=(-1, -1), label=self.short_description, style=wx.ST_ELLIPSIZE_END)
 
@@ -212,8 +248,9 @@ class PartsTabPanel(wx.Panel):
         self.long_descrip_text = wx.TextCtrl(self, -1, self.long_description, size=(-1, 35), style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE)
         self.sizer_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
         self.sizer_long_descrip.Add(self.long_descrip_text, flag=wx.ALL | wx.EXPAND)
+        self.long_descrip_text.Bind(wx.EVT_SET_FOCUS, self.onfocus)
 
-        self.notes_header = wx.StaticText(self, -1, "{:<6}{:<25}{}".format("PM","DATE","NOTE"))
+        self.notes_header = wx.StaticText(self, -1, "{:<6}{:<25}{}".format("PM", "DATE", "NOTE"))
         self.notes_list = wx.ListBox(self, size=(-1, -1), choices=NUMBERS, style=wx.LB_SINGLE | wx.BORDER_NONE)
 
         self.sizer_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
@@ -234,6 +271,11 @@ class PartsTabPanel(wx.Panel):
         self.sup_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
         self.sup_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
 
+        self.button_rev_next = wx.Button(self, size=(10, -1))
+        self.button_rev_prev = wx.Button(self, size=(10, -1))
+
+        self.button_rev_next.Bind(wx.EVT_BUTTON, self.event_rev_next)
+        self.button_rev_prev.Bind(wx.EVT_BUTTON, self.event_rev_prev)
 
         #LEGACY BIND FOR FIDELITY -- self.shortdescriptext.Bind(wx.EVT_LEFT_DCLICK,
         #                           lambda event: self.revision_dialogue(event, self.part_number, self.shortdescriptext))
@@ -259,10 +301,15 @@ class PartsTabPanel(wx.Panel):
         self.sizer_partline = wx.BoxSizer(wx.HORIZONTAL)
         #self.partnumtext.SetBackgroundColour("purple")
         self.sizer_partline.Add(self.part_number_text, border=5, flag=wx.ALL)
+        self.sizer_partline.Add(self.button_rev_prev, flag=wx.ALL)
+        self.sizer_partline.Add(self.text_rev_number, border=5, flag=wx.ALL)
+        self.sizer_partline.Add(self.button_rev_next, flag=wx.ALL)
+        self.sizer_partline.AddSpacer(5)
         self.sizer_partline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
         self.sizer_partline.Add(self.part_type_text, border=5, flag=wx.ALL)
         self.sizer_partline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
         self.sizer_partline.Add(self.short_descrip_text, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
+
 
         self.sizer_master_left.Add(self.sizer_partline, flag=wx.ALL | wx.EXPAND)
         self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
@@ -304,7 +351,7 @@ class PartsTabPanel(wx.Panel):
 
 
     def revision_dialogue(self, event, pn, field):
-        dialog = ModifyFieldDialog(event.GetEventObject(), "Editing {0} of part {1}".format(field, pn))
+        dialog = ModifyFieldDialog(self, event.GetEventObject(), "Editing {0} of part {1}".format(field, pn))
         dialog.ShowModal()
         dialog.Destroy()
         #wx.MessageBox('Pythonspot wxWidgets demo', 'Editing __ of part ' + 'stringhere', wx.OK | wx.ICON_INFORMATION)
@@ -335,6 +382,39 @@ class PartsTabPanel(wx.Panel):
                 self.sub_assembly_list.SetToolTip(msg)
         else:
             self.sub_assembly_list.SetToolTip("")
+
+        event.Skip()
+
+    def onfocus(self, event):
+        """Set cursor to default and pass before default on-focus method"""
+        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+        pass
+
+    def event_rev_next(self, event):
+        """Toggle to next revision if possible"""
+
+        if True:
+            self.part_revision += 1
+
+            self.text_rev_number.SetLabel("R" + str(self.part_revision))
+
+            self.sizer_partline.Layout()
+
+            # Hook a refresh()
+
+        event.Skip()
+
+    def event_rev_prev(self, event):
+        """Toggle to next revision if possible"""
+
+        if self.part_revision > 0:
+            self.part_revision -= 1
+
+            self.text_rev_number.SetLabel("R" + str(self.part_revision))
+
+            self.sizer_partline.Layout()
+
+            # Hook a refresh()
 
         event.Skip()
 

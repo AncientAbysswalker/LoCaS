@@ -2,9 +2,23 @@
 """This module defines custom dialog boxes called upon at various instances"""
 
 import wx
-import wx.richtext as wxr
+# import wx.richtext as wxr
 import glob
 import os
+import pickle
+import json
+import sqlite3
+import hashlib
+import shutil
+
+DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
+
+
+def part_to_dir(pn):
+    dir1, temp = pn.split('-')
+    dir2 = temp[:2]
+    dir3 = temp[2:]
+    return [dir1, dir2, dir3]
 
 
 class ModifyFieldDialog(wx.Dialog):
@@ -20,9 +34,11 @@ class ModifyFieldDialog(wx.Dialog):
             orig_field_text (str): Original text to display when editing
     """
 
-    def __init__(self, edit_field, header_text="", *args, **kw):
+    def __init__(self, parent, edit_field, header_text="", *args, **kw):
         """Constructor"""
         super(ModifyFieldDialog, self).__init__(None, *args, **kw)
+
+        self.parent = parent
 
         self.header_text = header_text
         self.edit_field = edit_field
@@ -57,16 +73,21 @@ class ModifyFieldDialog(wx.Dialog):
         sizer_master.Add(sizer_buttons, flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
         self.SetSizer(sizer_master)
 
+        self.Bind(wx.EVT_CLOSE, self.event_close)
+
     def event_commit(self, event):
         """Execute when committing a change"""
         _rewrite_value = self.editbox.GetValue()
         _original_value = self.edit_field.GetLabel()
         self.edit_field.SetLabel(_rewrite_value)
 
-        self.Destroy()
+        self.event_close()
 
     def event_cancel(self, event):
         """Execute when cancelling a change"""
+        self.event_close()
+
+    def event_close(self, *args):
         self.Destroy()
 
 
@@ -87,16 +108,18 @@ class ModifyImageCommentDialog(ModifyFieldDialog):
             orig_field_text (str): Original text to display when editing
     """
 
-    def __init__(self, edit_field, comment_key, comment_path, header_text="", *args, **kw):
+    def __init__(self, parent, edit_field, comment_key, comment_path, header_text="", *args, **kw):
         """Constructor"""
         super(ModifyFieldDialog, self).__init__(None, *args, **kw)
+
+        self.parent = parent
 
         self.header_text = header_text
         self.edit_field = edit_field
         self.comment_key = comment_key
         self.comment_path = comment_path
 
-        self.orig_field_text = self.edit_field.GetLabel()
+        self.orig_field_text = self.edit_field.GetValue()
         if self.orig_field_text == "There is no comment recorded":
             self.orig_field_text = ""
 
@@ -109,27 +132,35 @@ class ModifyImageCommentDialog(ModifyFieldDialog):
 
         _original_value = self.edit_field.GetLabel()
         _rewrite_value = self.editbox.GetValue()
-        self.edit_field.SetLabel(_rewrite_value)
+        self.edit_field.SetValue(_rewrite_value)
 
-        _temp = open(self.comment_path).read()
-        _check = _temp.find(self.comment_key + '<' + chr(00) + '>')
-        if _check != -1:  # Modify existing dict file
-            _start = _check + len(self.comment_key) + 3
-            _end = _temp.find(_original_value) + len(_original_value)
-            _temp = _temp[:_start] + _rewrite_value + _temp[_end:]
+        self.parent.comments[self.comment_key] = _rewrite_value
 
-            with open(self.comment_path, 'w') as comment_file:
-                comment_file.write(_temp)
-        else:  # Append to existing dict file
-            _temp += '\n' + chr(00) + '\n' + self.comment_key + '<' + chr(00) + '>' + _rewrite_value
+        with open(self.comment_path, 'w') as json_file:
+            json.dump(['Image Comments', self.parent.comments], json_file, sort_keys=True, indent=4)
 
-            with open(self.comment_path, 'w') as comment_file:
-                comment_file.write(_temp)
+        # _temp = open(self.comment_path).read()
+        # _check = _temp.find(self.comment_key + '<' + chr(00) + '>')
+        # if _check != -1:  # Modify existing dict file
+        #     _start = _check + len(self.comment_key) + 3
+        #     _end = _temp.find(_original_value) + len(_original_value)
+        #     _temp = _temp[:_start] + _rewrite_value + _temp[_end:]
+        #
+        #     with open(self.comment_path, 'w') as comment_file:
+        #         comment_file.write(_temp)
+        #
+        #     #with open(self.comment_path, 'wb') as pickle_file:
+        #     #    pickle.dump(,pickle_file)
+        # else:  # Append to existing dict file
+        #     _temp += '\n' + chr(00) + '\n' + self.comment_key + '<' + chr(00) + '>' + _rewrite_value
+        #
+        #     with open(self.comment_path, 'w') as comment_file:
+        #         comment_file.write(_temp)
 
         self.Destroy()
 
 
-class ImageDialog(wx.Dialog):
+class ImageDialog2(wx.Dialog):
     """Opens a dialog to display images relating to part
 
         Args:
@@ -144,26 +175,38 @@ class ImageDialog(wx.Dialog):
             comments (list of str): List of string comments for images
     """
 
-    def __init__(self, image_list, image_index, comment_path, *args, **kw):
+    def __init__(self, image_hash, image_index, part_num, part_rev, *args, **kw):
         """Constructor"""
         super(ImageDialog, self).__init__(None, *args, **kw)
 
-        self.image_list = image_list
+        self.image_hash = image_hash
         self.image_index = image_index
-        self.comment_path = comment_path
+        self.comment_path = None
+        self.part_num = part_num
+        self.part_rev = part_rev
 
-        self.comments = {}
-        try:
-            with open(self.comment_path) as comfile:
-                _entries = comfile.read().split('\n' + chr(00) + '\n')
-                for entry in _entries:
-                    _name, _comment = entry.split('<' + chr(00) + '>')
-                    self.comments[_name] = _comment
-        except FileNotFoundError:
-            pass
+        self.load_data()
 
         self.init_dialog()
         self.SetSize((500, 500))
+
+    def load_data(self):
+        """Load data from sql database"""
+
+        try:
+            with open(self.comment_path, 'r') as json_file:
+                self.comments = json.load(json_file)[1]
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            self.comments = {}
+            pass
+
+        conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        crsr = conn.cursor()
+        print("SELECT image FROM Images WHERE part_num='" + self.parent.part_number +
+              "' AND part_rev='" + self.parent.part_revision + "'")
+        crsr.execute("SELECT image FROM Images WHERE part_num='" + self.parent.part_number +
+                     "' AND part_rev='" + self.parent.part_revision + "'")
+        print(crsr.fetchall())
 
     def init_dialog(self):
         """Draw the UI for the image dialog"""
@@ -173,7 +216,7 @@ class ImageDialog(wx.Dialog):
         self.init_field()
 
         #Create and scale image
-        temp_image = wx.Image(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY)
+        temp_image = wx.Image(self.image_hash[self.image_index], wx.BITMAP_TYPE_ANY)
         height_orig = temp_image.GetHeight()
         height_new = min(height_orig, 250)
         width_new = (height_new / height_orig) * temp_image.GetWidth()
@@ -193,11 +236,11 @@ class ImageDialog(wx.Dialog):
         button_prev = wx.BitmapButton(self, wx.ID_ANY,
                                       wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\l_arr.png",
                                                 wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
-        button_prev.Bind(wx.EVT_LEFT_UP, self.event_prev_image)
+        button_prev.Bind(wx.EVT_BUTTON, self.event_prev_image)
         button_next = wx.BitmapButton(self, wx.ID_ANY,
                                       wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\r_arr.png",
                                                 wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
-        button_next.Bind(wx.EVT_LEFT_UP, self.event_next_image)
+        button_next.Bind(wx.EVT_BUTTON, self.event_next_image)
 
         # Control button sizer
         sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
@@ -212,29 +255,142 @@ class ImageDialog(wx.Dialog):
         # Set image comment
         self.comment_text = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
                                         style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
-        self.comment_text.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
+        self.comment_text.Bind(wx.EVT_SET_FOCUS, self.onfocus)
 
         self.comment_text.SetBackgroundColour((248, 248, 248))  # set text back color
         try:
-            self.comment_text.SetValue(self.comments[os.path.split(self.image_list[self.image_index])[1]])
-            print(self.comments[os.path.split(self.image_list[self.image_index])[1]])
+            self.comment_text.SetValue(self.comments[os.path.split(self.image_hash[self.image_index])[1]])
         except KeyError:
             pass
         self.comment_text.Bind(wx.EVT_LEFT_DCLICK, self.event_comment_edit)
 
-    def OnFocus(self, event):
+    def onfocus(self, event):
         """Set cursor to default and pass before default on-focus method"""
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
         pass
 
     def image_refresh(self):
-        (width_orig, height_orig) = wx.Image(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY).GetSize()
+        (width_orig, height_orig) = wx.Image(self.image_hash[self.image_index], wx.BITMAP_TYPE_ANY).GetSize()
 
         height_new = min(height_orig, 250)
         width_new = (height_new / height_orig) * width_orig
 
         self.imageBitmap.SetBitmap(wx.Bitmap(
-            wx.Image(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY).Rescale((width_new), (height_new))))
+            wx.Image(self.image_hash[self.image_index], wx.BITMAP_TYPE_ANY).Rescale((width_new), (height_new))))
+
+
+class ImageDialog(wx.Dialog):
+    """Opens a dialog to display images relating to part
+
+        Args:
+            image_list (list of str): List of string paths of images
+            image_index (int): Index of current image in image_list
+            comment_path (str): Path of the image:comment dict file
+
+        Attributes:
+            image_list (list of str): List of string paths of images
+            image_index (int): Index of current image in image_list
+            comment_path (str): Path of the image:comment dict file
+            comments (list of str): List of string comments for images
+    """
+
+    def __init__(self, image_list, image_index, part_num, part_rev, *args, **kw):
+        """Constructor"""
+        super().__init__(None, *args, **kw)
+
+        self.image_list = image_list
+        self.image_index = image_index
+        self.part_num = part_num
+        self.part_rev = part_rev
+        self.comments = {}
+
+        self.load_data()
+
+        self.init_dialog()
+        self.SetSize((500, 500))
+
+        self.Show()
+
+    def load_data(self):
+        """Load data from sql database"""
+
+        conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        crsr = conn.cursor()
+        crsr.execute("SELECT image, description FROM Images WHERE part_num='" + self.part_num +
+                     "' AND part_rev='" + self.part_rev + "'")
+        self.comments = {x: y for x, y in crsr.fetchall()}
+
+    def init_dialog(self):
+        """Draw the UI for the image dialog"""
+
+        # Set up comment text
+        self.comment_text = ""
+        self.init_field()
+
+        #Create and scale image
+        temp_image = wx.Image(os.path.join(DATADIR, 'img', *part_to_dir(self.part_num), self.image_list[self.image_index]), wx.BITMAP_TYPE_ANY)
+        height_orig = temp_image.GetHeight()
+        height_new = min(height_orig, 250)
+        width_new = (height_new / height_orig) * temp_image.GetWidth()
+        self.panel_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(temp_image.Scale(width_new, height_new)))
+
+        # Add everything to master sizer and set sizer for pane
+        self.sizer_master = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_master.Add(self.panel_image, border=5, flag=wx.CENTER)
+        self.sizer_master.Add(self.init_buttons(), border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master.Add(self.comment_text, border=5, flag=wx.ALL | wx.EXPAND)
+        self.SetSizer(self.sizer_master)
+
+    def init_buttons(self):
+        """Define what control buttons are available and their bindings"""
+
+        # Control buttons
+        button_prev = wx.BitmapButton(self, wx.ID_ANY,
+                                      wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\l_arr.png",
+                                                wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_prev.Bind(wx.EVT_BUTTON, self.event_prev_image)
+        button_next = wx.BitmapButton(self, wx.ID_ANY,
+                                      wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\r_arr.png",
+                                                wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_next.Bind(wx.EVT_BUTTON, self.event_next_image)
+
+        # Control button sizer
+        sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_controls.Add(button_prev, border=5, flag=wx.ALL | wx.EXPAND)
+        sizer_controls.Add(button_next, border=5, flag=wx.ALL | wx.EXPAND)
+
+        return sizer_controls
+
+    def init_field(self):
+        """Define the editable field"""
+
+        # Set image comment
+        self.comment_text = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
+                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
+
+        self.comment_text.SetBackgroundColour((248, 248, 248))  # set text back color
+
+    def image_refresh(self):
+        """Refresh the image field and ensure correct sizing"""
+
+        (width_orig, height_orig) = wx.Image(os.path.join(DATADIR, 'img', *part_to_dir(self.part_num), self.image_list[self.image_index]), wx.BITMAP_TYPE_ANY).GetSize()
+
+        height_new = min(height_orig, 250)
+        width_new = (height_new / height_orig) * width_orig
+
+        self.panel_image.SetBitmap(wx.Bitmap(
+            wx.Image(os.path.join(DATADIR, 'img', *part_to_dir(self.part_num), self.image_list[self.image_index]), wx.BITMAP_TYPE_ANY).Rescale(width_new, height_new))) #####
+
+    def event_comment_edit(self, evt):
+        """Open dialog to revise image comment"""
+
+        dialog = ModifyImageCommentDialog(self, evt.GetEventObject(),
+                                          os.path.split(self.image_list[self.image_index])[1],
+                                          "", "Editing image comment")
+        dialog.ShowModal()
+        dialog.Destroy()
+        self.sizer_master.RecalcSizes()
+        evt.Skip()
 
     def event_next_image(self, evt):
         """If image is not last image, switch to next image"""
@@ -253,9 +409,9 @@ class ImageDialog(wx.Dialog):
 
             self.image_refresh()
             try:
-                self.comment_text.SetLabel(self.comments[os.path.split(self.image_list[self.image_index])[1]])
-            except KeyError:
-                self.comment_text.SetLabel("There is no comment recorded")
+                self.comment_text.SetValue(self.comments[self.image_list[self.image_index]])
+            except TypeError:
+                self.comment_text.SetValue("There is no comment recorded")
                 pass
 
             self.sizer_master.Layout()
@@ -274,21 +430,218 @@ class ImageDialog(wx.Dialog):
             #self.imageBitmap.SetSize(10, 10)
             #self.img_toggle()
             try:
-                self.comment_text.SetLabel(self.comments[os.path.split(self.image_list[self.image_index])[1]])
-            except KeyError:
-                self.comment_text.SetLabel("There is no comment recorded")
+                self.comment_text.SetValue(self.comments[self.image_list[self.image_index]])
+            except TypeError:
+                self.comment_text.SetValue("There is no comment recorded")
                 pass
 
             self.sizer_master.Layout()
             self.sizer_master.RecalcSizes()
         evt.Skip()
 
-    def event_comment_edit(self, evt):
-        """Open dialog to revise image comment"""
+    def image_in_db(self):
+        """Checks if the image already exists in the database"""
 
-        dialog = ModifyImageCommentDialog(evt.GetEventObject(), os.path.split(self.image_list[self.image_index])[1],
-                                          self.comment_path, "Editing image comment")
-        dialog.ShowModal()
-        dialog.Destroy()
-        self.sizer_master.RecalcSizes()
-        evt.Skip()
+        # Hash current image data
+        image_hash = self.hash_image()
+
+        # Connect to the database
+        conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        crsr = conn.cursor()
+
+        # Check if the current image is already hashed into the database
+        crsr.execute("SELECT EXISTS (SELECT 1 FROM Images WHERE part_num='" + self.part_num + "' AND part_rev='"
+                     + self.part_rev + "' AND image='" + image_hash + "');")
+
+        in_db = crsr.fetchone()[0]
+        crsr.close()
+        conn.close()
+
+        return in_db
+
+    def check_image_valid(self):
+        """Throw dialog if image is already in database, and pass over it"""
+
+        if self.image_in_db():
+            wx.MessageBox("This image is already added to this part. You may not have duplicate images.",
+                          "Image cannot be added", wx.OK | wx.ICON_ERROR)
+            self.event_next_image()
+
+    def hash_image(self):
+        """Hash image data and digest into HEX"""
+
+        hasher = hashlib.md5()
+        with open(self.image_list[self.image_index], 'rb') as image:
+            buffer = image.read()
+            hasher.update(buffer)
+        return hasher.hexdigest() + os.path.splitext(self.image_list[self.image_index])[1]
+
+    def onfocus(self, event):
+        """Set cursor to default and pass before default on-focus method"""
+        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+        pass
+
+    def init_field(self):
+        """Define the editable field"""
+
+        # Set image comment
+        self.comment_text = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
+                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
+        self.comment_text.Bind(wx.EVT_SET_FOCUS, self.onfocus)
+
+        self.comment_text.SetBackgroundColour((248, 248, 248))  # set text back color
+        try:
+            self.comment_text.SetValue(self.comments[self.image_list[self.image_index]])
+        except TypeError:
+            pass
+        self.comment_text.Bind(wx.EVT_LEFT_DCLICK, self.event_comment_edit)
+
+
+class ImageAddDialog(wx.Dialog):
+    """Opens a dialog to display images relating to part
+
+        Args:
+            image_list (list of str): List of string paths of images
+            image_index (int): Index of current image in image_list
+            comment_path (str): Path of the image:comment dict file
+
+        Attributes:
+            image_list (list of str): List of string paths of images
+            image_index (int): Index of current image in image_list
+            comment_path (str): Path of the image:comment dict file
+            comments (list of str): List of string comments for images
+    """
+
+    def __init__(self, image_list, part_num, part_rev, *args, **kw):
+        """Constructor"""
+        super().__init__(None, *args, **kw)
+
+        self.image_list = image_list
+        self.image_index = 0
+        self.part_num = part_num
+        self.part_rev = part_rev
+
+        self.init_dialog()
+        self.SetSize((500, 500))
+
+        self.Show()
+
+        self.check_image_valid()
+
+    def init_dialog(self):
+        """Draw the UI for the image dialog"""
+
+        # Set up comment text
+        self.init_field()
+
+        # Create and scale image
+        temp_image = wx.Image(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY)
+        height_orig = temp_image.GetHeight()
+        height_new = min(height_orig, 250)
+        width_new = (height_new / height_orig) * temp_image.GetWidth()
+        self.panel_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(temp_image.Scale(width_new, height_new)))
+
+        # Add everything to master sizer and set sizer for pane
+        self.sizer_master = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_master.Add(self.panel_image, border=5, flag=wx.CENTER)
+        self.sizer_master.Add(self.comment_text, border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master.Add(self.init_buttons(), border=5, flag=wx.ALL | wx.EXPAND)
+        self.SetSizer(self.sizer_master)
+
+    def init_buttons(self):
+        """Define what control buttons are available and their bindings"""
+
+        # Submit Image Button
+        self.button_next = wx.Button(self, label='Submit Image')
+        self.button_next.Bind(wx.EVT_BUTTON, self.event_next_image)
+
+        # Control button sizer
+        sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_controls.Add(self.button_next, border=5, flag=wx.ALL | wx.EXPAND)
+
+        return sizer_controls
+
+    def init_field(self):
+        """Define the editable field"""
+
+        # Set image comment
+        self.comment_text = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
+                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
+
+        self.comment_text.SetBackgroundColour((248, 248, 248))  # set text back color
+
+    def image_refresh(self):
+        """Refresh the image field and ensure correct sizing"""
+
+        (width_orig, height_orig) = wx.Image(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY).GetSize()
+
+        height_new = min(height_orig, 250)
+        width_new = (height_new / height_orig) * width_orig
+
+        self.panel_image.SetBitmap(wx.Bitmap(
+            wx.Image(self.image_list[self.image_index], wx.BITMAP_TYPE_ANY).Rescale(width_new, height_new)))
+
+    def event_next_image(self, *args):
+        """If image is not last image, switch to next image"""
+
+        if not self.image_in_db():
+            # Hash current image data and commit to
+            image_hash = self.hash_image()
+            shutil.copy2(self.image_list[self.image_index],
+                         os.path.join(DATADIR, "img", *part_to_dir(self.part_num), image_hash))
+
+            query_insert = "INSERT INTO Images (part_num, part_rev, image) VALUES ('" + str(self.part_num) + "', '" + str(self.part_rev) + "', '" + image_hash + "');"
+            print(query_insert)
+            crsr.execute(query_insert)
+            crsr.close()
+            conn.commit()
+
+        if self.image_index < len(self.image_list) - 1:
+            self.image_index += 1
+            self.image_refresh()
+            self.comment_text.SetValue("There is no comment recorded")
+
+            self.sizer_master.Layout()
+            self.sizer_master.RecalcSizes()
+        else:
+            self.Destroy()
+            return
+
+        self.check_image_valid()
+
+    def image_in_db(self):
+        """Checks if the image already exists in the database"""
+
+        # Hash current image data
+        image_hash = self.hash_image()
+
+        # Connect to the database
+        conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        crsr = conn.cursor()
+
+        # Check if the current image is already hashed into the database
+        crsr.execute("SELECT EXISTS (SELECT 1 FROM Images WHERE part_num='" + self.part_num + "' AND part_rev='"
+                     + self.part_rev + "' AND image='" + image_hash + "');")
+
+        in_db = crsr.fetchone()[0]
+        crsr.close()
+        conn.close()
+
+        return in_db
+
+    def check_image_valid(self):
+        """Throw dialog if image is already in database, and pass over it"""
+
+        if self.image_in_db():
+            wx.MessageBox("This image is already added to this part. You may not have duplicate images.",
+                          "Image cannot be added", wx.OK | wx.ICON_ERROR)
+            self.event_next_image()
+
+    def hash_image(self):
+        """Hash image data and digest into HEX"""
+
+        hasher = hashlib.md5()
+        with open(self.image_list[self.image_index], 'rb') as image:
+            buffer = image.read()
+            hasher.update(buffer)
+        return hasher.hexdigest() + os.path.splitext(self.image_list[self.image_index])[1]
