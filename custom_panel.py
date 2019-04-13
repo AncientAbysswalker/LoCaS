@@ -29,6 +29,7 @@ import wx.lib.scrolledpanel as scrolled
 from math import ceil, floor
 from custom_dialog import *
 import sqlite3
+import datetime
 
 
 def crop_square(image):
@@ -73,7 +74,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         self.icon_gap = 5
         self.parent = parent
 
-        # Load list of images from database
+        # Load list of images from database CHANGEME
         conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
         crsr = conn.cursor()
         crsr.execute("SELECT image FROM Images WHERE part_num='" + self.parent.part_number +
@@ -81,6 +82,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         self.image_list = [i[0] for i in crsr.fetchall()]
         print(self.image_list)
         conn.close()
+
 
         self.images = [os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), y) for y in self.image_list]
 
@@ -200,6 +202,74 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         dialog.Destroy()
 
 
+class NotesPanel(scrolled.ScrolledPanel):
+    """Summary of class here.
+
+    Longer class information....
+    Longer class information....
+
+    Attributes:
+        likes_spam: A boolean indicating if we like SPAM or not.
+        eggs: An integer count of the eggs we have laid.
+    """
+
+    def __init__(self, parent):
+        """Constructor"""
+        super().__init__(parent)#, style=wx.BORDER_SIMPLE)
+
+        self.parent = parent
+        vspace = 5
+        hspace = 15
+        self.sizer_main = wx.FlexGridSizer(3, vspace, hspace)
+        self.sizer_main.AddGrowableCol(2)
+        self.sizer_main.SetFlexibleDirection(wx.HORIZONTAL)
+        self.sizer_main.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
+
+        self.sizer_main.Add(wx.StaticText(self, label="Date", style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+        self.sizer_main.Add(wx.StaticText(self, label="Author", style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+        self.sizer_main.Add(wx.StaticText(self, label="Note", style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+
+        self.load_notes()
+
+        self.SetSizer(self.sizer_main)
+        self.Layout()
+
+        a = self.sizer_main.GetColWidths()
+        print("Note Column Sizes", a)
+
+    def load_notes(self):
+        """Open SQL database and load notes from table"""
+
+        # Load notes from database
+        conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        crsr = conn.cursor()
+        crsr.execute("SELECT date, author, note FROM Notes WHERE part_num=(?) AND part_rev=(?)",
+                     (self.parent.part_number, "0"))#self.parent.part_revision))
+        _tmp_list = crsr.fetchall()
+        print("Loaded Notes", _tmp_list)
+        conn.close()
+
+        _tmp_list = sorted(_tmp_list, key=lambda x: x[0])
+
+        for note in _tmp_list:
+            self.sizer_main.Add(wx.StaticText(self, label=note[0][:10], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+            self.sizer_main.Add(wx.StaticText(self, label=note[1], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+            self.sizer_main.Add(wx.StaticText(self, label=note[2], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+
+    def add_note(self):
+        for job in self.parent.parent.jobs:
+            self.sizer_code_noc.Add(wx.StaticText(self, label=job[0])) # proportion=1, border=15, flag=wx.ALL | wx.EXPAND)
+            self.sizer_code_noc.AddSpacer(self.vspace)
+            self.sizer_title_noc.Add(wx.StaticText(self, label=job[1]))
+            self.sizer_title_noc.AddSpacer(self.vspace)
+            self.sizer_code_onet.Add(wx.StaticText(self, label=job[2]))
+            self.sizer_code_onet.AddSpacer(self.vspace)
+            self.sizer_title_onet.Add(wx.StaticText(self, label=job[3]))
+            self.sizer_title_onet.AddSpacer(self.vspace)
+
+            self.Layout()
+
+
 class PartsTabPanel(wx.Panel):
     def __init__(self, pn, *args, **kwargs):
         """Constructor"""
@@ -250,8 +320,9 @@ class PartsTabPanel(wx.Panel):
         self.sizer_long_descrip.Add(self.long_descrip_text, flag=wx.ALL | wx.EXPAND)
         self.long_descrip_text.Bind(wx.EVT_SET_FOCUS, self.onfocus)
 
-        self.notes_header = wx.StaticText(self, -1, "{:<6}{:<25}{}".format("PM", "DATE", "NOTE"))
-        self.notes_list = wx.ListBox(self, size=(-1, -1), choices=NUMBERS, style=wx.LB_SINGLE | wx.BORDER_NONE)
+        self.notes_header = NotesPanel(self)
+        # self.notes_header = wx.StaticText(self, -1, "{:<6}{:<25}{}".format("PM", "DATE", "NOTE"))
+        #self.notes_list = wx.ListBox(self, size=(-1, -1), choices=NUMBERS, style=wx.LB_SINGLE | wx.BORDER_NONE)
 
         self.sizer_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
         self.sizer_notes.Add(self.notes_header, border=2, flag=wx.ALL | wx.EXPAND)
@@ -351,7 +422,7 @@ class PartsTabPanel(wx.Panel):
 
 
     def revision_dialogue(self, event, pn, field):
-        dialog = ModifyFieldDialog(self, event.GetEventObject(), "Editing {0} of part {1}".format(field, pn))
+        dialog = ModifyPartsFieldDialog(self, event.GetEventObject(), self.part_number, self.part_revision, "name", "Editing {0} of part {1}".format(field, pn))
         dialog.ShowModal()
         dialog.Destroy()
         #wx.MessageBox('Pythonspot wxWidgets demo', 'Editing __ of part ' + 'stringhere', wx.OK | wx.ICON_INFORMATION)
