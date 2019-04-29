@@ -53,98 +53,77 @@ def part_to_dir(pn):
 
 
 class ImgGridPanel(scrolled.ScrolledPanel):
-    """Summary of class here.
+    """Custom scrolled grid panel that displays the photos associated with the part of the parent tab
 
-    Longer class information....
-    Longer class information....
+        Args:
+            parent (ref): Reference to the parent, generally
 
-    Attributes:
-        likes_spam: A boolean indicating if we like SPAM or not.
-        eggs: An integer count of the eggs we have laid.
+        Attributes:
+            icon_size (int): Square size intended for the icon for each image
+            icon_gap (int): Distance between adjacent icons
+            hyster_low (int): Keep for now
+            hyster_high (int): Keep for now
+
+        TODO LIN000-01: Normalize image grid behaviour on resize
+        TODO LIN000-02: Fix initial row/col behaviour of grid
+        TODO LIN000-03: Update image grid after adding image
+        TODO LIN000-04: Grey out and no select for new image text - extend to create general method for several dialogs
+        TODO LIN000-05: Change icon_gap and icon_size to class variables
     """
 
     def __init__(self, parent):
         """Constructor"""
-        super(ImgGridPanel, self).__init__(parent, style=wx.BORDER_SIMPLE)
+        super().__init__(parent, style=wx.BORDER_SIMPLE)
 
         # Variables
-        self.icon_size = 100
+        self.icon_size = 120
         self.hyster_low = 5
         self.hyster_high = self.icon_size - self.hyster_low
         self.icon_gap = 5
         self.parent = parent
 
-        # Load list of images from database CHANGEME
+        # Load list of images from database and store the image names with extensions
         conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
         crsr = conn.cursor()
-        crsr.execute("SELECT image FROM Images WHERE part_num='" + self.parent.part_number +
-                     "' AND part_rev='" + self.parent.part_revision + "'")
+        crsr.execute("SELECT image FROM Images WHERE part_num=(?) AND part_rev=(?);",
+                     (self.parent.part_number, self.parent.part_revision))
         self.image_list = [i[0] for i in crsr.fetchall()]
-        print(self.image_list)
         conn.close()
 
-
+        # Create list of raw images
         self.images = [os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), y) for y in self.image_list]
 
-
-        #Load dict of image comments from sql database
-        #self.comments = {}
-        # try:
-        #     with open(os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), 'comments.txt')) as comfile:
-        #         _entries = comfile.read().split('\n' + chr(00) + '\n')
-        #         for entry in _entries:
-        #             _name, _comment = entry.split('<' + chr(00) + '>')
-        #             self.comments[_name] = _comment
-        # except FileNotFoundError:
-        #     pass
-
+        # Create a grid sizer to contain image icons
         self.nrows, self.ncols = 1, len(self.images)
         self.sizer_grid = wx.GridSizer(rows=self.nrows + 1, cols=self.ncols, hgap=self.icon_gap, vgap=self.icon_gap)
 
-
-        # Add images to the grid.
+        # Add image icons to the grid
         for r in range(self.nrows):
             for c in range(self.ncols):
                 _n = self.ncols * r + c
-                _tmp = crop_square(wx.Image(self.images[_n], wx.BITMAP_TYPE_ANY)).Rescale(self.icon_size, self.icon_size)
-                _temp = wx.StaticBitmap(self, id=_n, bitmap=wx.BitmapFromImage(_tmp))
-                _temp.Bind(wx.EVT_LEFT_UP, self.image_click_event)
+                _tmp = crop_square(wx.Image(self.images[_n],
+                                            wx.BITMAP_TYPE_ANY)).Rescale(self.icon_size, self.icon_size)
+                _temp = wx.StaticBitmap(self, id=_n, bitmap=wx.Bitmap(_tmp))
+                _temp.Bind(wx.EVT_LEFT_UP, self.event_image_click)
                 self.sizer_grid.Add(_temp, wx.EXPAND)
 
-        _tmp = wx.Image(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\plus.png", wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
-        _temp0 = wx.StaticBitmap(self, bitmap=wx.BitmapFromImage(_tmp))
-        _temp0.Bind(wx.EVT_LEFT_UP, self.add_image_event)
+        # Add a button to the grid to add further images
+        _tmp = wx.Image(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\plus.png",
+                        wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
+        _temp0 = wx.StaticBitmap(self, bitmap=wx.Bitmap(_tmp))
+        _temp0.Bind(wx.EVT_LEFT_UP, self.event_add_image)
         self.sizer_grid.Add(_temp0, wx.EXPAND)
-
-        # for r in range(self.nrows):
-        #     c=1#for c in range(self.ncols):
-        #     _n = self.ncols * r + c
-        #     _tmp = wx.Image(self.imgs[_n], wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
-        #     _temp2 = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(_tmp))
-        #     _temp2.Bind(wx.EVT_LEFT_UP, lambda event: self.image_click_event(event, self.imgs, _n))
-        #     self.sizer_grid.Add(_temp2, wx.EXPAND)
-
-        # self.grid.Fit(self)
 
         self.SetSizer(self.sizer_grid)
 
-
-        #self.imgSizer = wx.BoxSizer(wx.VERTICAL)
-        #for each in imagelist:
-        #    self.imgSizer.Add(each, 1, flag=wx.ALL | wx.EXPAND, border=10)
-        #self.SetSizer(self.imgSizer)
-
-        self.SetAutoLayout(1)
+        # Setup the scrolling style and function, wanting only vertical scroll to be available
+        # self.SetAutoLayout(1)
         self.SetupScrolling()
-        #self.Bind(wx.EVT_PAINT, self.OnPaint)
-        #self.bitmap.Bind(wx.EVT_MOTION, self.OnMove)
-        #self.bitmap.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
-        #self.bitmap.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-        self.IsRectReady = False
-        self.newRectPara = [0, 0, 0, 0]
+        self.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
+        self.SetWindowStyle(wx.VSCROLL)
 
+        # Bind an event to any resizing of the grid
         self.Bind(wx.EVT_SIZE, self.resize_grid)
-
 
     def resize_grid(self, *args):
         """Resize the image grid
@@ -176,66 +155,143 @@ class ImgGridPanel(scrolled.ScrolledPanel):
             self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
             self.sizer_grid.SetRows(self.nrows)
 
-    def image_click_event(self, event):
+    def event_image_click(self, event):
         """Open image dialog"""
         dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
 
-    def add_image_event(self, event):
-
+    def event_add_image(self, event):
+        """Call up dialogs to add an image and its comment to the database"""
         with wx.FileDialog(None, "Open", "", "",
                            "BMP and GIF files (*.bmp;*.gif)|*.png;*.gif|PNG files (*.png)|*.png",
-                           wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST) as fileDialog:
+                           wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST) as file_dialog:
 
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
+            if file_dialog.ShowModal() == wx.ID_CANCEL:
                 return  # The user changed their mind
 
-            selected_files = fileDialog.GetPaths()
+            selected_files = file_dialog.GetPaths()
 
         # Proceed loading the file chosen by the user
-        print(selected_files)
-
-        # dialog = ImageAddDialog(selected_files, os.path.join(DATADIR, "img", *part_to_dir(self.parent.part_number), self.parent.part_number + ".json"))
         dialog = ImageAddDialog(selected_files, self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
 
 
-class NotesPanel(scrolled.ScrolledPanel):
-    """Summary of class here.
+class NotesPanel(wx.Panel):
+    """Custom panel that contains and scales column headers according to a child scrolled grid panel
 
-    Longer class information....
-    Longer class information....
+        Class Variables:
+            vspace (int): Vertical spacing between rows in grid
+            hspace (int): Horizontal spacing between columns in grid
+
+        Args:
+            parent (ref): Reference to the parent, generally
+
+        Attributes:
+            purgelist (list: wx.object): List of header objects to be purged on resize
+            icon_gap (int): Distance between adjacent icons
+            hyster_low (int): Keep for now
+            hyster_high (int): Keep for now
+
+    """
+
+    vspace = 5
+    hspace = 15
+
+    def __init__(self, parent, *args, **kwargs):
+        """Constructor"""
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+
+        self.parent = parent
+        self.purgelist = []
+
+        # Set up sizer to contain header and scrolled notes
+        self.panel_notes = NotesScrolled(self)
+        self.sizer_title = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_main = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_main.Add(self.sizer_title, flag=wx.ALL | wx.EXPAND)
+        self.sizer_main.Add(self.panel_notes, proportion=1, flag=wx.ALL | wx.EXPAND)
+
+        # Refresh headers, repopulating self.sizer_title
+        self.refresh_headers()
+
+        self.SetSizer(self.sizer_main)
+        self.Layout()
+
+    def refresh_headers(self):
+        """Refresh the column headers to reflect the column widths in the lower scrolled sizer"""
+
+        column_widths = self.panel_notes.sizer_grid.GetColWidths()
+        column_widths.append(0)
+        column_widths.append(0)
+        column_widths.append(0)
+        print("pickles", column_widths)
+
+        for purge in self.purgelist:
+            purge.Destroy()
+        self.purgelist = []
+
+        while not self.sizer_title.IsEmpty():
+            self.sizer_title.Remove(0)
+
+        # TODO LIN000-00: Once again check generalization for spacing
+        self.purgelist.append(
+            wx.StaticText(self, size=(max(column_widths[0], 25) + NotesPanel.hspace, -1),
+                          label="Date", style=wx.ALIGN_LEFT))
+        self.purgelist.append(
+            wx.StaticText(self, size=(max(column_widths[1], 40) + NotesPanel.hspace, -1),
+                          label="Author", style=wx.ALIGN_LEFT))
+        self.purgelist.append(wx.StaticText(self, label="Note", style=wx.ALIGN_LEFT))
+        self.purgelist.append(wx.StaticText(self, label="X", style=wx.ALIGN_CENTER))
+
+        self.sizer_title.Add(self.purgelist[0])
+        self.sizer_title.Add(self.purgelist[1])
+        self.sizer_title.Add(self.purgelist[2], proportion=1)
+        self.sizer_title.Add(self.purgelist[3])
+
+        self.sizer_title.RecalcSizes()
+
+
+class NotesScrolled(scrolled.ScrolledPanel):
+    """Scrolled panel containing a grid of notes data.
+
+    This class is generally the child of NotesPanel, which contains the headers outside the scroll
 
     Attributes:
         likes_spam: A boolean indicating if we like SPAM or not.
         eggs: An integer count of the eggs we have laid.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, *args, **kwargs):
         """Constructor"""
-        super().__init__(parent)#, style=wx.BORDER_SIMPLE)
+        super().__init__(parent, *args, **kwargs, style=wx.ALL | wx.VSCROLL)#, style=wx.BORDER_SIMPLE)
 
         self.parent = parent
-        vspace = 5
-        hspace = 15
-        self.sizer_main = wx.FlexGridSizer(3, vspace, hspace)
-        self.sizer_main.AddGrowableCol(2)
-        self.sizer_main.SetFlexibleDirection(wx.HORIZONTAL)
-        self.sizer_main.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
+        self.sizer_grid = wx.FlexGridSizer(3, NotesPanel.vspace, NotesPanel.hspace)
+        self.sizer_grid.AddGrowableCol(2)
+        self.sizer_grid.SetFlexibleDirection(wx.HORIZONTAL)
+        self.sizer_grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
 
-        self.sizer_main.Add(wx.StaticText(self, label="Date", style=wx.ALIGN_CENTER))  # , wx.EXPAND)
-        self.sizer_main.Add(wx.StaticText(self, label="Author", style=wx.ALIGN_CENTER))  # , wx.EXPAND)
-        self.sizer_main.Add(wx.StaticText(self, label="Note", style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+        # TODO LIN000-00: Keep for the moment, in case hiding headers is the key to generalizing spacing
+        # self.sizer_grid.Add(wx.StaticText(self, label="Date"))
+        # self.sizer_grid.Add(wx.StaticText(self, label="Author"))
+        # self.sizer_grid.Add(wx.StaticText(self, label="Note"))
+
+        self.SetSizer(self.sizer_grid)
+        self.Layout()
+        self.min_widths = self.sizer_grid.GetColWidths()
+        print(self.min_widths)
+
+        # for header_item in self.sizer_grid.GetChildren():
+        #     header_item.Show(False)
 
         self.load_notes()
 
-        self.SetSizer(self.sizer_main)
-        self.Layout()
-
-        a = self.sizer_main.GetColWidths()
-        print("Note Column Sizes", a)
+        # Setup the scrolling style and function, wanting only vertical scroll to be available
+        self.SetupScrolling()
+        self.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
+        self.SetWindowStyle(wx.VSCROLL)
 
     def load_notes(self):
         """Open SQL database and load notes from table"""
@@ -244,30 +300,37 @@ class NotesPanel(scrolled.ScrolledPanel):
         conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
         crsr = conn.cursor()
         crsr.execute("SELECT date, author, note FROM Notes WHERE part_num=(?) AND part_rev=(?)",
-                     (self.parent.part_number, "0"))#self.parent.part_revision))
+                     (self.parent.parent.part_number, "0"))#self.parent.parent.part_revision))
         _tmp_list = crsr.fetchall()
-        print("Loaded Notes", _tmp_list)
         conn.close()
 
-        _tmp_list = sorted(_tmp_list, key=lambda x: x[0])
+        # Sort and remove non-date information from the datetime string
+        if _tmp_list:
+            _tmp_list = [(a[0][:10],)+a[1:] for a in sorted(_tmp_list, key=lambda x: x[0])]
 
-        for note in _tmp_list:
-            self.sizer_main.Add(wx.StaticText(self, label=note[0][:10], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
-            self.sizer_main.Add(wx.StaticText(self, label=note[1], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
-            self.sizer_main.Add(wx.StaticText(self, label=note[2], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+        # Add the notes to the grid
+        # TODO LIN000-00: Unsure that this forced sizing will work cross-platform. Check and/or rewrite to generalize
+        for i, note in enumerate(_tmp_list):
+            _tmp_item = wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND)
+            self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
+            _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
+            _tmp_item = wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND)
+            self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
+            _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
+            _tmp_item = wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END)
+            self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
+            _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
 
     def add_note(self):
-        for job in self.parent.parent.jobs:
-            self.sizer_code_noc.Add(wx.StaticText(self, label=job[0])) # proportion=1, border=15, flag=wx.ALL | wx.EXPAND)
-            self.sizer_code_noc.AddSpacer(self.vspace)
-            self.sizer_title_noc.Add(wx.StaticText(self, label=job[1]))
-            self.sizer_title_noc.AddSpacer(self.vspace)
-            self.sizer_code_onet.Add(wx.StaticText(self, label=job[2]))
-            self.sizer_code_onet.AddSpacer(self.vspace)
-            self.sizer_title_onet.Add(wx.StaticText(self, label=job[3]))
-            self.sizer_title_onet.AddSpacer(self.vspace)
+        pass
 
-            self.Layout()
+    def event_note_click(self, event):
+        """Open note-editing dialog"""
+
+        print(event.GetEventObject().GetId())
+        #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
+        #dialog.ShowModal()
+        #dialog.Destroy()
 
 
 class PartsTabPanel(wx.Panel):
@@ -289,6 +352,7 @@ class PartsTabPanel(wx.Panel):
                                 "vestibulum lacus sit amet ullamcorper efficitur. Morbi ultrices commodo leo, " \
                                 "ultricies posuere mi finibus id. Nulla convallis velit ante, sed egestas nulla " \
                                 "dignissim ac. "
+        self.load_data()
 
         # Text Widgets
         self.part_number_text = wx.StaticText(self, label=self.part_number, style=wx.ALIGN_CENTER)
@@ -320,14 +384,18 @@ class PartsTabPanel(wx.Panel):
         self.sizer_long_descrip.Add(self.long_descrip_text, flag=wx.ALL | wx.EXPAND)
         self.long_descrip_text.Bind(wx.EVT_SET_FOCUS, self.onfocus)
 
+
+
+
+
         self.notes_header = NotesPanel(self)
         # self.notes_header = wx.StaticText(self, -1, "{:<6}{:<25}{}".format("PM", "DATE", "NOTE"))
         #self.notes_list = wx.ListBox(self, size=(-1, -1), choices=NUMBERS, style=wx.LB_SINGLE | wx.BORDER_NONE)
 
         self.sizer_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
-        self.sizer_notes.Add(self.notes_header, border=2, flag=wx.ALL | wx.EXPAND)
+        self.sizer_notes.Add(self.notes_header, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
-        self.sizer_notes.Add(self.notes_list, flag=wx.ALL | wx.EXPAND)
+        #self.sizer_notes.Add(self.notes_list, flag=wx.ALL | wx.EXPAND)
 
         self.temptemptemp = ImgGridPanel(self)#ListCtrl(self, size=(-1,100), style=wx.LC_ICON | wx.BORDER_SUNKEN)
         #self.temptemptemp.InsertColumn(0, 'Subject')
@@ -427,6 +495,34 @@ class PartsTabPanel(wx.Panel):
         dialog.Destroy()
         #wx.MessageBox('Pythonspot wxWidgets demo', 'Editing __ of part ' + 'stringhere', wx.OK | wx.ICON_INFORMATION)
         #event.GetEventObject().SetLabel("TEREREE")
+
+    def load_data(self):
+        """Load the part data from the database"""
+
+        # Load part data from database
+        conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        crsr = conn.cursor()
+        crsr.execute("SELECT part_type, name, description, successor_num, successor_rev, mugshot, drawing FROM Parts WHERE part_num=(?) AND part_rev=(?)",
+                     (self.part_number, self.part_revision))
+        _tmp_list = crsr.fetchone()
+        print("Loaded Parts Data", _tmp_list)
+        conn.close()
+
+        if _tmp_list:
+            self.part_type = _tmp_list[0]
+
+        # _tmp_list = sorted(_tmp_list, key=lambda x: x[0])
+        #
+        # for note in _tmp_list:
+        #     _tmp = [wx.StaticText(self, id=6, label=note[0][:10], style=wx.ALIGN_CENTER),
+        #             wx.StaticText(self, id=6, label=note[1], style=wx.ALIGN_CENTER),
+        #             wx.StaticText(self, id=6, label=note[2], style=wx.ALIGN_CENTER)]
+        #     for each in _tmp:
+        #         self.sizer_main.Add(each)  # , wx.EXPAND)
+        #         each.Bind(wx.EVT_LEFT_UP, self.event_note_click)
+        #     # self.sizer_main.Add(wx.StaticText(self, label=note[1], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+        #     # self.sizer_main.Add(wx.StaticText(self, label=note[2], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
+        #     # _temp.Bind(wx.EVT_LEFT_UP, self.image_click_event)
 
     def opennewpart(self, event):
         index = event.GetSelection()
