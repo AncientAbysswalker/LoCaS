@@ -26,7 +26,7 @@ class InterfaceWindow(wx.Frame):
         self.sizer_login = wx.BoxSizer(wx.VERTICAL)
         self.sizer_parts = wx.BoxSizer(wx.VERTICAL)
 
-        self.pane_parts = InterfacePanel(self)
+        self.pane_parts = MainPane(self)
         self.pane_parts.Hide()
         self.sizer_parts.Add(self.pane_parts, proportion=1, flag=wx.EXPAND)
 
@@ -51,7 +51,7 @@ class InterfaceWindow(wx.Frame):
 
     def onAdd(self, event):
         del self.pane_login
-        self.pane_login = InterfacePanel(self)
+        self.pane_login = MainPane(self)
         #self.panel.notebook.fuck("fuck")
         #PANELS.append("rrr")
         #print("sdgsrg")

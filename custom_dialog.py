@@ -13,6 +13,7 @@ import shutil
 
 DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
 SQLCONN = r'C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite'
+UNSELECTEDGRAY = (148, 148, 148)
 
 def part_to_dir(pn):
     dir1, temp = pn.split('-')
@@ -195,6 +196,9 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
 
         _rewrite_value = self.editbox.GetValue()
         self.edit_field.SetLabel(_rewrite_value)
+        self.edit_field.SetForegroundColour((255, 255, 255))
+
+        # TODO LIN001-01: Add handling for NULL comments
 
         # Connect to the database
         conn = sqlite3.connect(SQLCONN)
@@ -358,11 +362,12 @@ class ImageDialog(ImageDialogBase):
         self.pnl_comment = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
 
-        self.pnl_comment.SetBackgroundColour((248, 248, 248))  # set text back color
+        # If database entry is null, make text color gray. Otherwise change text. Set background color
         try:
             self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
         except TypeError:
-            pass
+            self.pnl_comment.SetForegroundColour(UNSELECTEDGRAY)
+        self.pnl_comment.SetBackgroundColour((248, 248, 248))
 
         self.pnl_comment.Bind(wx.EVT_SET_FOCUS, self.onfocus)
         self.pnl_comment.Bind(wx.EVT_LEFT_DCLICK, self.event_comment_edit)

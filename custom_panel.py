@@ -12,11 +12,14 @@ Attributes:
 """
 
 COLORS = ["red", "blue", "black", "yellow", "green"]
-NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019','moretext for my othershit'), "{:<6}|{:<25}|{}".format('J1','23-J019','moretext for my othershit'), '2', '3', '4']
+NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019', 'moretext for my othershit'), "{:<6}|{:<25}|{}".format('J1','23-J019','moretext for my othershit'), '2', '3', '4']
 PANELS = ["107-00107", "G39-00107", "777-00107"]
 SUBLIST = ["999-00107", "G39-00107", "767-00107"]
 SUPLIST = ["456-00107", "G39-06767", "776-04577"]
 DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
+
+# Import global colors
+import global_colors
 
 import wx
 import glob
@@ -108,7 +111,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
                 self.sizer_grid.Add(_temp, wx.EXPAND)
 
         # Add a button to the grid to add further images
-        _tmp = wx.Image(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\plus.png",
+        _tmp = wx.Image(os.path.join(DATADIR, 'img', "plus.png"),
                         wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
         _temp0 = wx.StaticBitmap(self, bitmap=wx.Bitmap(_tmp))
         _temp0.Bind(wx.EVT_LEFT_UP, self.event_add_image)
@@ -193,7 +196,6 @@ class NotesPanel(wx.Panel):
             icon_gap (int): Distance between adjacent icons
             hyster_low (int): Keep for now
             hyster_high (int): Keep for now
-
     """
 
     vspace = 5
@@ -325,7 +327,9 @@ class NotesScrolled(scrolled.ScrolledPanel):
         pass
 
     def event_note_click(self, event):
-        """Open note-editing dialog"""
+        """Open note-editing dialog
+        TODO LIN001-00: Implement note-editing event
+        """
 
         print(event.GetEventObject().GetId())
         #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
@@ -343,102 +347,41 @@ class PartsTabPanel(wx.Panel):
         self.parent = args[0]
         self.part_number = pn
         self.part_revision = "0"
-        self.part_type = "Finished Product"
-        self.short_description = "These are a short descrip for a part!"
-        self.long_description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque tempor, elit " \
+        self.part_type = "You Should NEVER See This Text!!"
+        self.short_description = "You Should NEVER See This Text!!"
+        self.long_description = "You Should NEVER See This Text!!" \
+                                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque tempor, elit " \
                                 "sed pulvinar feugiat, tortor tortor posuere neque, eget ultrices eros est laoreet " \
                                 "velit. Aliquam erat volutpat. Donec mi libero, elementum eu augue eget, iaculis " \
                                 "dignissim ex. Nullam tincidunt nisl felis, eu efficitur turpis sodales et. Fusce " \
                                 "vestibulum lacus sit amet ullamcorper efficitur. Morbi ultrices commodo leo, " \
                                 "ultricies posuere mi finibus id. Nulla convallis velit ante, sed egestas nulla " \
                                 "dignissim ac. "
+        self.suc_number = "BADBADBAD"
+        self.suc_revision = "BAD"
+        self.mugshot = None
+        self.drawing = None
+
         self.load_data()
 
-        # Text Widgets
+        # Top row of information
         self.part_number_text = wx.StaticText(self, label=self.part_number, style=wx.ALIGN_CENTER)
         self.text_rev_number = wx.StaticText(self, label="R" + self.part_revision, style=wx.ALIGN_CENTER)
-        self.part_type_text = wx.StaticText(self, size=(100, -1), label=self.part_type, style=wx.ALIGN_CENTER)
-        self.short_descrip_text = wx.StaticText(self, size=(-1, -1), label=self.short_description, style=wx.ST_ELLIPSIZE_END)
+        # self.part_type_text = wx.StaticText(self, size=(100, -1), label=self.part_type, style=wx.ALIGN_CENTER)
+        #         # self.short_descrip_text = wx.StaticText(self, size=(-1, -1), label=self.short_description, style=wx.ST_ELLIPSIZE_END)
+        self.part_type_text = self.style_null_entry(self.part_type,
+                                                    wx.StaticText(self, size=(100, -1), style=wx.ALIGN_CENTER))
+        self.short_descrip_text = self.style_null_entry(self.short_description,
+                                                    wx.StaticText(self, size=(-1, -1), style=wx.ST_ELLIPSIZE_END))
 
-        # EVENTUALLY SWAP OUT FOR ULTIMATELISTBOX
-        self.sub_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUBLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
-
-
-        #self.sub_assembly_list = wx.ListCtrl(self, size=(-1, -1))
-        #self.sub_assembly_list.InsertColumn(0,'Sub-Assemblies')
-        #temp=0
-        #for sub in SUBLIST:
-        #    index = self.sub_assembly_list.InsertItem(temp, sub)
-            #self.list.SetStringItem(index, 1, i[1])
-            #self.list.SetStringItem(index, 2, i[2])
-         #   temp+=1
-
-        self.sup_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUPLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
-        #self.sup_assembly_list = wx.ListCtrl(self, size=(-1, -1), style=wx.LC_REPORT | wx.BORDER_SUNKEN)  # , size=(-1, 200), style=wx.LB_SINGLE)
-        #self.sup_assembly_list.InsertColumn(0, 'Super-Assemblies', width=125)
-        #self.sup_assembly_list.InsertItem(0,'Supelies')
-        #self.sup_assembly_list.InsertItem(1, 'Supelies')
-
-        self.long_descrip_text = wx.TextCtrl(self, -1, self.long_description, size=(-1, 35), style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE)
-        self.sizer_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
-        self.sizer_long_descrip.Add(self.long_descrip_text, flag=wx.ALL | wx.EXPAND)
-        self.long_descrip_text.Bind(wx.EVT_SET_FOCUS, self.onfocus)
-
-
-
-
-
-        self.notes_header = NotesPanel(self)
-        # self.notes_header = wx.StaticText(self, -1, "{:<6}{:<25}{}".format("PM", "DATE", "NOTE"))
-        #self.notes_list = wx.ListBox(self, size=(-1, -1), choices=NUMBERS, style=wx.LB_SINGLE | wx.BORDER_NONE)
-
-        self.sizer_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
-        self.sizer_notes.Add(self.notes_header, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
-        #self.sizer_notes.Add(self.notes_list, flag=wx.ALL | wx.EXPAND)
-
-        self.temptemptemp = ImgGridPanel(self)#ListCtrl(self, size=(-1,100), style=wx.LC_ICON | wx.BORDER_SUNKEN)
-        #self.temptemptemp.InsertColumn(0, 'Subject')
-        #self.temptemptemp = wx.TextCtrl(self, -1, self.long_description, size=(-1, -1),
-        #                                style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY)
-
-        #Revision Binds
-        self.revision_bind(self.short_descrip_text, 'Short Description', self.part_number)
-
-        self.sub_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
-        self.sub_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
-        self.sup_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
-        self.sup_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
-
+        # Revision number buttons and bindings
         self.button_rev_next = wx.Button(self, size=(10, -1))
         self.button_rev_prev = wx.Button(self, size=(10, -1))
-
         self.button_rev_next.Bind(wx.EVT_BUTTON, self.event_rev_next)
         self.button_rev_prev.Bind(wx.EVT_BUTTON, self.event_rev_prev)
 
-        #LEGACY BIND FOR FIDELITY -- self.shortdescriptext.Bind(wx.EVT_LEFT_DCLICK,
-        #                           lambda event: self.revision_dialogue(event, self.part_number, self.shortdescriptext))
-
-
-        image = wx.Image(os.path.join(DATADIR, r'whitewitch2.jpg'), wx.BITMAP_TYPE_ANY)
-        imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image).Rescale(250, 250)))
-        #print(self.shortdescriptext.label)
-
-
-
-        #wx.Button(self, size=(200, -1), label="Something else here? Maybe!")
-
-        self.sizer_master = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_master_horizontal = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_master_horizontal2 = wx.BoxSizer(wx.HORIZONTAL)
-        #blep=wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER)
-        #blep.SetBackgroundColour("purple")
-        #self.sizer_master.Add(blep, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
-
-        self.sizer_master_left = wx.BoxSizer(wx.VERTICAL)
-        #self.test = wx.StaticBox(self, -1, "textbitches", flag=wx.Font(8))
+        # Sizer for top row of information
         self.sizer_partline = wx.BoxSizer(wx.HORIZONTAL)
-        #self.partnumtext.SetBackgroundColour("purple")
         self.sizer_partline.Add(self.part_number_text, border=5, flag=wx.ALL)
         self.sizer_partline.Add(self.button_rev_prev, flag=wx.ALL)
         self.sizer_partline.Add(self.text_rev_number, border=5, flag=wx.ALL)
@@ -450,6 +393,59 @@ class PartsTabPanel(wx.Panel):
         self.sizer_partline.Add(self.short_descrip_text, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
 
 
+
+        # EVENTUALLY SWAP OUT FOR ULTIMATELISTBOX?
+        self.sub_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUBLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
+        self.sup_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUPLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
+        self.long_descrip_text = self.style_null_entry(self.long_description,
+                                                       wx.TextCtrl(self, -1, "", size=(-1, 35), style=wx.TE_MULTILINE |
+                                                                                                      wx.TE_WORDWRAP |
+                                                                                                      wx.TE_READONLY |
+                                                                                                      wx.BORDER_NONE))
+
+        self.sizer_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
+        self.sizer_long_descrip.Add(self.long_descrip_text, flag=wx.ALL | wx.EXPAND)
+        self.long_descrip_text.Bind(wx.EVT_SET_FOCUS, self.onfocus)
+
+        self.notes_panel = NotesPanel(self)
+
+        self.sizer_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
+        self.sizer_notes.Add(self.notes_panel, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+
+
+        self.icon_grid = ImgGridPanel(self)
+
+        #Revision Binds
+        self.revision_bind(self.short_descrip_text, 'Short Description', self.part_number)
+
+        # Assembly list binds
+        self.sub_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.sub_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
+        self.sup_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.sup_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
+
+
+        #LEGACY BIND FOR FIDELITY -- self.shortdescriptext.Bind(wx.EVT_LEFT_DCLICK,
+        #                           lambda event: self.revision_dialogue(event, self.part_number, self.shortdescriptext))
+
+        # Primary part image
+        if self.mugshot:
+            image = wx.Image(self.mugshot, wx.BITMAP_TYPE_ANY)
+        else:
+            image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
+        imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image).Rescale(250, 250)))
+
+        # Master Sizer
+        self.sizer_master = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_master_horizontal = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_master_horizontal2 = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.sizer_master_left = wx.BoxSizer(wx.VERTICAL)
+        #self.test = wx.StaticBox(self, -1, "textbitches", flag=wx.Font(8))
+
+
+
         self.sizer_master_left.Add(self.sizer_partline, flag=wx.ALL | wx.EXPAND)
         self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
         self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
@@ -457,19 +453,17 @@ class PartsTabPanel(wx.Panel):
 
         self.sizer_master_left.Add(self.sizer_long_descrip, flag=wx.ALL | wx.EXPAND)  # , border=15)
         self.sizer_master_left.Add(self.sizer_notes, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
-        self.sizer_master_left.Add(self.temptemptemp, proportion=2, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master_left.Add(self.icon_grid, proportion=2, flag=wx.ALL | wx.EXPAND)
         #self.sizer_master_left.Add(self.listBox, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
 
 
-        #Assembly Sizers
+        # Assembly Sizers
         self.sizer_assembly_left = wx.BoxSizer(wx.VERTICAL)
         self.sizer_assembly_left.Add(wx.StaticText(self, label="Children", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly_left.Add(self.sub_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
-
         self.sizer_assembly_right = wx.BoxSizer(wx.VERTICAL)
         self.sizer_assembly_right.Add(wx.StaticText(self, label="Parents", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly_right.Add(self.sup_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
-
         self.sizer_assembly = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_assembly.Add(self.sizer_assembly_left, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly.Add(self.sizer_assembly_right, proportion=1, flag=wx.ALL | wx.EXPAND)
@@ -493,8 +487,6 @@ class PartsTabPanel(wx.Panel):
         dialog = ModifyPartsFieldDialog(self, event.GetEventObject(), self.part_number, self.part_revision, "name", "Editing {0} of part {1}".format(field, pn))
         dialog.ShowModal()
         dialog.Destroy()
-        #wx.MessageBox('Pythonspot wxWidgets demo', 'Editing __ of part ' + 'stringhere', wx.OK | wx.ICON_INFORMATION)
-        #event.GetEventObject().SetLabel("TEREREE")
 
     def load_data(self):
         """Load the part data from the database"""
@@ -502,45 +494,53 @@ class PartsTabPanel(wx.Panel):
         # Load part data from database
         conn = sqlite3.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
         crsr = conn.cursor()
-        crsr.execute("SELECT part_type, name, description, successor_num, successor_rev, mugshot, drawing FROM Parts WHERE part_num=(?) AND part_rev=(?)",
+        crsr.execute("SELECT part_type, name, description, successor_num, successor_rev, mugshot, drawing "
+                     "FROM Parts WHERE part_num=(?) AND part_rev=(?)",
                      (self.part_number, self.part_revision))
-        _tmp_list = crsr.fetchone()
-        print("Loaded Parts Data", _tmp_list)
+        _tmp_sql_data = crsr.fetchone()
         conn.close()
 
-        if _tmp_list:
-            self.part_type = _tmp_list[0]
+        if _tmp_sql_data:
+            self.part_type, \
+            self.short_description, \
+            self.long_description, \
+            self.suc_number, \
+            self.suc_revision, \
+            self.mugshot, \
+            self.drawing \
+                = _tmp_sql_data
 
-        # _tmp_list = sorted(_tmp_list, key=lambda x: x[0])
-        #
-        # for note in _tmp_list:
-        #     _tmp = [wx.StaticText(self, id=6, label=note[0][:10], style=wx.ALIGN_CENTER),
-        #             wx.StaticText(self, id=6, label=note[1], style=wx.ALIGN_CENTER),
-        #             wx.StaticText(self, id=6, label=note[2], style=wx.ALIGN_CENTER)]
-        #     for each in _tmp:
-        #         self.sizer_main.Add(each)  # , wx.EXPAND)
-        #         each.Bind(wx.EVT_LEFT_UP, self.event_note_click)
-        #     # self.sizer_main.Add(wx.StaticText(self, label=note[1], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
-        #     # self.sizer_main.Add(wx.StaticText(self, label=note[2], style=wx.ALIGN_CENTER))  # , wx.EXPAND)
-        #     # _temp.Bind(wx.EVT_LEFT_UP, self.image_click_event)
+    def style_null_entry(self, conditional, entry_field):
+        """Style a text entry based on its SQL counterpart being NULL"""
+
+        # Determine if SetValue or SetLabel is required to change text
+        try:
+            _ = entry_field.GetValue()
+            edit_field = entry_field.SetValue
+        except AttributeError:
+            edit_field = entry_field.SetLabel
+
+        # Set the color and text according to if NULL
+        if conditional:
+            edit_field(conditional)
+        else:
+            edit_field("No Entry")
+            entry_field.SetForegroundColour(global_colors.UNSELECTEDGRAY)
+
+        return entry_field
 
     def opennewpart(self, event):
         index = event.GetSelection()
         self.parent.fuck(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
         event.GetEventObject().SetSelection(wx.NOT_FOUND)
-        #self.text.SetValue(self.MESSAGE_FIELD_TYPES['1'][index])
 
     def updateTooltip(self, event):
         """
-        Update the tooltip!
+        Update the tooltip to show part name
         """
 
-        pos = wx.GetMousePosition()
-        mouse_pos = self.sub_assembly_list.ScreenToClient(pos)
+        mouse_pos = self.sub_assembly_list.ScreenToClient(wx.GetMousePosition())
         item_index = self.sub_assembly_list.HitTest(mouse_pos)
-
-
-
 
         if item_index != -1:
             a = "%s is a good book!" % self.sub_assembly_list.GetString(item_index)

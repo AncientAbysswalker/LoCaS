@@ -6,7 +6,7 @@ import login
 import custom_panel
 
 
-class InterfacePanel(wx.Panel):
+class MainPane(wx.Panel):
     """Master pane that deals with login behaviour for the application.
 
             Args:
