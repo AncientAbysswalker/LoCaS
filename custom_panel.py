@@ -58,12 +58,15 @@ def part_to_dir(pn):
 class ImgGridPanel(scrolled.ScrolledPanel):
     """Custom scrolled grid panel that displays the photos associated with the part of the parent tab
 
+        Class Variables:
+            icon_gap (int): Spacing between adjacent icons in sizer
+            icon_size (int): Square size intended for the icon for each image
+
         Args:
-            parent (ref): Reference to the parent, generally
+            parent (ref): Reference to the parent panel
 
         Attributes:
-            icon_size (int): Square size intended for the icon for each image
-            icon_gap (int): Distance between adjacent icons
+            parent (ref): Reference to the parent panel
             hyster_low (int): Keep for now
             hyster_high (int): Keep for now
 
@@ -71,18 +74,18 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         TODO LIN000-02: Fix initial row/col behaviour of grid
         TODO LIN000-03: Update image grid after adding image
         TODO LIN000-04: Grey out and no select for new image text - extend to create general method for several dialogs
-        TODO LIN000-05: Change icon_gap and icon_size to class variables
     """
+
+    icon_gap = 5
+    icon_size = 120
 
     def __init__(self, parent):
         """Constructor"""
         super().__init__(parent, style=wx.BORDER_SIMPLE)
 
         # Variables
-        self.icon_size = 120
         self.hyster_low = 5
-        self.hyster_high = self.icon_size - self.hyster_low
-        self.icon_gap = 5
+        self.hyster_high = ImgGridPanel.icon_size - self.hyster_low
         self.parent = parent
 
         # Load list of images from database and store the image names with extensions
@@ -98,21 +101,21 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
         # Create a grid sizer to contain image icons
         self.nrows, self.ncols = 1, len(self.images)
-        self.sizer_grid = wx.GridSizer(rows=self.nrows + 1, cols=self.ncols, hgap=self.icon_gap, vgap=self.icon_gap)
+        self.sizer_grid = wx.GridSizer(rows=self.nrows + 1, cols=self.ncols, hgap=ImgGridPanel.icon_gap, vgap=ImgGridPanel.icon_gap)
 
         # Add image icons to the grid
         for r in range(self.nrows):
             for c in range(self.ncols):
                 _n = self.ncols * r + c
                 _tmp = crop_square(wx.Image(self.images[_n],
-                                            wx.BITMAP_TYPE_ANY)).Rescale(self.icon_size, self.icon_size)
+                                            wx.BITMAP_TYPE_ANY)).Rescale(ImgGridPanel.icon_size, ImgGridPanel.icon_size)
                 _temp = wx.StaticBitmap(self, id=_n, bitmap=wx.Bitmap(_tmp))
                 _temp.Bind(wx.EVT_LEFT_UP, self.event_image_click)
                 self.sizer_grid.Add(_temp, wx.EXPAND)
 
         # Add a button to the grid to add further images
         _tmp = wx.Image(os.path.join(DATADIR, 'img', "plus.png"),
-                        wx.BITMAP_TYPE_ANY).Rescale(self.icon_size, self.icon_size)
+                        wx.BITMAP_TYPE_ANY).Rescale(ImgGridPanel.icon_size, ImgGridPanel.icon_size)
         _temp0 = wx.StaticBitmap(self, bitmap=wx.Bitmap(_tmp))
         _temp0.Bind(wx.EVT_LEFT_UP, self.event_add_image)
         self.sizer_grid.Add(_temp0, wx.EXPAND)
@@ -140,22 +143,22 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
         (w, h) = self.GetSize()
 
-        if self.ncols > 1 and w < self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap - self.hyster_low:
+        if self.ncols > 1 and w < self.ncols * ImgGridPanel.icon_size + (self.ncols + 1) * ImgGridPanel.icon_gap - self.hyster_low:
             self.ncols -= 1
-            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
+            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
             self.sizer_grid.SetCols(self.ncols)
             self.sizer_grid.SetRows(self.nrows)
-        elif w > self.ncols * self.icon_size + (self.ncols + 1) * self.icon_gap + self.hyster_high:
+        elif w > self.ncols * ImgGridPanel.icon_size + (self.ncols + 1) * ImgGridPanel.icon_gap + self.hyster_high:
             self.ncols += 1
-            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
+            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
             self.sizer_grid.SetCols(self.ncols)
             self.sizer_grid.SetRows(self.nrows)
 
-        if self.nrows > 1 and h < self.nrows * self.icon_size + (self.nrows + 1) * self.icon_gap - self.hyster_low:
-            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
+        if self.nrows > 1 and h < self.nrows * ImgGridPanel.icon_size + (self.nrows + 1) * ImgGridPanel.icon_gap - self.hyster_low:
+            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
             self.sizer_grid.SetRows(self.nrows)
-        elif h > self.nrows * self.icon_size + (self.nrows + 1) * self.icon_gap + self.hyster_high:
-            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + self.icon_gap) / (self.icon_size + self.icon_gap)))
+        elif h > self.nrows * ImgGridPanel.icon_size + (self.nrows + 1) * ImgGridPanel.icon_gap + self.hyster_high:
+            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
             self.sizer_grid.SetRows(self.nrows)
 
     def event_image_click(self, event):
