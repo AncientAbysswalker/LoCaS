@@ -528,7 +528,7 @@ class PartsTabPanel(wx.Panel):
             edit_field(conditional)
         else:
             edit_field("No Entry")
-            entry_field.SetForegroundColour(global_colors.UNSELECTEDGRAY)
+            entry_field.SetForegroundColour(global_colors.no_entry)
 
         return entry_field
 

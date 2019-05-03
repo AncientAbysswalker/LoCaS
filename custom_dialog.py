@@ -10,6 +10,7 @@ import json
 import sqlite3
 import hashlib
 import shutil
+import global_colors
 
 DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
 SQLCONN = r'C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite'
@@ -196,7 +197,7 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
 
         _rewrite_value = self.editbox.GetValue()
         self.edit_field.SetLabel(_rewrite_value)
-        self.edit_field.SetForegroundColour((255, 255, 255))
+        self.edit_field.SetForegroundColour(global_colors.black)
 
         # TODO LIN001-01: Add handling for NULL comments
 
@@ -367,7 +368,7 @@ class ImageDialog(ImageDialogBase):
             self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
         except TypeError:
             self.pnl_comment.SetForegroundColour(UNSELECTEDGRAY)
-        self.pnl_comment.SetBackgroundColour((248, 248, 248))
+        self.pnl_comment.SetBackgroundColour(global_colors.edit_field)
 
         self.pnl_comment.Bind(wx.EVT_SET_FOCUS, self.onfocus)
         self.pnl_comment.Bind(wx.EVT_LEFT_DCLICK, self.event_comment_edit)
@@ -506,7 +507,7 @@ class ImageAddDialog(ImageDialogBase):
         self.pnl_comment = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
 
-        self.pnl_comment.SetBackgroundColour((248, 248, 248))  # set text back color
+        self.pnl_comment.SetBackgroundColour(global_colors.edit_field)  # set text back color
 
     def event_next_image(self, *args):
         """If image is not last image, switch to next image"""
