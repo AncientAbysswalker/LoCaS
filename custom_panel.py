@@ -35,7 +35,15 @@ import sqlite3
 import datetime
 
 
-def crop_square(image):
+def crop_square(image, rescale=None):
+    """Crop an image to a square and resize if desired
+
+        Args:
+            image (wx.Image): The wx.Image object to crop and scale
+            rescale (int): Square size to scale the image to. None if not desired
+    """
+
+    # Determine direction to cut and cut
     if image.Height > image.Width:
         min_edge = image.Width
         posx = 0
@@ -45,7 +53,11 @@ def crop_square(image):
         posx = int((image.Width - image.Height) / 2)
         posy = 0
 
-    return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
+    # Determine if scaling is desired and scale. Return square image
+    if rescale:
+        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge)).Rescale(*(rescale,) * 2)
+    else:
+        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
 
 
 def part_to_dir(pn):
@@ -107,8 +119,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         for r in range(self.nrows):
             for c in range(self.ncols):
                 _n = self.ncols * r + c
-                _tmp = crop_square(wx.Image(self.images[_n],
-                                            wx.BITMAP_TYPE_ANY)).Rescale(ImgGridPanel.icon_size, ImgGridPanel.icon_size)
+                _tmp = crop_square(wx.Image(self.images[_n], wx.BITMAP_TYPE_ANY), ImgGridPanel.icon_size)
                 _temp = wx.StaticBitmap(self, id=_n, bitmap=wx.Bitmap(_tmp))
                 _temp.Bind(wx.EVT_LEFT_UP, self.event_image_click)
                 self.sizer_grid.Add(_temp, wx.EXPAND)
@@ -432,12 +443,34 @@ class PartsTabPanel(wx.Panel):
         #LEGACY BIND FOR FIDELITY -- self.shortdescriptext.Bind(wx.EVT_LEFT_DCLICK,
         #                           lambda event: self.revision_dialogue(event, self.part_number, self.shortdescriptext))
 
+        # image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
+        # # if self.parent.mugshot:
+        # #     image = wx.Image(self.parent.mugshot, wx.BITMAP_TYPE_ANY)
+        # # else:
+        # #     image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
+        # self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image).Rescale(250, 250)))
+        #
+        # self.wtfishappening = wx.BoxSizer(wx.VERTICAL)
+        # self.wtfishappening.Add(self.imageBitmap, flag=wx.ALL)
+
+        self.wtfishappening = MugshotPanel(self)
+
         # Primary part image
-        if self.mugshot:
-            image = wx.Image(self.mugshot, wx.BITMAP_TYPE_ANY)
-        else:
-            image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
-        imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image).Rescale(250, 250)))
+        # if self.mugshot:
+        #     image = wx.Image(self.mugshot, wx.BITMAP_TYPE_ANY)
+        # else:
+        #     image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
+        # self.wtfishappening = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image).Rescale(250, 250)))
+        #
+        #
+        #
+        # self.sizer_mugshot = wx.BoxSizer(wx.HORIZONTAL)
+        # #self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
+        # self.button_dwg = wx.Button(self, size=(50, 50), pos=(50,0))
+        # self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
+        # self.sizer_mugshot.Add(imageBitmap)
+        # #self.sizer_mugshot.Add(self.button_dwg)
+
 
         # Master Sizer
         self.sizer_master = wx.BoxSizer(wx.HORIZONTAL)
@@ -475,7 +508,7 @@ class PartsTabPanel(wx.Panel):
         self.sizer_master.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
 
         self.sizer_master_right = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_master_right.Add(imageBitmap, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master_right.Add(self.wtfishappening, flag=wx.ALL | wx.EXPAND)
         self.sizer_master_right.Add(self.sizer_assembly, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_master.Add(self.sizer_master_right, flag=wx.ALL | wx.EXPAND)
 
@@ -587,6 +620,41 @@ class PartsTabPanel(wx.Panel):
             # Hook a refresh()
 
         event.Skip()
+
+
+class MugshotPanel(wx.Panel):
+
+    mug_size = 250
+    btn_size = 35
+
+    def __init__(self, parent, *args, **kwargs):
+        """Constructor"""
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+
+        self.parent = parent
+
+        # Primary part image
+        if self.parent.mugshot:
+            image = wx.Image(self.parent.mugshot, wx.BITMAP_TYPE_ANY)
+        else:
+            image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
+
+        # Draw button first as first drawn stays on top
+        self.button_dwg = wx.Button(self,
+                                    size=(MugshotPanel.btn_size,) * 2,
+                                    pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
+
+        self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
+
+        self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
+        # self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
+        #self.button_dwg = wx.Button(self, size=(50, 50), pos=(50, 0))
+        #self.sizer_main.Add(self.button_dwg, flag=wx.ALL)
+        #self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
+
+        self.SetSizer(self.sizer_main)
+        self.Layout()
 
 
 class InterfaceTabs(wx.Notebook):

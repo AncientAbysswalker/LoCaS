@@ -12,6 +12,7 @@ import wx.lib.agw.flatnotebook as fnb
 import wx.lib.agw.ultimatelistctrl as ulc
 import wx.lib.scrolledpanel as scrolled
 import glob
+import config
 from math import ceil, floor
 from custom_dialog import *
 from custom_pane import *
@@ -35,6 +36,11 @@ class InterfaceWindow(wx.Frame):
         self.sizer_login.Add(self.pane_login, proportion=1, flag=wx.EXPAND)
 
         self.status = self.CreateStatusBar() #???Bottom bar
+
+
+        config.load_config()
+
+
 
         self.menubar = wx.MenuBar()
         first = wx.Menu()
