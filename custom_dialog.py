@@ -3,10 +3,7 @@
 
 import wx
 # import wx.richtext as wxr
-import glob
 import os
-import pickle
-import json
 import sqlite3
 import hashlib
 import shutil
@@ -177,12 +174,7 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
         self.part_num = part_num
         self.part_rev = part_rev
         self.image = image
-        # self.sql_table = sql_table
-        # self.sql_field = sql_field
 
-        # if self.sql_field == "name":
-        #     self.orig_field_text = self.edit_field.GetLabel()
-        # else:
         self.orig_field_text = self.edit_field.GetValue()
 
         if self.orig_field_text == "There is no comment recorded":
@@ -196,20 +188,22 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
         """Execute when committing a change - move change to SQL"""
 
         _rewrite_value = self.editbox.GetValue()
-        self.edit_field.SetLabel(_rewrite_value)
-        self.edit_field.SetForegroundColour(global_colors.black)
-
-        # TODO LIN001-01: Add handling for NULL comments
 
         # Connect to the database
         conn = sqlite3.connect(SQLCONN)
         crsr = conn.cursor()
 
-        # Check if the current image is already hashed into the database
-        #crsr.execute("UPDATE Parts SET " + self.sql_field + "='" + _rewrite_value + "' WHERE part_num='" + self.part_num + "' AND part_rev='"
-        #             + self.part_rev + "';")
-        crsr.execute("UPDATE Images SET description=(?) WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
-                     (_rewrite_value, self.part_num, self.part_rev, self.image))
+        # Check if the image comment should be considered void, and commit the change
+        if _rewrite_value.strip():
+            self.edit_field.SetLabel(_rewrite_value)
+            self.edit_field.SetForegroundColour(global_colors.black)
+            crsr.execute("UPDATE Images SET description=(?) WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
+                         (_rewrite_value, self.part_num, self.part_rev, self.image))
+        else:
+            self.edit_field.SetLabel("There is no comment recorded")
+            self.edit_field.SetForegroundColour(global_colors.no_entry)
+            crsr.execute("UPDATE Images SET description=NULL WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
+                         (self.part_num, self.part_rev, self.image))
 
         conn.commit()
         crsr.close()
@@ -431,8 +425,10 @@ class ImageDialog(ImageDialogBase):
             self.image_refresh()
             try:
                 self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
+                self.pnl_comment.SetForegroundColour(global_colors.black)
             except TypeError:
                 self.pnl_comment.SetValue("There is no comment recorded")
+                self.pnl_comment.SetForegroundColour(global_colors.no_entry)
                 pass
 
             self.sizer_master.Layout()
@@ -446,8 +442,10 @@ class ImageDialog(ImageDialogBase):
             self.image_refresh()
             try:
                 self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
+                self.pnl_comment.SetForegroundColour(global_colors.black)
             except TypeError:
                 self.pnl_comment.SetValue("There is no comment recorded")
+                self.pnl_comment.SetForegroundColour(global_colors.no_entry)
                 pass
 
             self.sizer_master.Layout()

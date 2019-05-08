@@ -224,6 +224,9 @@ class NotesPanel(wx.Panel):
 
         # Set up sizer to contain header and scrolled notes
         self.panel_notes = NotesScrolled(self)
+
+        self.panel_notes.Bind(wx.EVT_LEFT_UP, self.test_fulnote_click_trigger)
+
         self.sizer_title = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_main = wx.BoxSizer(wx.VERTICAL)
         self.sizer_main.Add(self.sizer_title, flag=wx.ALL | wx.EXPAND)
@@ -267,6 +270,13 @@ class NotesPanel(wx.Panel):
         self.sizer_title.Add(self.purgelist[3])
 
         self.sizer_title.RecalcSizes()
+
+    def test_fulnote_click_trigger(self, event):
+        """Open note-editing dialog
+        TODO LIN001-00: Implement note-editing event
+        """
+
+        print(event.GetEventObject().GetId())
 
 
 class NotesScrolled(scrolled.ScrolledPanel):
