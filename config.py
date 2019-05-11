@@ -11,7 +11,9 @@ def load_config():
     # Config variables to load into memory.
     config_variables = \
         [
-            "tryp"
+            "tryp",
+            "directory_split",
+            "sql_type"
         ]
 
     # Read YAML file into temporary variable
@@ -21,7 +23,18 @@ def load_config():
 
     # Try to import each config variable
     for variable_name in config_variables:
+        print(variable_name)
         commit_to_variable(variable_name, _loaded)
+
+    if sql_type == "sqlite3":
+        import sqlite3
+        globals()["sql_db"] = sqlite3
+        print(globals()["sql_db"])
+    elif sql_type == "psycopg2":
+        import psycopg2
+        globals()["sql_db"] = psycopg2
+    else:
+        raise Exception("An invalid SQL database management system: " + sql_type)
 
 
 def commit_to_variable(variable_name, loaded_data):
@@ -30,6 +43,7 @@ def commit_to_variable(variable_name, loaded_data):
     try:
         if loaded_data[variable_name]:
             globals()[variable_name] = loaded_data[variable_name]
+            print("LOADED A VARIABLE")
         else:
             print("HMM. Empty Variable??")
     except KeyError:

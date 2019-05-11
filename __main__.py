@@ -37,11 +37,6 @@ class InterfaceWindow(wx.Frame):
 
         self.status = self.CreateStatusBar() #???Bottom bar
 
-
-        config.load_config()
-
-
-
         self.menubar = wx.MenuBar()
         first = wx.Menu()
         second = wx.Menu()
@@ -62,6 +57,8 @@ class InterfaceWindow(wx.Frame):
         #PANELS.append("rrr")
         #print("sdgsrg")
 
+
+config.load_config()
 
 app = wx.App(False)
 win = InterfaceWindow(None, size=(1200, 600))
