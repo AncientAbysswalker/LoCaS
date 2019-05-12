@@ -10,7 +10,6 @@ import shutil
 import global_colors
 
 DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
-SQLCONN = r'C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite'
 UNSELECTEDGRAY = (148, 148, 148)
 
 def part_to_dir(pn):
@@ -132,7 +131,7 @@ class ModifyPartsFieldDialog(ModifyFieldDialogBase):
         self.rewrite_edit_field(_rewrite_value)
 
         # Connect to the database
-        conn = config.sql_db.connect(SQLCONN)
+        conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
 
         # Modify the existing cell in the database for existing part number and desired column
@@ -190,7 +189,7 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
         _rewrite_value = self.editbox.GetValue()
 
         # Connect to the database
-        conn = config.sql_db.connect(SQLCONN)
+        conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
 
         # Check if the image comment should be considered void, and commit the change
@@ -319,7 +318,7 @@ class ImageDialog(ImageDialogBase):
     def load_data(self):
         """Load data from the SQL database"""
 
-        conn = config.sql_db.connect(SQLCONN)
+        conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
         crsr.execute("SELECT image, description FROM Images WHERE part_num=(?) AND part_rev=(?);",
                      (self.part_num, self.part_rev))
@@ -379,7 +378,7 @@ class ImageDialog(ImageDialogBase):
         image_hash = self.hash_image()
 
         # Connect to the database
-        conn = config.sql_db.connect(SQLCONN)
+        conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
 
         # Check if the current image is already hashed into the database
@@ -517,7 +516,7 @@ class ImageAddDialog(ImageDialogBase):
                          os.path.join(DATADIR, "img", *part_to_dir(self.part_num), image_hash))
 
             # Connect to the database
-            conn = config.sql_db.connect(SQLCONN)
+            conn = config.sql_db.connect(config.db_location)
             crsr = conn.cursor()
 
             crsr.execute("INSERT INTO Images (part_num, part_rev, image) VALUES ((?), (?), (?));",
@@ -545,7 +544,7 @@ class ImageAddDialog(ImageDialogBase):
         image_hash = self.hash_image()
 
         # Connect to the database
-        conn = config.sql_db.connect(SQLCONN)
+        conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
 
         # Check if the current image is already hashed into the database

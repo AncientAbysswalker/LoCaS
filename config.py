@@ -13,6 +13,8 @@ def load_config():
         [
             "tryp",
             "directory_split",
+            "db_location",
+            "img_archive",
             "sql_type"
         ]
 

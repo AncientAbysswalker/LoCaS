@@ -101,7 +101,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         self.parent = parent
 
         # Load list of images from database and store the image names with extensions
-        conn = config.sql_db.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
         crsr.execute("SELECT image FROM Images WHERE part_num=(?) AND part_rev=(?);",
                      (self.parent.part_number, self.parent.part_revision))
@@ -323,7 +323,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
         """Open SQL database and load notes from table"""
 
         # Load notes from database
-        conn = config.sql_db.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
         crsr.execute("SELECT date, author, note FROM Notes WHERE part_num=(?) AND part_rev=(?)",
                      (self.parent.parent.part_number, "0"))#self.parent.parent.part_revision))
@@ -538,7 +538,7 @@ class PartsTabPanel(wx.Panel):
         """Load the part data from the database"""
 
         # Load part data from database
-        conn = config.sql_db.connect(r"C:\Users\Ancient Abysswalker\sqlite_databases\LoCaS.sqlite")
+        conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
         crsr.execute("SELECT part_type, name, description, successor_num, successor_rev, mugshot, drawing "
                      "FROM Parts WHERE part_num=(?) AND part_rev=(?)",
