@@ -18,10 +18,14 @@ def load_config():
             "sql_type"
         ]
 
+    # TODO: Handling for missing config info
     # Read YAML file into temporary variable
-    with open('config.yaml', 'r', encoding='utf8') as stream:
-        _loaded = yaml.safe_load(stream)
-    print(_loaded)
+    try:
+        with open('config.yaml', 'r', encoding='utf8') as stream:
+            _loaded = yaml.safe_load(stream)
+        print(_loaded)
+    except FileNotFoundError:
+        print("File not found - generate new config file? Or find file and move to home?")
 
     # Try to import each config variable
     for variable_name in config_variables:
@@ -49,6 +53,6 @@ def commit_to_variable(variable_name, loaded_data):
         else:
             print("HMM. Empty Variable??")
     except KeyError:
-        print("Missing config variable in YAML")
+        print("Missing config variable in YAML - Need to call populate Method")
 
 
