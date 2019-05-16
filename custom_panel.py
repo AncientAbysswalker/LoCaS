@@ -32,6 +32,7 @@ import wx.lib.scrolledpanel as scrolled
 from math import ceil, floor
 from custom_dialog import *
 import config
+import fn_path
 import datetime
 
 
@@ -109,11 +110,14 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         conn.close()
 
         # Create list of raw images
-        self.images = [os.path.join(DATADIR, 'img', *part_to_dir(parent.part_number), y) for y in self.image_list]
+        self.images = [fn_path.concat_img(parent.part_number, img) for img in self.image_list]
 
         # Create a grid sizer to contain image icons
         self.nrows, self.ncols = 1, len(self.images)
-        self.sizer_grid = wx.GridSizer(rows=self.nrows + 1, cols=self.ncols, hgap=ImgGridPanel.icon_gap, vgap=ImgGridPanel.icon_gap)
+        self.sizer_grid = wx.GridSizer(rows=self.nrows + 1,
+                                       cols=self.ncols,
+                                       hgap=ImgGridPanel.icon_gap,
+                                       vgap=ImgGridPanel.icon_gap)
 
         # Add image icons to the grid
         for r in range(self.nrows):
@@ -125,8 +129,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
                 self.sizer_grid.Add(_temp, wx.EXPAND)
 
         # Add a button to the grid to add further images
-        _tmp = wx.Image(os.path.join(DATADIR, 'img', "plus.png"),
-                        wx.BITMAP_TYPE_ANY).Rescale(ImgGridPanel.icon_size, ImgGridPanel.icon_size)
+        _tmp = wx.Image(fn_path.concat_gui("plus.png"), wx.BITMAP_TYPE_ANY).Rescale(*(ImgGridPanel.icon_size,) * 2)
         _temp0 = wx.StaticBitmap(self, bitmap=wx.Bitmap(_tmp))
         _temp0.Bind(wx.EVT_LEFT_UP, self.event_add_image)
         self.sizer_grid.Add(_temp0, wx.EXPAND)
@@ -449,38 +452,7 @@ class PartsTabPanel(wx.Panel):
         self.sup_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
         self.sup_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
 
-
-        #LEGACY BIND FOR FIDELITY -- self.shortdescriptext.Bind(wx.EVT_LEFT_DCLICK,
-        #                           lambda event: self.revision_dialogue(event, self.part_number, self.shortdescriptext))
-
-        # image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
-        # # if self.parent.mugshot:
-        # #     image = wx.Image(self.parent.mugshot, wx.BITMAP_TYPE_ANY)
-        # # else:
-        # #     image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
-        # self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image).Rescale(250, 250)))
-        #
-        # self.wtfishappening = wx.BoxSizer(wx.VERTICAL)
-        # self.wtfishappening.Add(self.imageBitmap, flag=wx.ALL)
-
         self.wtfishappening = MugshotPanel(self)
-
-        # Primary part image
-        # if self.mugshot:
-        #     image = wx.Image(self.mugshot, wx.BITMAP_TYPE_ANY)
-        # else:
-        #     image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
-        # self.wtfishappening = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image).Rescale(250, 250)))
-        #
-        #
-        #
-        # self.sizer_mugshot = wx.BoxSizer(wx.HORIZONTAL)
-        # #self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
-        # self.button_dwg = wx.Button(self, size=(50, 50), pos=(50,0))
-        # self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
-        # self.sizer_mugshot.Add(imageBitmap)
-        # #self.sizer_mugshot.Add(self.button_dwg)
-
 
         # Master Sizer
         self.sizer_master = wx.BoxSizer(wx.HORIZONTAL)
@@ -645,9 +617,9 @@ class MugshotPanel(wx.Panel):
 
         # Primary part image
         if self.parent.mugshot:
-            image = wx.Image(self.parent.mugshot, wx.BITMAP_TYPE_ANY)
+            image = wx.Image(fn_path.concat_img(parent.part_number, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
         else:
-            image = wx.Image(os.path.join(DATADIR, 'img', 'gui', 'missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
+            image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
 
         # Draw button first as first drawn stays on top
         self.button_dwg = wx.Button(self,

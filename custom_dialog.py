@@ -7,7 +7,10 @@ import os
 import sqlite3
 import hashlib
 import shutil
+
 import global_colors
+import config
+import fn_path
 
 DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
 UNSELECTEDGRAY = (148, 148, 148)
@@ -357,12 +360,7 @@ class ImageDialog(ImageDialogBase):
                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
 
         # If database entry is null, make text color gray. Otherwise change text. Set background color
-        try:
-            self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
-        except TypeError:
-            self.pnl_comment.SetForegroundColour(UNSELECTEDGRAY)
-        self.pnl_comment.SetBackgroundColour(global_colors.edit_field)
-
+        self.comment_set_and_style()
         self.pnl_comment.Bind(wx.EVT_SET_FOCUS, self.onfocus)
         self.pnl_comment.Bind(wx.EVT_LEFT_DCLICK, self.event_comment_edit)
 
@@ -422,33 +420,31 @@ class ImageDialog(ImageDialogBase):
         if self.image_index < len(self.image_list) - 1:
             self.image_index += 1
             self.image_refresh()
-            try:
-                self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
-                self.pnl_comment.SetForegroundColour(global_colors.black)
-            except TypeError:
-                self.pnl_comment.SetValue("There is no comment recorded")
-                self.pnl_comment.SetForegroundColour(global_colors.no_entry)
-                pass
+            self.comment_set_and_style()
 
             self.sizer_master.Layout()
             self.sizer_master.RecalcSizes()
 
     def event_prev_image(self, *args):
         """If image is not first image, switch to previous image"""
-
         if self.image_index > 0:
             self.image_index -= 1
             self.image_refresh()
-            try:
-                self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
-                self.pnl_comment.SetForegroundColour(global_colors.black)
-            except TypeError:
-                self.pnl_comment.SetValue("There is no comment recorded")
-                self.pnl_comment.SetForegroundColour(global_colors.no_entry)
-                pass
+            self.comment_set_and_style()
 
             self.sizer_master.Layout()
             self.sizer_master.RecalcSizes()
+
+    def comment_set_and_style(self):
+        """Check if the comment is null and style accordingly if NULL"""
+        try:
+            if not self.comments[self.image_list[self.image_index]]:
+                raise TypeError
+            self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
+            self.pnl_comment.SetForegroundColour(global_colors.black)
+        except TypeError:
+            self.pnl_comment.SetValue("There is no comment recorded")
+            self.pnl_comment.SetForegroundColour(global_colors.no_entry)
 
 
 class ImageAddDialog(ImageDialogBase):
@@ -513,7 +509,7 @@ class ImageAddDialog(ImageDialogBase):
             # Hash current image data and commit to
             image_hash = self.hash_image()
             shutil.copy2(self.image_list[self.image_index],
-                         os.path.join(DATADIR, "img", *part_to_dir(self.part_num), image_hash))
+                         fn_path.concat_img(self.part_num, image_hash))
 
             # Connect to the database
             conn = config.sql_db.connect(config.db_location)
