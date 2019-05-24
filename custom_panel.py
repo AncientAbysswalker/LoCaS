@@ -177,7 +177,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
     def event_image_click(self, event):
         """Open image dialog"""
-        dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
+        dialog = ImageDialog(self.parent.wtfishappening, self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -193,7 +193,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
             selected_files = file_dialog.GetPaths()
 
         # Proceed loading the file chosen by the user
-        dialog = ImageAddDialog(selected_files, self.parent.part_number, self.parent.part_revision)
+        dialog = ImageAddDialog(self, selected_files, self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -617,7 +617,7 @@ class MugshotPanel(wx.Panel):
 
         # Primary part image
         if self.parent.mugshot:
-            image = wx.Image(fn_path.concat_img(parent.part_number, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
+            image = wx.Image(fn_path.concat_img(self.parent.part_number, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
         else:
             image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
 
@@ -637,6 +637,10 @@ class MugshotPanel(wx.Panel):
 
         self.SetSizer(self.sizer_main)
         self.Layout()
+
+    def refresh(self, new_image):
+        temp = fn_path.concat_img(self.parent.part_number, new_image)
+        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
 
 
 class InterfaceTabs(wx.Notebook):

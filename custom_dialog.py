@@ -12,8 +12,37 @@ import global_colors
 import config
 import fn_path
 
+
 DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
 UNSELECTEDGRAY = (148, 148, 148)
+
+
+def crop_square(image, rescale=None):
+    """Crop an image to a square and resize if desired
+
+        Args:
+            image (wx.Image): The wx.Image object to crop and scale
+            rescale (int): Square size to scale the image to. None if not desired
+    """
+
+    # Determine direction to cut and cut
+    if image.Height > image.Width:
+        min_edge = image.Width
+        posx = 0
+        posy = int((image.Height - image.Width) / 2)
+    else:
+        min_edge = image.Height
+        posx = int((image.Width - image.Height) / 2)
+        posy = 0
+
+    # Determine if scaling is desired and scale. Return square image
+    if rescale:
+        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge)).Rescale(*(rescale,) * 2)
+    else:
+        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
+
+
+
 
 def part_to_dir(pn):
     dir1, temp = pn.split('-')
@@ -299,11 +328,12 @@ class ImageDialog(ImageDialogBase):
             comments (dict of str: str): Dictionary mapping image file names into comments
     """
 
-    def __init__(self, image_list, image_index, part_num, part_rev, *args, **kw):
+    def __init__(self, mugshot, image_list, image_index, part_num, part_rev, *args, **kw):
         """Constructor"""
         super().__init__(None, *args, **kw)
 
         # Define Attributes
+        self.mugshot = mugshot
         self.image_list = image_list
         self.image_index = image_index
         self.part_num = part_num
@@ -340,6 +370,10 @@ class ImageDialog(ImageDialogBase):
                                       wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\l_arr.png",
                                                 wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
         button_prev.Bind(wx.EVT_BUTTON, self.event_prev_image)
+        button_mugshot = wx.BitmapButton(self, wx.ID_ANY,
+                                      wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\new_mug.png",
+                                                wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_mugshot.Bind(wx.EVT_BUTTON, self.event_set_mugshot)
         button_next = wx.BitmapButton(self, wx.ID_ANY,
                                       wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\r_arr.png",
                                                 wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
@@ -348,6 +382,7 @@ class ImageDialog(ImageDialogBase):
         # Control button sizer
         sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
         sizer_controls.Add(button_prev, border=5, flag=wx.ALL | wx.EXPAND)
+        sizer_controls.Add(button_mugshot, border=5, flag=wx.ALL | wx.EXPAND)
         sizer_controls.Add(button_next, border=5, flag=wx.ALL | wx.EXPAND)
 
         return sizer_controls
@@ -435,6 +470,40 @@ class ImageDialog(ImageDialogBase):
             self.sizer_master.Layout()
             self.sizer_master.RecalcSizes()
 
+    def event_set_mugshot(self, *args):
+        """Allows the user to change the mugshot for the part"""
+
+        # Show confirmation dialog if not hidden in config
+        if not config.dlg_hide_change_mugshot:
+            dlg = wx.RichMessageDialog(self,
+                                       caption = "Update Mugshot?",
+                                       message = "Are you sure you would like to change the mugshot for this part?",
+                                       style=wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_WARNING)
+            dlg.ShowCheckBox("Don't show this notification again")
+
+            # Cancel or continue as necessary
+            if dlg.ShowModal() == wx.ID_OK:
+                if dlg.IsCheckBoxChecked():
+                    # Set config to hide this dialog next time
+                    config.dlg_hide_change_mugshot = True
+            else:
+                return
+
+        # Refresh Mugshot
+        self.mugshot.refresh(self.image_list[self.image_index])
+
+        # Connect to the database
+        conn = config.sql_db.connect(config.db_location)
+        crsr = conn.cursor()
+
+        # Modify the existing cell in the database for existing part number and desired column
+        crsr.execute("UPDATE Parts SET mugshot=(?) WHERE part_num=(?) AND part_rev=(?);",
+                     (self.image_list[self.image_index], self.part_num, self.part_rev))
+
+        conn.commit()
+        crsr.close()
+        conn.close()
+
     def comment_set_and_style(self):
         """Check if the comment is null and style accordingly if NULL"""
         try:
@@ -463,10 +532,11 @@ class ImageAddDialog(ImageDialogBase):
             comments (dict of str: str): Dictionary mapping image file names into comments
     """
 
-    def __init__(self, image_list, part_num, part_rev, *args, **kw):
+    def __init__(self, parent, image_list, part_num, part_rev, *args, **kw):
         """Constructor"""
-        super().__init__(None, *args, **kw)
+        super().__init__(parent, *args, **kw)
 
+        self.parent = parent
         self.image_list = image_list
         self.image_index = 0
         self.part_num = part_num
@@ -569,3 +639,6 @@ class ImageAddDialog(ImageDialogBase):
             buffer = image.read()
             hasher.update(buffer)
         return hasher.hexdigest() + os.path.splitext(self.image_list[self.image_index])[1]
+
+
+

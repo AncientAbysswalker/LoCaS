@@ -15,7 +15,8 @@ def load_config():
             "directory_split",
             "db_location",
             "img_archive",
-            "sql_type"
+            "sql_type",
+            "dlg_hide_change_mugshot"
         ]
 
     # TODO: Handling for missing config info
@@ -32,6 +33,7 @@ def load_config():
         print(variable_name)
         commit_to_variable(variable_name, _loaded)
 
+    # Special handling for imported variables
     if sql_type == "sqlite3":
         import sqlite3
         globals()["sql_db"] = sqlite3
@@ -47,9 +49,9 @@ def commit_to_variable(variable_name, loaded_data):
     """Generate a config.py variable to correspond to those desired in load_config"""
 
     try:
-        if loaded_data[variable_name]:
+        if variable_name in loaded_data.keys():
             globals()[variable_name] = loaded_data[variable_name]
-            print("LOADED A VARIABLE")
+            print("LOADED A VARIABLE: ", loaded_data[variable_name], type(loaded_data[variable_name]))
         else:
             print("HMM. Empty Variable??")
     except KeyError:
