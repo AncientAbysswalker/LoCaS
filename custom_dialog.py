@@ -328,12 +328,13 @@ class ImageDialog(ImageDialogBase):
             comments (dict of str: str): Dictionary mapping image file names into comments
     """
 
-    def __init__(self, mugshot, image_list, image_index, part_num, part_rev, *args, **kw):
+    def __init__(self, mugshot_file, mugshot_panel, image_list, image_index, part_num, part_rev, *args, **kw):
         """Constructor"""
         super().__init__(None, *args, **kw)
 
         # Define Attributes
-        self.mugshot = mugshot
+        self.mugshot_file = mugshot_file
+        self.mugshot_panel = mugshot_panel
         self.image_list = image_list
         self.image_index = image_index
         self.part_num = part_num
@@ -374,6 +375,10 @@ class ImageDialog(ImageDialogBase):
                                       wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\new_mug.png",
                                                 wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
         button_mugshot.Bind(wx.EVT_BUTTON, self.event_set_mugshot)
+        button_remove = wx.BitmapButton(self, wx.ID_ANY,
+                                      wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\rem_img.png",
+                                                wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_remove.Bind(wx.EVT_BUTTON, self.event_remove_img)
         button_next = wx.BitmapButton(self, wx.ID_ANY,
                                       wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\r_arr.png",
                                                 wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
@@ -415,7 +420,8 @@ class ImageDialog(ImageDialogBase):
         crsr = conn.cursor()
 
         # Check if the current image is already hashed into the database
-        crsr.execute("SELECT EXISTS (SELECT 1 FROM Images WHERE part_num=(?) AND part_rev=(?) AND image=(?));", (self.part_num, self.part_rev, image_hash))
+        crsr.execute("SELECT EXISTS (SELECT 1 FROM Images WHERE part_num=(?) AND part_rev=(?) AND image=(?));",
+                     (self.part_num, self.part_rev, image_hash))
         in_db = crsr.fetchone()[0]
 
         crsr.close()
@@ -490,7 +496,7 @@ class ImageDialog(ImageDialogBase):
                 return
 
         # Refresh Mugshot
-        self.mugshot.refresh(self.image_list[self.image_index])
+        self.mugshot_panel.refresh(self.image_list[self.image_index])
 
         # Connect to the database
         conn = config.sql_db.connect(config.db_location)
@@ -503,6 +509,60 @@ class ImageDialog(ImageDialogBase):
         conn.commit()
         crsr.close()
         conn.close()
+
+    def event_remove_img(self, *args):
+        """Removes an image from the image grid and """
+
+        # Show confirmation dialog if not hidden in config
+        if not config.dlg_hide_remove_image:
+            dlg = wx.RichMessageDialog(self,
+                                       caption="Remove parts image?",
+                                       message="Are you sure you would like to remove this image?",
+                                       style=wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_WARNING)
+            dlg.ShowCheckBox("Don't show this notification again")
+
+            # Cancel or continue as necessary
+            if dlg.ShowModal() == wx.ID_OK:
+                if dlg.IsCheckBoxChecked():
+                    # Set config to hide this dialog next time
+                    config.dlg_hide_remove_image = True
+            else:
+                return
+
+        # Connect to the database
+        conn = config.sql_db.connect(config.db_location)
+        crsr = conn.cursor()
+
+        # Refresh Mugshot if needed and update SQL
+        if self.image_list[self.image_index] == self.mugshot_file:
+            self.mugshot_panel.refresh()
+
+            crsr.execute("UPDATE Parts SET mugshot=NULL WHERE part_num=(?) AND part_rev=(?);",
+                         (self.part_num, self.part_rev))
+
+        # Remove image from database
+        crsr.execute("DELETE FROM Images WHERE image=(?);",
+                     (self.image_list[self.image_index],))
+
+        conn.commit()
+        crsr.close()
+        conn.close()
+
+
+
+        #self.mugshot.refresh(self.image_list[self.image_index])
+
+        # Connect to the database
+        # conn = config.sql_db.connect(config.db_location)
+        # crsr = conn.cursor()
+        #
+        # # Modify the existing cell in the database for existing part number and desired column
+        # crsr.execute("UPDATE Parts SET mugshot=(?) WHERE part_num=(?) AND part_rev=(?);",
+        #              (self.image_list[self.image_index], self.part_num, self.part_rev))
+        #
+        # conn.commit()
+        # crsr.close()
+        # conn.close()
 
     def comment_set_and_style(self):
         """Check if the comment is null and style accordingly if NULL"""

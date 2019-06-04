@@ -134,7 +134,9 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         _temp0.Bind(wx.EVT_LEFT_UP, self.event_add_image)
         self.sizer_grid.Add(_temp0, wx.EXPAND)
 
-        self.SetSizer(self.sizer_grid)
+        sizer_stick = wx.BoxSizer(wx.VERTICAL)
+        sizer_stick.Add(self.sizer_grid)
+        self.SetSizer(sizer_stick)
 
         # Setup the scrolling style and function, wanting only vertical scroll to be available
         # self.SetAutoLayout(1)
@@ -177,7 +179,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
     def event_image_click(self, event):
         """Open image dialog"""
-        dialog = ImageDialog(self.parent.wtfishappening, self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
+        dialog = ImageDialog(self.parent.mugshot, self.parent.wtfishappening, self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -638,8 +640,11 @@ class MugshotPanel(wx.Panel):
         self.SetSizer(self.sizer_main)
         self.Layout()
 
-    def refresh(self, new_image):
-        temp = fn_path.concat_img(self.parent.part_number, new_image)
+    def refresh(self, new_image=None):
+        if new_image:
+            temp = fn_path.concat_img(self.parent.part_number, new_image)
+        else:
+            temp = fn_path.concat_gui('missing_mugshot.png')
         self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
 
 

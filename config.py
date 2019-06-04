@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
 import yaml
 
+tryp = None
+directory_split = None
+db_location = None
+img_archive = None
+sql_db = None
+sql_type = None
+dlg_hide_change_mugshot = None
+dlg_hide_remove_image = None
+
+
 def load_config():
     """Read a yaml file into config variables
 
@@ -16,7 +26,8 @@ def load_config():
             "db_location",
             "img_archive",
             "sql_type",
-            "dlg_hide_change_mugshot"
+            "dlg_hide_change_mugshot",
+            "dlg_hide_remove_image"
         ]
 
     # TODO: Handling for missing config info
