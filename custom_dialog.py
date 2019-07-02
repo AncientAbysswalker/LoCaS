@@ -226,15 +226,13 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
 
         # Check if the image comment should be considered void, and commit the change
         if _rewrite_value.strip():
-            self.edit_field.SetLabel(_rewrite_value)
-            self.edit_field.SetForegroundColour(global_colors.black)
             self.parent.comments[self.image] = _rewrite_value
+            self.parent.comment_set_and_style()
             crsr.execute("UPDATE Images SET description=(?) WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
                          (_rewrite_value, self.part_num, self.part_rev, self.image))
         else:
-            self.edit_field.SetLabel("There is no comment recorded")
-            self.edit_field.SetForegroundColour(global_colors.no_entry)
             self.parent.comments[self.image] = ""
+            self.parent.comment_set_and_style()
             crsr.execute("UPDATE Images SET description=NULL WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
                          (self.part_num, self.part_rev, self.image))
 
