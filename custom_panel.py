@@ -487,9 +487,6 @@ class PartsTabPanel(wx.Panel):
         self.sizer_master_horizontal2 = wx.BoxSizer(wx.HORIZONTAL)
 
         self.sizer_master_left = wx.BoxSizer(wx.VERTICAL)
-        #self.test = wx.StaticBox(self, -1, "textbitches", flag=wx.Font(8))
-
-
 
         self.sizer_master_left.Add(self.sizer_partline, flag=wx.ALL | wx.EXPAND)
         self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
