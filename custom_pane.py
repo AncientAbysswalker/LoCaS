@@ -51,7 +51,7 @@ class LoginPane(wx.Panel):
         self.SetDoubleBuffered(True)  # Remove slight strobing on failed login
 
         self.parent = parent
-        login_panel = login.LoginCrypto(self, sizer_landing, pane_landing)
+        login_panel = login.LoginDebug(self, sizer_landing, pane_landing)
 
         # Main Sizer
         sizer_main = wx.BoxSizer(wx.VERTICAL)

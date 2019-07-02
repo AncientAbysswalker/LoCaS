@@ -267,7 +267,7 @@ class NotesPanel(wx.Panel):
             wx.StaticText(self, size=(max(column_widths[1], 40) + NotesPanel.hspace, -1),
                           label="Author", style=wx.ALIGN_LEFT))
         self.purgelist.append(wx.StaticText(self, label="Note", style=wx.ALIGN_LEFT))
-        self.purgelist.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER)) #TODO: Line removal failure
+        self.purgelist.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER)) # TODO: Line removal failure
 
         self.sizer_title.Add(self.purgelist[0])
         self.sizer_title.Add(self.purgelist[1])

@@ -114,7 +114,7 @@ class LoginCrypto(LoginDebug):
                 self.Layout()
 
     def pair_correct(self, _u, _p):
-        """Cryptographically check if user:passkey pair is valid
+        """Cryptographically check if user:passkey pair is valid based on year
 
         Args:
             _u (str): String "username"
@@ -125,5 +125,4 @@ class LoginCrypto(LoginDebug):
         """
 
         _d = str(datetime.datetime.now().year)
-        print(hashlib.sha3_256((_d[:2] + _u + _d[2:] + "Rakuyo").encode('utf-8')).hexdigest() == _p)
-        return True#
+        return hashlib.sha3_256((_d[:2] + _u + _d[2:] + "Rakuyo").encode('utf-8')).hexdigest() == _p
