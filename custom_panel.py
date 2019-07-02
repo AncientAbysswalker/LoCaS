@@ -13,9 +13,9 @@ Attributes:
 
 COLORS = ["red", "blue", "black", "yellow", "green"]
 NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019', 'moretext for my othershit'), "{:<6}|{:<25}|{}".format('J1','23-J019','moretext for my othershit'), '2', '3', '4']
-PANELS = ["107-00107", "G39-00107", "777-00107"]
-SUBLIST = ["999-00107", "G39-00107", "767-00107"]
-SUPLIST = ["456-00107", "G39-06767", "776-04577"]
+PANELS = ["107-00107"]#, "G39-00107", "777-00107"]
+SUPLIST = ["999-00107", "G39-00107", "767-00107"]
+SUBLIST = ["456-00107", "G39-06767", "776-04577"]
 DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
 
 # Import global colors
@@ -267,7 +267,7 @@ class NotesPanel(wx.Panel):
             wx.StaticText(self, size=(max(column_widths[1], 40) + NotesPanel.hspace, -1),
                           label="Author", style=wx.ALIGN_LEFT))
         self.purgelist.append(wx.StaticText(self, label="Note", style=wx.ALIGN_LEFT))
-        self.purgelist.append(wx.StaticText(self, label="X", style=wx.ALIGN_CENTER))
+        self.purgelist.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER)) #TODO: Line removal failure
 
         self.sizer_title.Add(self.purgelist[0])
         self.sizer_title.Add(self.purgelist[1])
@@ -426,6 +426,31 @@ class PartsTabPanel(wx.Panel):
         # EVENTUALLY SWAP OUT FOR ULTIMATELISTBOX?
         self.sub_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUBLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
         self.sup_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUPLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
+
+        # Load data into dictionary for mouseover on listboxes - superassemblies
+        # TODO: Add consideration for revision
+        conn = config.sql_db.connect(config.db_location)
+        crsr = conn.cursor()
+        crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
+                     "(SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?))",
+                     (self.part_number, self.part_revision))
+        self.parts_super = {}
+        for superassembly in crsr.fetchall():
+            self.parts_super[superassembly[0]] = superassembly[2]
+        conn.close()
+
+        # Load data into dictionary for mouseover on listboxes - subassemblies
+        # TODO: Add consideration for revision
+        conn = config.sql_db.connect(config.db_location)
+        crsr = conn.cursor()
+        crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
+                     "(SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?))",
+                     (self.part_number, self.part_revision))
+        self.parts_sub = {}
+        for subassembly in crsr.fetchall():
+            self.parts_sub[subassembly[0]] = subassembly[2]
+        conn.close()
+
         self.long_descrip_text = self.style_null_entry(self.long_description,
                                                        wx.TextCtrl(self, -1, "", size=(-1, 35), style=wx.TE_MULTILINE |
                                                                                                       wx.TE_WORDWRAP |
@@ -450,9 +475,9 @@ class PartsTabPanel(wx.Panel):
 
         # Assembly list binds
         self.sub_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
-        self.sub_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
+        self.sub_assembly_list.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
         self.sup_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
-        self.sup_assembly_list.Bind(wx.EVT_MOTION, self.updateTooltip)
+        self.sup_assembly_list.Bind(wx.EVT_MOTION, self.update_tooltip_super)
 
         self.wtfishappening = MugshotPanel(self)
 
@@ -479,10 +504,10 @@ class PartsTabPanel(wx.Panel):
 
         # Assembly Sizers
         self.sizer_assembly_left = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_assembly_left.Add(wx.StaticText(self, label="Children", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly_left.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly_left.Add(self.sub_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly_right = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_assembly_right.Add(wx.StaticText(self, label="Parents", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly_right.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly_right.Add(self.sup_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_assembly.Add(self.sizer_assembly_left, proportion=1, flag=wx.ALL | wx.EXPAND)
@@ -554,7 +579,25 @@ class PartsTabPanel(wx.Panel):
         self.parent.fuck(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
         event.GetEventObject().SetSelection(wx.NOT_FOUND)
 
-    def updateTooltip(self, event):
+    def update_tooltip_super(self, event):
+        """
+        Update the tooltip to show part name
+        """
+
+        mouse_pos = self.sup_assembly_list.ScreenToClient(wx.GetMousePosition())
+        item_index = self.sup_assembly_list.HitTest(mouse_pos)
+
+        if item_index != -1:
+            a = self.parts_super[self.sup_assembly_list.GetString(item_index)]
+            if self.sup_assembly_list.GetToolTipText() != a:
+                msg = a
+                self.sup_assembly_list.SetToolTip(msg)
+        else:
+            self.sup_assembly_list.SetToolTip("")
+
+        event.Skip()
+
+    def update_tooltip_sub(self, event):
         """
         Update the tooltip to show part name
         """
@@ -563,7 +606,7 @@ class PartsTabPanel(wx.Panel):
         item_index = self.sub_assembly_list.HitTest(mouse_pos)
 
         if item_index != -1:
-            a = "%s is a good book!" % self.sub_assembly_list.GetString(item_index)
+            a = self.parts_sub[self.sub_assembly_list.GetString(item_index)]
             if self.sub_assembly_list.GetToolTipText() != a:
                 msg = a
                 self.sub_assembly_list.SetToolTip(msg)
@@ -579,6 +622,7 @@ class PartsTabPanel(wx.Panel):
 
     def event_rev_next(self, event):
         """Toggle to next revision if possible"""
+        return
 
         if True:
             self.part_revision += 1
@@ -593,6 +637,7 @@ class PartsTabPanel(wx.Panel):
 
     def event_rev_prev(self, event):
         """Toggle to next revision if possible"""
+        return
 
         if self.part_revision > 0:
             self.part_revision -= 1
