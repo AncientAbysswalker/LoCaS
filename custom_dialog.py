@@ -328,11 +328,12 @@ class ImageDialog(ImageDialogBase):
             comments (dict of str: str): Dictionary mapping image file names into comments
     """
 
-    def __init__(self, mugshot_file, mugshot_panel, image_list, image_index, part_num, part_rev, *args, **kw):
+    def __init__(self, parent, mugshot_file, mugshot_panel, image_list, image_index, part_num, part_rev, *args, **kw):
         """Constructor"""
         super().__init__(None, *args, **kw)
 
         # Define Attributes
+        self.parent = parent
         self.mugshot_file = mugshot_file
         self.mugshot_panel = mugshot_panel
         self.image_list = image_list
@@ -545,6 +546,15 @@ class ImageDialog(ImageDialogBase):
         crsr.execute("DELETE FROM Images WHERE image=(?);",
                      (self.image_list[self.image_index],))
 
+        _r, _c = self.parent.sizer_grid.GetRows(), self.parent.sizer_grid.GetCols()
+        #self.sizer.Detach(itm.GetWindow())
+        #_item = self.parent.sizer_grid.     FindItemAtPosition((self.image_index // _r, self.image_index % _r))
+        #self.parent.sizer_grid.Detach(self.parent.sizer_grid.GetItem(self.image_index), wx.EXPAND)
+        self.parent.purgelist[self.image_index].Destroy()
+        self.parent.purgelist.pop(self.image_index)
+        self.parent.image_list.pop(self.image_index)
+        self.parent.sizer_grid.Layout()
+
         conn.commit()
         crsr.close()
         conn.close()
@@ -642,12 +652,23 @@ class ImageAddDialog(ImageDialogBase):
             shutil.copy2(self.image_list[self.image_index],
                          fn_path.concat_img(self.part_num, image_hash))
 
+            # Sterilize input to ensure blank input instead of 'no comment' text
+            if self.pnl_comment.GetValue() == "There is no comment recorded":
+                _commit_text = ""
+            else:
+                _commit_text = self.pnl_comment.GetValue()
+
             # Connect to the database
             conn = config.sql_db.connect(config.db_location)
             crsr = conn.cursor()
 
-            crsr.execute("INSERT INTO Images (part_num, part_rev, image, description) VALUES ((?), (?), (?), (?));",
-                         (self.part_num, self.part_rev, image_hash, self.pnl_comment.GetValue()))
+            # Check if the image comment should be considered void, and commit the change
+            if _commit_text.strip():
+                crsr.execute("INSERT INTO Images (part_num, part_rev, image, description) VALUES ((?), (?), (?), (?));",
+                            (self.part_num, self.part_rev, image_hash, _commit_text))
+            else:
+                crsr.execute("INSERT INTO Images (part_num, part_rev, image, description) VALUES ((?), (?), (?), NULL);",
+                             (self.part_num, self.part_rev, image_hash))
             crsr.close()
             conn.commit()
 
@@ -659,7 +680,6 @@ class ImageAddDialog(ImageDialogBase):
             _temp.Bind(wx.EVT_LEFT_UP, self.parent.event_image_click)
             self.parent.sizer_grid.Add(_temp, wx.EXPAND)
             self.parent.image_list.append(image_hash)
-            #self.parent.comments.append(self.pnl_comment.GetValue())
 
             # Needed to actually update grid
             self.parent.Layout()

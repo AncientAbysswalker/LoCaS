@@ -114,6 +114,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
         # Create a grid sizer to contain image icons
         self.nrows, self.ncols = 1, len(self.images)
+        self.purgelist = []
         self.sizer_grid = wx.GridSizer(rows=self.nrows + 1,
                                        cols=self.ncols,
                                        hgap=ImgGridPanel.icon_gap,
@@ -126,6 +127,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
                 _tmp = crop_square(wx.Image(self.images[_n], wx.BITMAP_TYPE_ANY), ImgGridPanel.icon_size)
                 _temp = wx.StaticBitmap(self, id=_n, bitmap=wx.Bitmap(_tmp))
                 _temp.Bind(wx.EVT_LEFT_UP, self.event_image_click)
+                self.purgelist.append(_temp)
                 self.sizer_grid.Add(_temp, wx.EXPAND)
 
         # Add a button to the grid to add further images
@@ -179,7 +181,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
     def event_image_click(self, event):
         """Open image dialog"""
-        dialog = ImageDialog(self.parent.mugshot, self.parent.wtfishappening, self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
+        dialog = ImageDialog(self, self.parent.mugshot, self.parent.wtfishappening, self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
 
