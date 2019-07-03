@@ -435,6 +435,7 @@ class PartsTabPanel(wx.Panel):
                      "(SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?))",
                      (self.part_number, self.part_revision))
         self.parts_super = {}
+        # TODO: Fix with mapping like {x: y for x, y in crsr.fetchall()}
         for superassembly in crsr.fetchall():
             self.parts_super[superassembly[0]] = superassembly[2]
         conn.close()
@@ -669,6 +670,7 @@ class MugshotPanel(wx.Panel):
         self.button_dwg = wx.Button(self,
                                     size=(MugshotPanel.btn_size,) * 2,
                                     pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
+        self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
 
         self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
 
@@ -688,6 +690,18 @@ class MugshotPanel(wx.Panel):
         else:
             temp = fn_path.concat_gui('missing_mugshot.png')
         self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
+
+
+    def event_drawing(self, *args):
+        """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
+
+        dlg = wx.RichMessageDialog(self,
+                                   caption="This feature is not yet implemented",
+                                   message="This feature will load a production drawing of the current part",
+                                   style=wx.OK | wx.ICON_INFORMATION)
+
+        dlg.ShowModal()
+        return
 
 
 class InterfaceTabs(wx.Notebook):

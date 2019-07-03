@@ -388,6 +388,7 @@ class ImageDialog(ImageDialogBase):
         sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
         sizer_controls.Add(button_prev, border=5, flag=wx.ALL | wx.EXPAND)
         sizer_controls.Add(button_mugshot, border=5, flag=wx.ALL | wx.EXPAND)
+        sizer_controls.Add(button_remove, border=5, flag=wx.ALL | wx.EXPAND)
         sizer_controls.Add(button_next, border=5, flag=wx.ALL | wx.EXPAND)
 
         return sizer_controls
@@ -625,7 +626,7 @@ class ImageAddDialog(ImageDialogBase):
 
     def init_field(self):
         """Define the editable field"""
-
+        # TODO: Generalize with function
         # Set image comment
         self.pnl_comment = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
                                        style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
@@ -645,10 +646,23 @@ class ImageAddDialog(ImageDialogBase):
             conn = config.sql_db.connect(config.db_location)
             crsr = conn.cursor()
 
-            crsr.execute("INSERT INTO Images (part_num, part_rev, image) VALUES ((?), (?), (?));",
-                         (self.part_num, self.part_rev, image_hash))
+            crsr.execute("INSERT INTO Images (part_num, part_rev, image, description) VALUES ((?), (?), (?), (?));",
+                         (self.part_num, self.part_rev, image_hash, self.pnl_comment.GetValue()))
             crsr.close()
             conn.commit()
+
+
+            # TODO: Fix row/col is smaller array than width
+            _n = len(self.parent.images)
+            _tmp = crop_square(wx.Image(fn_path.concat_img(self.part_num, image_hash), wx.BITMAP_TYPE_ANY), 120)  # TODO: ImgGridPanel.icon_size)
+            _temp = wx.StaticBitmap(self.parent, id=_n, bitmap=wx.Bitmap(_tmp))
+            _temp.Bind(wx.EVT_LEFT_UP, self.parent.event_image_click)
+            self.parent.sizer_grid.Add(_temp, wx.EXPAND)
+            self.parent.image_list.append(image_hash)
+            #self.parent.comments.append(self.pnl_comment.GetValue())
+
+            # Needed to actually update grid
+            self.parent.Layout()
 
         if self.image_index < len(self.image_list) - 1:
             self.image_index += 1
