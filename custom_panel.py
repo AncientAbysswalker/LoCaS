@@ -434,10 +434,7 @@ class PartsTabPanel(wx.Panel):
         crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
                      "(SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?))",
                      (self.part_number, self.part_revision))
-        self.parts_super = {}
-        # TODO: Fix with mapping like {x: y for x, y in crsr.fetchall()}
-        for superassembly in crsr.fetchall():
-            self.parts_super[superassembly[0]] = superassembly[2]
+        self.parts_super = {x: y for x, _, y in crsr.fetchall()}
         conn.close()
 
         # Load data into dictionary for mouseover on listboxes - subassemblies
@@ -447,9 +444,7 @@ class PartsTabPanel(wx.Panel):
         crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
                      "(SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?))",
                      (self.part_number, self.part_revision))
-        self.parts_sub = {}
-        for subassembly in crsr.fetchall():
-            self.parts_sub[subassembly[0]] = subassembly[2]
+        self.parts_sub = {x: y for x, _, y in crsr.fetchall()}
         conn.close()
 
         self.long_descrip_text = self.style_null_entry(self.long_description,
