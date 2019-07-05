@@ -367,22 +367,14 @@ class ImageDialog(ImageDialogBase):
     def init_buttons(self):
         """Define what control buttons are available and their bindings"""
 
-        # Control buttons
-        button_prev = wx.BitmapButton(self, wx.ID_ANY,
-                                      wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\l_arr.png",
-                                                wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        # Control buttons and their binds
+        button_prev = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('l_arr.png')))
         button_prev.Bind(wx.EVT_BUTTON, self.event_prev_image)
-        button_mugshot = wx.BitmapButton(self, wx.ID_ANY,
-                                      wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\new_mug.png",
-                                                wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_mugshot = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('new_mug.png')))
         button_mugshot.Bind(wx.EVT_BUTTON, self.event_set_mugshot)
-        button_remove = wx.BitmapButton(self, wx.ID_ANY,
-                                      wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\rem_img.png",
-                                                wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_remove = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('rem_img.png')))
         button_remove.Bind(wx.EVT_BUTTON, self.event_remove_img)
-        button_next = wx.BitmapButton(self, wx.ID_ANY,
-                                      wx.Bitmap(r"C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS\img\gui\r_arr.png",
-                                                wx.BITMAP_TYPE_ANY), wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW)
+        button_next = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('r_arr.png')))
         button_next.Bind(wx.EVT_BUTTON, self.event_next_image)
 
         # Control button sizer
@@ -672,7 +664,6 @@ class ImageAddDialog(ImageDialogBase):
             crsr.close()
             conn.commit()
 
-
             # TODO: Fix row/col is smaller array than width
             _n = len(self.parent.images)
             _tmp = crop_square(wx.Image(fn_path.concat_img(self.part_num, image_hash), wx.BITMAP_TYPE_ANY), 120)  # TODO: ImgGridPanel.icon_size)
@@ -680,6 +671,9 @@ class ImageAddDialog(ImageDialogBase):
             _temp.Bind(wx.EVT_LEFT_UP, self.parent.event_image_click)
             self.parent.sizer_grid.Add(_temp, wx.EXPAND)
             self.parent.image_list.append(image_hash)
+
+            # Add image hash to list of images in sizer
+            self.parent.purgelist.append(_temp)
 
             # Needed to actually update grid
             self.parent.Layout()

@@ -91,6 +91,8 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
     icon_gap = 5
     icon_size = 120
+    mug_size = 250
+    btn_size = 35
 
     def __init__(self, parent):
         """Constructor"""
@@ -108,6 +110,13 @@ class ImgGridPanel(scrolled.ScrolledPanel):
                      (self.parent.part_number, self.parent.part_revision))
         self.image_list = [i[0] for i in crsr.fetchall()]
         conn.close()
+
+        # Draw button first, as the first object drawn stays on top
+        self.button_add_image = wx.BitmapButton(self,
+                                                bitmap=wx.Bitmap(fn_path.concat_gui('plus.png')),
+                                                size=(ImgGridPanel.btn_size,) * 2,
+                                                pos=(0, ImgGridPanel.mug_size - ImgGridPanel.btn_size))
+        self.button_add_image.Bind(wx.EVT_BUTTON, self.event_add_image)
 
         # Create list of raw images
         self.images = [fn_path.concat_img(parent.part_number, img) for img in self.image_list]
@@ -130,11 +139,13 @@ class ImgGridPanel(scrolled.ScrolledPanel):
                 self.purgelist.append(_temp)
                 self.sizer_grid.Add(_temp, wx.EXPAND)
 
-        # Add a button to the grid to add further images
-        _tmp = wx.Image(fn_path.concat_gui("plus.png"), wx.BITMAP_TYPE_ANY).Rescale(*(ImgGridPanel.icon_size,) * 2)
-        _temp0 = wx.StaticBitmap(self, bitmap=wx.Bitmap(_tmp))
-        _temp0.Bind(wx.EVT_LEFT_UP, self.event_add_image)
-        self.sizer_grid.Add(_temp0, wx.EXPAND)
+        print(self.sizer_grid.GetChildren())
+
+        # # Add a button to the grid to add further images
+        # _tmp = wx.Image(fn_path.concat_gui("plus.png"), wx.BITMAP_TYPE_ANY).Rescale(*(ImgGridPanel.icon_size,) * 2)
+        # _temp0 = wx.StaticBitmap(self, bitmap=wx.Bitmap(_tmp))
+        # _temp0.Bind(wx.EVT_LEFT_UP, self.event_add_image)
+        # self.sizer_grid.Add(_temp0, wx.EXPAND)
 
         sizer_stick = wx.BoxSizer(wx.VERTICAL)
         sizer_stick.Add(self.sizer_grid)
@@ -159,7 +170,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
             args[0]: A size object passed from the resize event.
         """
 
-        (w, h) = self.GetSize()
+        (w, h) = self.GetClientSize()
 
         if self.ncols > 1 and w < self.ncols * ImgGridPanel.icon_size + (self.ncols + 1) * ImgGridPanel.icon_gap - self.hyster_low:
             self.ncols -= 1
@@ -179,9 +190,14 @@ class ImgGridPanel(scrolled.ScrolledPanel):
             self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
             self.sizer_grid.SetRows(self.nrows)
 
+        # Move the button that adds more images
+        self.button_add_image.SetPosition((w - ImgGridPanel.btn_size, h - ImgGridPanel.btn_size))
+
     def event_image_click(self, event):
         """Open image dialog"""
-        dialog = ImageDialog(self, self.parent.mugshot, self.parent.wtfishappening, self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
+        # TODO REMOVE DUMMY TEXT
+        print("freaking mongrels", self.purgelist.index(event.GetEventObject()))
+        dialog = ImageDialog(self, self.parent.mugshot, self.parent.mugshot_panel, self.image_list, self.purgelist.index(event.GetEventObject()), self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -477,7 +493,7 @@ class PartsTabPanel(wx.Panel):
         self.sup_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
         self.sup_assembly_list.Bind(wx.EVT_MOTION, self.update_tooltip_super)
 
-        self.wtfishappening = MugshotPanel(self)
+        self.mugshot_panel = MugshotPanel(self)
 
         # Master Sizer
         self.sizer_master = wx.BoxSizer(wx.HORIZONTAL)
@@ -512,7 +528,7 @@ class PartsTabPanel(wx.Panel):
         self.sizer_master.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
 
         self.sizer_master_right = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_master_right.Add(self.wtfishappening, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master_right.Add(self.mugshot_panel, flag=wx.ALL | wx.EXPAND)
         self.sizer_master_right.Add(self.sizer_assembly, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_master.Add(self.sizer_master_right, flag=wx.ALL | wx.EXPAND)
 
