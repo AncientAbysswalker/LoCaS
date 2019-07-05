@@ -114,8 +114,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         # Draw button first, as the first object drawn stays on top
         self.button_add_image = wx.BitmapButton(self,
                                                 bitmap=wx.Bitmap(fn_path.concat_gui('plus.png')),
-                                                size=(ImgGridPanel.btn_size,) * 2,
-                                                pos=(0, ImgGridPanel.mug_size - ImgGridPanel.btn_size))
+                                                size=(ImgGridPanel.btn_size,) * 2)
         self.button_add_image.Bind(wx.EVT_BUTTON, self.event_add_image)
         self.button_add_image.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
 
