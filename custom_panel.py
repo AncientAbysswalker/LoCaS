@@ -117,6 +117,8 @@ class ImgGridPanel(scrolled.ScrolledPanel):
                                                 size=(ImgGridPanel.btn_size,) * 2,
                                                 pos=(0, ImgGridPanel.mug_size - ImgGridPanel.btn_size))
         self.button_add_image.Bind(wx.EVT_BUTTON, self.event_add_image)
+        self.button_add_image.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+
 
         # Create list of raw images
         self.images = [fn_path.concat_img(parent.part_number, img) for img in self.image_list]
@@ -217,6 +219,9 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         dialog.ShowModal()
         dialog.Destroy()
 
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
 
 class NotesPanel(wx.Panel):
     """Custom panel that contains and scales column headers according to a child scrolled grid panel
@@ -684,6 +689,7 @@ class MugshotPanel(wx.Panel):
                                     size=(MugshotPanel.btn_size,) * 2,
                                     pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
         self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
+        self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
 
         self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
 
@@ -705,16 +711,18 @@ class MugshotPanel(wx.Panel):
         self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
 
 
-    def event_drawing(self, *args):
+    def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
 
         dlg = wx.RichMessageDialog(self,
                                    caption="This feature is not yet implemented",
                                    message="This feature will load a production drawing of the current part",
                                    style=wx.OK | wx.ICON_INFORMATION)
-
         dlg.ShowModal()
-        return
+
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
 
 
 class InterfaceTabs(wx.Notebook):

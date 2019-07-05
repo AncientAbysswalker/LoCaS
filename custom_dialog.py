@@ -370,12 +370,16 @@ class ImageDialog(ImageDialogBase):
         # Control buttons and their binds
         button_prev = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('l_arr.png')))
         button_prev.Bind(wx.EVT_BUTTON, self.event_prev_image)
+        button_prev.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
         button_mugshot = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('new_mug.png')))
         button_mugshot.Bind(wx.EVT_BUTTON, self.event_set_mugshot)
+        button_mugshot.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
         button_remove = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('rem_img.png')))
         button_remove.Bind(wx.EVT_BUTTON, self.event_remove_img)
+        button_remove.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
         button_next = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('r_arr.png')))
         button_next.Bind(wx.EVT_BUTTON, self.event_next_image)
+        button_next.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
 
         # Control button sizer
         sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
@@ -395,12 +399,16 @@ class ImageDialog(ImageDialogBase):
 
         # If database entry is null, make text color gray. Otherwise change text. Set background color
         self.comment_set_and_style()
-        self.pnl_comment.Bind(wx.EVT_SET_FOCUS, self.onfocus)
+        self.pnl_comment.Bind(wx.EVT_SET_FOCUS, self.event_ctrlbox_no_focus)
         self.pnl_comment.Bind(wx.EVT_LEFT_DCLICK, self.event_comment_edit)
 
-    def onfocus(self, event):
+    def event_ctrlbox_no_focus(self, event):
         """Set cursor to default and pass before default on-focus method"""
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+        pass
+
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
         pass
 
     def image_in_db(self):
