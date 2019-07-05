@@ -14,11 +14,11 @@ The vision for this project is outlined in the following points.
 * BAE
 
 
-## Next Up
+## Planned
+* Generalize SQL calls more to remove redundancies and unnecessary lines of code
+* 
 
 ## Known Bugs
 * The PDF open button still receives focus even though it should not
-
 * Behavior between multiple tabs is not intended to function yet. Some features, like adding images, may work. They also may break the same features on the sample tab... -_-
-
 * 
