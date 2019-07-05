@@ -468,6 +468,16 @@ class ImageDialog(ImageDialogBase):
             self.sizer_master.Layout()
             self.sizer_master.RecalcSizes()
 
+    def event_refresh_image(self, *args):
+        """Reload this same image index"""
+
+        if len(self.image_list) != 0:
+            self.image_refresh()
+            self.comment_set_and_style()
+
+            self.sizer_master.Layout()
+            self.sizer_master.RecalcSizes()
+
     def event_prev_image(self, *args):
         """If image is not first image, switch to previous image"""
         if self.image_index > 0:
@@ -553,6 +563,16 @@ class ImageDialog(ImageDialogBase):
         self.parent.purgelist[self.image_index].Destroy()
         self.parent.purgelist.pop(self.image_index)
         self.parent.image_list.pop(self.image_index)
+
+        # Kick back one image since this one is no longer present
+        if self.image_index != 0:
+            self.event_prev_image()
+        elif len(self.image_list) == 0:
+            self.Destroy()
+        else:
+            self.event_refresh_image()
+
+        # Update image grid layout
         self.parent.sizer_grid.Layout()
 
         conn.commit()
@@ -649,6 +669,13 @@ class ImageAddDialog(ImageDialogBase):
         if not self.image_in_db():
             # Hash current image data and commit to
             image_hash = self.hash_image()
+
+            # Make directory if needed
+            _path = fn_path.concat_img(self.part_num, image_hash)
+            if not os.path.exists(os.path.dirname(_path)):
+                os.makedirs(os.path.dirname(_path))
+
+            # Copy file
             shutil.copy2(self.image_list[self.image_index],
                          fn_path.concat_img(self.part_num, image_hash))
 

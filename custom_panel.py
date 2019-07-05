@@ -206,7 +206,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
     def event_add_image(self, event):
         """Call up dialogs to add an image and its comment to the database"""
         with wx.FileDialog(None, "Open", "", "",
-                           "BMP and GIF files (*.bmp;*.gif)|*.png;*.gif|PNG files (*.png)|*.png",
+                           "Images (*.bmp;*.gif;*.png;*.jpg)|*.png;*.gif;*.bmp;*.jpg;*.jpeg",
                            wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST) as file_dialog:
 
             if file_dialog.ShowModal() == wx.ID_CANCEL:
@@ -714,11 +714,12 @@ class MugshotPanel(wx.Panel):
     def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
 
-        dlg = wx.RichMessageDialog(self,
+        dialog = wx.RichMessageDialog(self,
                                    caption="This feature is not yet implemented",
                                    message="This feature will load a production drawing of the current part",
                                    style=wx.OK | wx.ICON_INFORMATION)
-        dlg.ShowModal()
+        dialog.ShowModal()
+        dialog.Destroy()
 
     def event_button_no_focus(self, event):
         """Prevents focus from being called on the buttons"""

@@ -11,3 +11,12 @@ All information provided to me was converted into yaml files and text files, as 
 As this was developed per a request, I have changed the actual content of the questions and answer-to-result conversion database to not contain minimal amounts of the original information. I've included some slightly unnecessary segmentation such as the config.py file so that I can have one set of information for the repo online to show my work, and a separate one for production.
 
 This application example takes your answers and converts them into recommended colors, including links to a site where you can observe said colors. The production copy of the application functions in a similar manner.
+
+## Next Up
+
+## Known Bugs
+>The PDF open button still receives focus even though it should not
+
+>Behavior between multiple tabs is not intended to function yet. Some features, like adding images, may work. They also may break the same features on the sample tab... -_-
+
+>
