@@ -556,6 +556,9 @@ class ImageDialog(ImageDialogBase):
         crsr.execute("DELETE FROM Images WHERE image=(?);",
                      (self.image_list[self.image_index],))
 
+        # Remove image physically from defined storage area
+        os.remove(fn_path.concat_img(self.part_num, self.image_list[self.image_index]))
+
         _r, _c = self.parent.sizer_grid.GetRows(), self.parent.sizer_grid.GetCols()
         #self.sizer.Detach(itm.GetWindow())
         #_item = self.parent.sizer_grid.     FindItemAtPosition((self.image_index // _r, self.image_index % _r))
@@ -578,11 +581,6 @@ class ImageDialog(ImageDialogBase):
         conn.commit()
         crsr.close()
         conn.close()
-
-        # Remove image physically from defined storage area
-
-
-
 
         #self.mugshot.refresh(self.image_list[self.image_index])
 

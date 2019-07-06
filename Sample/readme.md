@@ -22,3 +22,4 @@ The vision for this project is outlined in the following points.
 * The PDF open button still receives focus even though it should not
 * Behavior between multiple tabs is not intended to function yet. Some features, like adding images, may work. They also may break the same features on the sample tab... -_-
 * The '+' button to add images is tied to the wrong frame, and as such it scrolls down when there are enough images to allow scroll.
+* Scaling formula for the images in the dedicated image dialog are a bit wonky; this will need to be tweaked
