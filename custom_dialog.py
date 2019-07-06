@@ -579,6 +579,9 @@ class ImageDialog(ImageDialogBase):
         crsr.close()
         conn.close()
 
+        # Remove image physically from defined storage area
+
+
 
 
         #self.mugshot.refresh(self.image_list[self.image_index])

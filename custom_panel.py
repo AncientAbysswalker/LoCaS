@@ -171,28 +171,16 @@ class ImgGridPanel(scrolled.ScrolledPanel):
             args[0]: A size object passed from the resize event.
         """
 
-        (w, h) = self.GetClientSize()
+        # Get width and height of are inside scrolled panel; calculate number of columns that fit
+        (_w, _h) = self.GetClientSize()
+        _c = (_w - ImgGridPanel.icon_gap) // (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)
 
-        if self.ncols > 1 and w < self.ncols * ImgGridPanel.icon_size + (self.ncols + 1) * ImgGridPanel.icon_gap - self.hyster_low:
-            self.ncols -= 1
-            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
-            self.sizer_grid.SetCols(self.ncols)
-            self.sizer_grid.SetRows(self.nrows)
-        elif w > self.ncols * ImgGridPanel.icon_size + (self.ncols + 1) * ImgGridPanel.icon_gap + self.hyster_high:
-            self.ncols += 1
-            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
-            self.sizer_grid.SetCols(self.ncols)
-            self.sizer_grid.SetRows(self.nrows)
-
-        if self.nrows > 1 and h < self.nrows * ImgGridPanel.icon_size + (self.nrows + 1) * ImgGridPanel.icon_gap - self.hyster_low:
-            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
-            self.sizer_grid.SetRows(self.nrows)
-        elif h > self.nrows * ImgGridPanel.icon_size + (self.nrows + 1) * ImgGridPanel.icon_gap + self.hyster_high:
-            self.nrows = max(ceil(len(self.images) / self.ncols), ceil((h + ImgGridPanel.icon_gap) / (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)))
-            self.sizer_grid.SetRows(self.nrows)
+        # Redistribute rows and columns for the grid
+        self.sizer_grid.SetCols(_c)
+        self.sizer_grid.SetRows(ceil(len(self.image_list)/_c))
 
         # Move the button that adds more images
-        self.button_add_image.SetPosition((w - ImgGridPanel.btn_size, h - ImgGridPanel.btn_size))
+        self.button_add_image.SetPosition((_w - ImgGridPanel.btn_size, _h - ImgGridPanel.btn_size))
 
     def event_image_click(self, event):
         """Open image dialog"""
