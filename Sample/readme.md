@@ -35,3 +35,4 @@ Function
 * The '+' button to add images is tied to the wrong frame, and as such it scrolls down when there are enough images to allow scroll.
 * Scaling formula for the images in the dedicated image dialog are a bit wonky; this will need to be tweaked
 * There is currently no handling for images being physically missing. Such an occurrence currently causes a crash
+* There is some duplication in image handling for the image display dialog that will need to be addressed
