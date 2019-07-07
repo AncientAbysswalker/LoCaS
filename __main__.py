@@ -78,5 +78,5 @@ if __name__ == '__main__':
 
     app = wx.App(False)
     win = InterfaceWindow(None, size=(1200, 600))
-    win.SetIcon(wx.Icon('CH.png'))
+    # win.SetIcon(wx.Icon('CH.png'))
     app.MainLoop()
