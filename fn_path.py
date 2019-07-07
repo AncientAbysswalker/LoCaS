@@ -16,4 +16,7 @@ def concat_img(part, file):
 
 
 def concat_gui(file):
-    return os.path.join(config.img_archive, 'img', 'gui', file)
+    if not frozen:
+        return os.path.join(config.img_archive, 'img', 'gui', file)
+    else:
+        return os.path.join(app_root, 'img', 'gui', file)

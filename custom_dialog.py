@@ -300,7 +300,7 @@ class ImageDialogBase(wx.Dialog):
             wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY).Rescale(width_new, height_new)))
 
     def image_path(self):
-        return os.path.join(DATADIR, 'img', *part_to_dir(self.part_num), self.image_list[self.image_index])
+        return fn_path.concat_img(self.part_num, self.image_list[self.image_index])  #os.path.join(DATADIR, 'img', *part_to_dir(self.part_num), self.image_list[self.image_index])
 
     def event_next_image(self, evt):
         """If image is not last image, switch to next image"""

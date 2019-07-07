@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import yaml
+import os
 
 # Defining & Initializing config variables
 directory_split = None
@@ -22,12 +23,12 @@ def load_config():
 
     # Read YAML file into config variables
     try:
-        with open('config.yaml', 'r', encoding='utf8') as stream:
+        with open(os.path.join(app_root, 'config.yaml'), 'r', encoding='utf8') as stream:
             _loaded = yaml.safe_load(stream)
 
             # Load in variables that match those defined above and are not modules or the like
             for k in globals():
-                if k[:2] != "__" and k not in ['yaml', 'load_config', 'sql_db']:
+                if k[:2] != "__" and k not in ['yaml', 'load_config', 'sql_db', 'os', 'app_root']:
                     globals()[k] = _loaded[k]
 
         print(_loaded)

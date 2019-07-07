@@ -19,6 +19,16 @@ from custom_pane import *
 import copy
 #from os import path, makedirs, rename
 
+# Temporary bootstrap for 'current directory' files
+if getattr(sys, 'frozen', False):
+    app_root = sys._MEIPASS
+    fn_path.frozen = True
+    fn_path.app_root = app_root
+else:
+    app_root = os.path.dirname(os.path.abspath(__file__))
+    fn_path.frozen = False
+config.app_root = app_root
+
 
 class InterfaceWindow(wx.Frame):
     def __init__(self, *args, **kwargs):
@@ -57,10 +67,16 @@ class InterfaceWindow(wx.Frame):
         #PANELS.append("rrr")
         #print("sdgsrg")
 
+if __name__ == '__main__':
+    config.load_config()
 
-config.load_config()
+    if getattr(sys, 'frozen', False):
+        config.db_location = os.path.join(os.getcwd(), 'LoCaS.sqlite')
+        print("fuckstick", config.db_location)
+        config.img_archive = os.getcwd()
+        print("fuckstick", config.img_archive)
 
-app = wx.App(False)
-win = InterfaceWindow(None, size=(1200, 600))
-win.SetIcon(wx.Icon('CH.png'))
-app.MainLoop()
+    app = wx.App(False)
+    win = InterfaceWindow(None, size=(1200, 600))
+    win.SetIcon(wx.Icon('CH.png'))
+    app.MainLoop()
