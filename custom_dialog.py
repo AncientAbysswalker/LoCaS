@@ -263,12 +263,12 @@ class ImageDialogBase(wx.Dialog):
         self.init_field()
 
         # Create and scale image
-        img_temp = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
-        height_orig = img_temp.GetHeight()
+        self.img_temp = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
+        height_orig = self.img_temp.GetHeight()
         height_new = min(height_orig, 250)
-        width_new = (height_new / height_orig) * img_temp.GetWidth()
+        width_new = (height_new / height_orig) * self.img_temp.GetWidth()
         print(height_new, width_new)
-        self.pnl_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(img_temp.Scale(width_new, height_new)))
+        self.pnl_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(self.img_temp.Scale(width_new, height_new)))
 
         # Add everything to master sizer and set sizer for pane
         self.sizer_master = wx.BoxSizer(wx.VERTICAL)
@@ -289,6 +289,8 @@ class ImageDialogBase(wx.Dialog):
         """Refresh the image panel and ensure correct sizing of panel"""
 
         # Get original size
+        #self.img_temp.Destroy()
+        #self.img_temp.wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
         (width_orig, height_orig) = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY).GetSize()
 
         # Calculate expected dimensions
@@ -553,21 +555,19 @@ class ImageDialog(ImageDialogBase):
                          (self.part_num, self.part_rev))
 
         # Remove image from database
-        crsr.execute("DELETE FROM Images WHERE image=(?);",
-                     (self.image_list[self.image_index],))
+        crsr.execute("DELETE FROM Images WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
+                     (self.part_num, self.part_rev, self.image_list[self.image_index],))
 
         # Remove image physically from defined storage area
         os.remove(fn_path.concat_img(self.part_num, self.image_list[self.image_index]))
 
+        # Update image grid to remove destroyed image from grid
         _r, _c = self.parent.sizer_grid.GetRows(), self.parent.sizer_grid.GetCols()
-        #self.sizer.Detach(itm.GetWindow())
-        #_item = self.parent.sizer_grid.     FindItemAtPosition((self.image_index // _r, self.image_index % _r))
-        #self.parent.sizer_grid.Detach(self.parent.sizer_grid.GetItem(self.image_index), wx.EXPAND)
         self.parent.purgelist[self.image_index].Destroy()
         self.parent.purgelist.pop(self.image_index)
         self.parent.image_list.pop(self.image_index)
 
-        # Kick back one image since this one is no longer present
+        # Kick back one image in this dialog since this one is no longer present
         if self.image_index != 0:
             self.event_prev_image()
         elif len(self.image_list) == 0:
@@ -581,20 +581,6 @@ class ImageDialog(ImageDialogBase):
         conn.commit()
         crsr.close()
         conn.close()
-
-        #self.mugshot.refresh(self.image_list[self.image_index])
-
-        # Connect to the database
-        # conn = config.sql_db.connect(config.db_location)
-        # crsr = conn.cursor()
-        #
-        # # Modify the existing cell in the database for existing part number and desired column
-        # crsr.execute("UPDATE Parts SET mugshot=(?) WHERE part_num=(?) AND part_rev=(?);",
-        #              (self.image_list[self.image_index], self.part_num, self.part_rev))
-        #
-        # conn.commit()
-        # crsr.close()
-        # conn.close()
 
     def comment_set_and_style(self):
         """Check if the comment is null and style accordingly if NULL"""

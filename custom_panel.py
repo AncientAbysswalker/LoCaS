@@ -185,7 +185,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
     def event_image_click(self, event):
         """Open image dialog"""
         # TODO REMOVE DUMMY TEXT
-        print("freaking mongrels", self.purgelist.index(event.GetEventObject()))
+        print("Opening Image Index ", self.purgelist.index(event.GetEventObject()))
         dialog = ImageDialog(self, self.parent.mugshot, self.parent.mugshot_panel, self.image_list, self.purgelist.index(event.GetEventObject()), self.parent.part_number, self.parent.part_revision)
         dialog.ShowModal()
         dialog.Destroy()
@@ -277,7 +277,7 @@ class NotesPanel(wx.Panel):
             wx.StaticText(self, size=(max(column_widths[1], 40) + NotesPanel.hspace, -1),
                           label="Author", style=wx.ALIGN_LEFT))
         self.purgelist.append(wx.StaticText(self, label="Note", style=wx.ALIGN_LEFT))
-        self.purgelist.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER)) # TODO: Line removal failure
+        self.purgelist.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER))  # TODO: Line removal failure
 
         self.sizer_title.Add(self.purgelist[0])
         self.sizer_title.Add(self.purgelist[1])
