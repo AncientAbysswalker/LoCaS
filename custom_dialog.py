@@ -263,12 +263,13 @@ class ImageDialogBase(wx.Dialog):
         self.init_field()
 
         # Create and scale image
-        self.img_temp = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
-        height_orig = self.img_temp.GetHeight()
+        tmp_img = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
+        (width_orig, height_orig) = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY).GetSize()
+
         height_new = min(height_orig, 250)
-        width_new = (height_new / height_orig) * self.img_temp.GetWidth()
+        width_new = (height_new / height_orig) * width_orig
         print(height_new, width_new)
-        self.pnl_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(self.img_temp.Scale(width_new, height_new)))
+        self.pnl_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(tmp_img.Scale(width_new, height_new)))
 
         # Add everything to master sizer and set sizer for pane
         self.sizer_master = wx.BoxSizer(wx.VERTICAL)
@@ -289,17 +290,20 @@ class ImageDialogBase(wx.Dialog):
         """Refresh the image panel and ensure correct sizing of panel"""
 
         # Get original size
-        #self.img_temp.Destroy()
-        #self.img_temp.wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
-        (width_orig, height_orig) = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY).GetSize()
+        tmp_img = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
+        (width_orig, height_orig) = tmp_img.GetSize()
 
         # Calculate expected dimensions
         height_new = min(height_orig, 250)
         width_new = (height_new / height_orig) * width_orig
 
         # Set new image and scale to above calculation
-        self.pnl_image.SetBitmap(wx.Bitmap(
-            wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY).Rescale(width_new, height_new)))
+        tmp_bitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(tmp_img.Scale(width_new, height_new)))
+
+        # Replace image in sizer, destroy old image, then change reference to point at new image
+        self.sizer_master.Replace(self.pnl_image, tmp_bitmap, False)
+        self.pnl_image.Destroy()
+        self.pnl_image = tmp_bitmap
 
     def image_path(self):
         return fn_path.concat_img(self.part_num, self.image_list[self.image_index])  #os.path.join(DATADIR, 'img', *part_to_dir(self.part_num), self.image_list[self.image_index])
