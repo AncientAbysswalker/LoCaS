@@ -260,7 +260,6 @@ class NotesPanel(wx.Panel):
         column_widths.append(0)
         column_widths.append(0)
         column_widths.append(0)
-        print("pickles", column_widths)
 
         for purge in self.purgelist:
             purge.Destroy()
@@ -400,6 +399,8 @@ class PartsTabPanel(wx.Panel):
         self.suc_revision = "BAD"
         self.mugshot = None
         self.drawing = None
+        self.sub_data_list = []
+        self.super_data_list = []
 
         self.load_data()
 
@@ -432,13 +433,13 @@ class PartsTabPanel(wx.Panel):
         self.sizer_partline.Add(self.short_descrip_text, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
 
 
-
-        # EVENTUALLY SWAP OUT FOR ULTIMATELISTBOX?
-        self.sub_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUBLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
-        self.sup_assembly_list = wx.ListBox(self, size=(-1, -1), choices=SUPLIST)#, size=(-1, 200), style=wx.LB_SINGLE)
+        # TODO: Check into UltimateListBox functionality?
+        self.sub_assembly_list = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.sub_data_list])#, size=(-1, 200), style=wx.LB_SINGLE)
+        self.sup_assembly_list = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.super_data_list])#, size=(-1, 200), style=wx.LB_SINGLE)
 
         # Load data into dictionary for mouseover on listboxes - superassemblies
-        # TODO: Add consideration for revision
+        # TODO: Add consideration for revision - nested dicts likely
+        # TODO: Move to load_data()
         conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
         crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
@@ -448,7 +449,7 @@ class PartsTabPanel(wx.Panel):
         conn.close()
 
         # Load data into dictionary for mouseover on listboxes - subassemblies
-        # TODO: Add consideration for revision
+        # TODO: Add consideration for revision - nested dicts likely
         conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
         crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
@@ -545,9 +546,9 @@ class PartsTabPanel(wx.Panel):
         crsr.execute("SELECT part_type, name, description, successor_num, successor_rev, mugshot, drawing "
                      "FROM Parts WHERE part_num=(?) AND part_rev=(?)",
                      (self.part_number, self.part_revision))
-        _tmp_sql_data = crsr.fetchone()
-        conn.close()
 
+        # Load main data
+        _tmp_sql_data = crsr.fetchone()
         if _tmp_sql_data:
             self.part_type, \
             self.short_description, \
@@ -557,6 +558,16 @@ class PartsTabPanel(wx.Panel):
             self.mugshot, \
             self.drawing \
                 = _tmp_sql_data
+
+        # populate Sub and Super Assembly lists
+        crsr.execute("SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?)",
+                     (self.part_number, self.part_revision))
+        self.super_data_list = crsr.fetchall()
+        crsr.execute("SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?)",
+                     (self.part_number, self.part_revision))
+        self.sub_data_list = crsr.fetchall()
+
+        conn.close()
 
     def style_null_entry(self, conditional, entry_field):
         """Style a text entry based on its SQL counterpart being NULL"""
