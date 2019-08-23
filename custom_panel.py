@@ -107,7 +107,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
         crsr.execute("SELECT image FROM Images WHERE part_num=(?) AND part_rev=(?);",
-                     (self.parent.part_number, self.parent.part_revision))
+                     (self.parent.part_num, self.parent.part_rev))
         self.image_list = [i[0] for i in crsr.fetchall()]
         conn.close()
 
@@ -120,7 +120,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
 
 
         # Create list of raw images
-        self.images = [fn_path.concat_img(parent.part_number, img) for img in self.image_list]
+        self.images = [fn_path.concat_img(parent.part_num, img) for img in self.image_list]
 
         # Create a grid sizer to contain image icons
         self.nrows, self.ncols = 1, len(self.images)
@@ -186,7 +186,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         """Open image dialog"""
         # TODO REMOVE DUMMY TEXT
         print("Opening Image Index ", self.purgelist.index(event.GetEventObject()))
-        dialog = ImageDialog(self, self.parent.mugshot, self.parent.mugshot_panel, self.image_list, self.purgelist.index(event.GetEventObject()), self.parent.part_number, self.parent.part_revision)
+        dialog = ImageDialog(self, self.parent.mugshot, self.parent.mugshot_panel, self.image_list, self.purgelist.index(event.GetEventObject()), self.parent.part_num, self.parent.part_rev)
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -202,7 +202,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
             selected_files = file_dialog.GetPaths()
 
         # Proceed loading the file chosen by the user
-        dialog = ImageAddDialog(self, selected_files, self.parent.part_number, self.parent.part_revision)
+        dialog = ImageAddDialog(self, selected_files, self.parent.part_num, self.parent.part_rev)
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -340,7 +340,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
         conn = config.sql_db.connect(config.db_location)
         crsr = conn.cursor()
         crsr.execute("SELECT date, author, note FROM Notes WHERE part_num=(?) AND part_rev=(?)",
-                     (self.parent.parent.part_number, "0"))#self.parent.parent.part_revision))
+                     (self.parent.parent.part_num, "0"))#self.parent.parent.part_rev))
         _tmp_list = crsr.fetchall()
         conn.close()
 
@@ -370,7 +370,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
         """
 
         print(event.GetEventObject().GetId())
-        #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_number, self.parent.part_revision)
+        #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_num, self.parent.part_rev)
         #dialog.ShowModal()
         #dialog.Destroy()
 
@@ -382,9 +382,10 @@ class PartsTabPanel(wx.Panel):
         self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))  # Ensure that edit cursor does not show by default
 
+        # Variable initialization
         self.parent = args[0]
-        self.part_number = pn
-        self.part_revision = "0"
+        self.part_num = pn
+        self.part_rev = "0"
         self.part_type = "You Should NEVER See This Text!!"
         self.short_description = "You Should NEVER See This Text!!"
         self.long_description = "You Should NEVER See This Text!!" \
@@ -402,71 +403,55 @@ class PartsTabPanel(wx.Panel):
         self.sub_data_list = []
         self.super_data_list = []
 
+        # Method to load data
         self.load_data()
 
         # Top row of information
-        self.part_number_text = wx.StaticText(self, label=self.part_number, style=wx.ALIGN_CENTER)
-        self.text_rev_number = wx.StaticText(self, label="R" + self.part_revision, style=wx.ALIGN_CENTER)
-        # self.part_type_text = wx.StaticText(self, size=(100, -1), label=self.part_type, style=wx.ALIGN_CENTER)
-        #         # self.short_descrip_text = wx.StaticText(self, size=(-1, -1), label=self.short_description, style=wx.ST_ELLIPSIZE_END)
-        self.part_type_text = self.style_null_entry(self.part_type,
-                                                    wx.StaticText(self, size=(100, -1), style=wx.ALIGN_CENTER))
-        self.short_descrip_text = self.style_null_entry(self.short_description,
-                                                    wx.StaticText(self, size=(-1, -1), style=wx.ST_ELLIPSIZE_END))
+        self.wgt_txt_part_num = wx.StaticText(self, label=self.part_num, style=wx.ALIGN_CENTER)
+        self.wgt_txt_part_rev = wx.StaticText(self, label="R" + self.part_rev, style=wx.ALIGN_CENTER)
+        self.wgt_txt_part_type = self.style_null_entry(self.part_type,
+                                                       wx.StaticText(self,
+                                                                     size=(100, -1),
+                                                                     style=wx.ALIGN_CENTER))
+        self.wgt_txt_description_short = self.style_null_entry(self.short_description,
+                                                               wx.StaticText(self,
+                                                                             size=(-1, -1),
+                                                                             style=wx.ST_ELLIPSIZE_END))
+        self.wgt_txt_description_long = self.style_null_entry(self.long_description,
+                                                              wx.TextCtrl(self,
+                                                                          size=(-1, 35),
+                                                                          style=wx.TE_MULTILINE |
+                                                                                wx.TE_WORDWRAP |
+                                                                                wx.TE_READONLY |
+                                                                                wx.BORDER_NONE))
 
         # Revision number buttons and bindings
-        self.button_rev_next = wx.Button(self, size=(10, -1))
-        self.button_rev_prev = wx.Button(self, size=(10, -1))
-        self.button_rev_next.Bind(wx.EVT_BUTTON, self.event_rev_next)
-        self.button_rev_prev.Bind(wx.EVT_BUTTON, self.event_rev_prev)
+        self.wgt_btn_rev_next = wx.Button(self, size=(10, -1))
+        self.wgt_btn_rev_prev = wx.Button(self, size=(10, -1))
+        self.wgt_btn_rev_next.Bind(wx.EVT_BUTTON, self.event_rev_next)
+        self.wgt_btn_rev_prev.Bind(wx.EVT_BUTTON, self.event_rev_prev)
 
         # Sizer for top row of information
-        self.sizer_partline = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_partline.Add(self.part_number_text, border=5, flag=wx.ALL)
-        self.sizer_partline.Add(self.button_rev_prev, flag=wx.ALL)
-        self.sizer_partline.Add(self.text_rev_number, border=5, flag=wx.ALL)
-        self.sizer_partline.Add(self.button_rev_next, flag=wx.ALL)
-        self.sizer_partline.AddSpacer(5)
-        self.sizer_partline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
-        self.sizer_partline.Add(self.part_type_text, border=5, flag=wx.ALL)
-        self.sizer_partline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
-        self.sizer_partline.Add(self.short_descrip_text, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
+        self.sizer_infoline = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_infoline.Add(self.wgt_txt_part_num, border=5, flag=wx.ALL)
+        self.sizer_infoline.Add(self.wgt_btn_rev_prev, flag=wx.ALL)
+        self.sizer_infoline.Add(self.wgt_txt_part_rev, border=5, flag=wx.ALL)
+        self.sizer_infoline.Add(self.wgt_btn_rev_next, flag=wx.ALL)
+        self.sizer_infoline.AddSpacer(5)
+        self.sizer_infoline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
+        self.sizer_infoline.Add(self.wgt_txt_part_type, border=5, flag=wx.ALL)
+        self.sizer_infoline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
+        self.sizer_infoline.Add(self.wgt_txt_description_short, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
 
 
-        # TODO: Check into UltimateListBox functionality?
-        self.sub_assembly_list = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.sub_data_list])#, size=(-1, 200), style=wx.LB_SINGLE)
-        self.sup_assembly_list = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.super_data_list])#, size=(-1, 200), style=wx.LB_SINGLE)
+        # Lists containing sub and super assembly info
+        self.wgt_sub_assembly = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.helper_wgt_sub])#, size=(-1, 200), style=wx.LB_SINGLE)
+        self.wgt_super_assembly = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.helper_wgt_super])#, size=(-1, 200), style=wx.LB_SINGLE)
 
-        # Load data into dictionary for mouseover on listboxes - superassemblies
-        # TODO: Add consideration for revision - nested dicts likely
-        # TODO: Move to load_data()
-        conn = config.sql_db.connect(config.db_location)
-        crsr = conn.cursor()
-        crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
-                     "(SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?))",
-                     (self.part_number, self.part_revision))
-        self.parts_super = {x: y for x, _, y in crsr.fetchall()}
-        conn.close()
-
-        # Load data into dictionary for mouseover on listboxes - subassemblies
-        # TODO: Add consideration for revision - nested dicts likely
-        conn = config.sql_db.connect(config.db_location)
-        crsr = conn.cursor()
-        crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
-                     "(SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?))",
-                     (self.part_number, self.part_revision))
-        self.parts_sub = {x: y for x, _, y in crsr.fetchall()}
-        conn.close()
-
-        self.long_descrip_text = self.style_null_entry(self.long_description,
-                                                       wx.TextCtrl(self, -1, "", size=(-1, 35), style=wx.TE_MULTILINE |
-                                                                                                      wx.TE_WORDWRAP |
-                                                                                                      wx.TE_READONLY |
-                                                                                                      wx.BORDER_NONE))
 
         self.sizer_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
-        self.sizer_long_descrip.Add(self.long_descrip_text, flag=wx.ALL | wx.EXPAND)
-        self.long_descrip_text.Bind(wx.EVT_SET_FOCUS, self.onfocus)
+        self.sizer_long_descrip.Add(self.wgt_txt_description_long, flag=wx.ALL | wx.EXPAND)
+        self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.onfocus)
 
         self.notes_panel = NotesPanel(self)
 
@@ -478,13 +463,13 @@ class PartsTabPanel(wx.Panel):
         self.icon_grid = ImgGridPanel(self)
 
         #Revision Binds
-        self.revision_bind(self.short_descrip_text, 'Short Description', self.part_number)
+        self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)
 
         # Assembly list binds
-        self.sub_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
-        self.sub_assembly_list.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
-        self.sup_assembly_list.Bind(wx.EVT_LISTBOX, self.opennewpart)
-        self.sup_assembly_list.Bind(wx.EVT_MOTION, self.update_tooltip_super)
+        self.wgt_sub_assembly.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.wgt_sub_assembly.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
+        self.wgt_super_assembly.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.wgt_super_assembly.Bind(wx.EVT_MOTION, self.update_tooltip_super)
 
         self.mugshot_panel = MugshotPanel(self)
 
@@ -495,7 +480,7 @@ class PartsTabPanel(wx.Panel):
 
         self.sizer_master_left = wx.BoxSizer(wx.VERTICAL)
 
-        self.sizer_master_left.Add(self.sizer_partline, flag=wx.ALL | wx.EXPAND)
+        self.sizer_master_left.Add(self.sizer_infoline, flag=wx.ALL | wx.EXPAND)
         self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
         self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
         self.sizer_master_left.AddSpacer(5)
@@ -509,10 +494,10 @@ class PartsTabPanel(wx.Panel):
         # Assembly Sizers
         self.sizer_assembly_left = wx.BoxSizer(wx.VERTICAL)
         self.sizer_assembly_left.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
-        self.sizer_assembly_left.Add(self.sub_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly_left.Add(self.wgt_sub_assembly, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly_right = wx.BoxSizer(wx.VERTICAL)
         self.sizer_assembly_right.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
-        self.sizer_assembly_right.Add(self.sup_assembly_list, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_assembly_right.Add(self.wgt_super_assembly, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_assembly.Add(self.sizer_assembly_left, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.sizer_assembly.Add(self.sizer_assembly_right, proportion=1, flag=wx.ALL | wx.EXPAND)
@@ -533,7 +518,7 @@ class PartsTabPanel(wx.Panel):
 
 
     def revision_dialogue(self, event, pn, field):
-        dialog = ModifyPartsFieldDialog(self, event.GetEventObject(), self.part_number, self.part_revision, "name", "Editing {0} of part {1}".format(field, pn))
+        dialog = ModifyPartsFieldDialog(self, event.GetEventObject(), self.part_num, self.part_rev, "name", "Editing {0} of part {1}".format(field, pn))
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -545,7 +530,7 @@ class PartsTabPanel(wx.Panel):
         crsr = conn.cursor()
         crsr.execute("SELECT part_type, name, description, successor_num, successor_rev, mugshot, drawing "
                      "FROM Parts WHERE part_num=(?) AND part_rev=(?)",
-                     (self.part_number, self.part_revision))
+                     (self.part_num, self.part_rev))
 
         # Load main data
         _tmp_sql_data = crsr.fetchone()
@@ -559,13 +544,38 @@ class PartsTabPanel(wx.Panel):
             self.drawing \
                 = _tmp_sql_data
 
+        self.helper_wgt_super = []
+        self.helper_wgt_sub = []
+        self.data_wgt_super = {}
+        self.data_wgt_sub = {}
         # populate Sub and Super Assembly lists
-        crsr.execute("SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?)",
-                     (self.part_number, self.part_revision))
-        self.super_data_list = crsr.fetchall()
-        crsr.execute("SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?)",
-                     (self.part_number, self.part_revision))
-        self.sub_data_list = crsr.fetchall()
+        conn = config.sql_db.connect(config.db_location)
+        crsr = conn.cursor()
+        crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
+                     "(SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?))",
+                     (self.part_num, self.part_rev))
+
+        for num, rev, name in crsr.fetchall():
+
+            self.helper_wgt_sub.append([num, rev])
+
+            if num not in self.data_wgt_sub:
+                self.data_wgt_sub[num] = {rev: name}
+            elif rev not in self.data_wgt_sub[num]:
+                self.data_wgt_sub[num][rev] = name
+
+        crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
+                     "(SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?))",
+                     (self.part_num, self.part_rev))
+
+        for num, rev, name in crsr.fetchall():
+
+            self.helper_wgt_super.append([num, rev])
+
+            if num not in self.data_wgt_super:
+                self.data_wgt_super[num] = {rev: name}
+            elif rev not in self.data_wgt_super[num]:
+                self.data_wgt_super[num][rev] = name
 
         conn.close()
 
@@ -598,16 +608,16 @@ class PartsTabPanel(wx.Panel):
         Update the tooltip to show part name
         """
 
-        mouse_pos = self.sup_assembly_list.ScreenToClient(wx.GetMousePosition())
-        item_index = self.sup_assembly_list.HitTest(mouse_pos)
+        mouse_pos = self.wgt_super_assembly.ScreenToClient(wx.GetMousePosition())
+        item_index = self.wgt_super_assembly.HitTest(mouse_pos)
 
         if item_index != -1:
-            a = self.parts_super[self.sup_assembly_list.GetString(item_index)]
-            if self.sup_assembly_list.GetToolTipText() != a:
-                msg = a
-                self.sup_assembly_list.SetToolTip(msg)
+            num, rev = self.helper_wgt_super[item_index]
+            new_msg = self.data_wgt_super[num][rev]
+            if self.wgt_super_assembly.GetToolTipText() != new_msg:
+                self.wgt_super_assembly.SetToolTip(new_msg)
         else:
-            self.sup_assembly_list.SetToolTip("")
+            self.wgt_super_assembly.SetToolTip("")
 
         event.Skip()
 
@@ -616,16 +626,16 @@ class PartsTabPanel(wx.Panel):
         Update the tooltip to show part name
         """
 
-        mouse_pos = self.sub_assembly_list.ScreenToClient(wx.GetMousePosition())
-        item_index = self.sub_assembly_list.HitTest(mouse_pos)
+        mouse_pos = self.wgt_sub_assembly.ScreenToClient(wx.GetMousePosition())
+        item_index = self.wgt_sub_assembly.HitTest(mouse_pos)
 
         if item_index != -1:
-            a = self.parts_sub[self.sub_assembly_list.GetString(item_index)]
-            if self.sub_assembly_list.GetToolTipText() != a:
-                msg = a
-                self.sub_assembly_list.SetToolTip(msg)
+            num, rev = self.helper_wgt_sub[item_index]
+            new_msg = self.data_wgt_sub[num][rev]
+            if self.wgt_sub_assembly.GetToolTipText() != new_msg:
+                self.wgt_sub_assembly.SetToolTip(new_msg)
         else:
-            self.sub_assembly_list.SetToolTip("")
+            self.wgt_sub_assembly.SetToolTip("")
 
         event.Skip()
 
@@ -639,9 +649,9 @@ class PartsTabPanel(wx.Panel):
         return
 
         if True:
-            self.part_revision += 1
+            self.part_rev += 1
 
-            self.text_rev_number.SetLabel("R" + str(self.part_revision))
+            self.text_rev_number.SetLabel("R" + str(self.part_rev))
 
             self.sizer_partline.Layout()
 
@@ -653,10 +663,10 @@ class PartsTabPanel(wx.Panel):
         """Toggle to next revision if possible"""
         return
 
-        if self.part_revision > 0:
-            self.part_revision -= 1
+        if self.part_rev > 0:
+            self.part_rev -= 1
 
-            self.text_rev_number.SetLabel("R" + str(self.part_revision))
+            self.text_rev_number.SetLabel("R" + str(self.part_rev))
 
             self.sizer_partline.Layout()
 
@@ -678,7 +688,7 @@ class MugshotPanel(wx.Panel):
 
         # Primary part image
         if self.parent.mugshot:
-            image = wx.Image(fn_path.concat_img(self.parent.part_number, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
+            image = wx.Image(fn_path.concat_img(self.parent.part_num, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
         else:
             image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
 
@@ -703,7 +713,7 @@ class MugshotPanel(wx.Panel):
 
     def refresh(self, new_image=None):
         if new_image:
-            temp = fn_path.concat_img(self.parent.part_number, new_image)
+            temp = fn_path.concat_img(self.parent.part_num, new_image)
         else:
             temp = fn_path.concat_gui('missing_mugshot.png')
         self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
@@ -739,10 +749,10 @@ class InterfaceTabs(wx.Notebook):
         #PANELS.append("rrr")
         #print("sdgsrg")
         panel = PartsTabPanel(name, self)
-        if name not in [pnl.part_number for pnl in self.panels]:
+        if name not in [pnl.part_num for pnl in self.panels]:
             self.panels.append(panel)
             self.AddPage(panel, name)
             if not opt_stay:
                 self.SetSelection(self.GetPageCount() - 1)
         elif not opt_stay:
-            self.SetSelection([pnl.part_number for pnl in self.panels].index(name))
+            self.SetSelection([pnl.part_num for pnl in self.panels].index(name))
