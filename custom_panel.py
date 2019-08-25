@@ -395,7 +395,7 @@ class PartsTabPanel(wx.Panel):
                                 "dignissim ex. Nullam tincidunt nisl felis, eu efficitur turpis sodales et. Fusce " \
                                 "vestibulum lacus sit amet ullamcorper efficitur. Morbi ultrices commodo leo, " \
                                 "ultricies posuere mi finibus id. Nulla convallis velit ante, sed egestas nulla " \
-                                "dignissim ac. "
+                                "dignissim ac."
         self.suc_number = "BADBADBAD"
         self.suc_revision = "BAD"
         self.mugshot = None
@@ -432,90 +432,84 @@ class PartsTabPanel(wx.Panel):
         self.wgt_btn_rev_prev.Bind(wx.EVT_BUTTON, self.event_rev_prev)
 
         # Sizer for top row of information
-        self.sizer_infoline = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_infoline.Add(self.wgt_txt_part_num, border=5, flag=wx.ALL)
-        self.sizer_infoline.Add(self.wgt_btn_rev_prev, flag=wx.ALL)
-        self.sizer_infoline.Add(self.wgt_txt_part_rev, border=5, flag=wx.ALL)
-        self.sizer_infoline.Add(self.wgt_btn_rev_next, flag=wx.ALL)
-        self.sizer_infoline.AddSpacer(5)
-        self.sizer_infoline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
-        self.sizer_infoline.Add(self.wgt_txt_part_type, border=5, flag=wx.ALL)
-        self.sizer_infoline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
-        self.sizer_infoline.Add(self.wgt_txt_description_short, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
+        self.szr_infoline = wx.BoxSizer(wx.HORIZONTAL)
+        self.szr_infoline.Add(self.wgt_txt_part_num, border=5, flag=wx.ALL)
+        self.szr_infoline.Add(self.wgt_btn_rev_prev, flag=wx.ALL)
+        self.szr_infoline.Add(self.wgt_txt_part_rev, border=5, flag=wx.ALL)
+        self.szr_infoline.Add(self.wgt_btn_rev_next, flag=wx.ALL)
+        self.szr_infoline.AddSpacer(5)
+        self.szr_infoline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
+        self.szr_infoline.Add(self.wgt_txt_part_type, border=5, flag=wx.ALL)
+        self.szr_infoline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
+        self.szr_infoline.Add(self.wgt_txt_description_short, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
 
 
         # Lists containing sub and super assembly info
-        self.wgt_sub_assembly = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.helper_wgt_sub])#, size=(-1, 200), style=wx.LB_SINGLE)
-        self.wgt_super_assembly = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.helper_wgt_super])#, size=(-1, 200), style=wx.LB_SINGLE)
+        self.wgt_sub_assm = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.helper_wgt_sub])#, size=(-1, 200), style=wx.LB_SINGLE)
+        self.wgt_super_assm = wx.ListBox(self, size=(-1, -1), choices=[i[0] for i in self.helper_wgt_super])#, size=(-1, 200), style=wx.LB_SINGLE)
 
 
-        self.sizer_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
-        self.sizer_long_descrip.Add(self.wgt_txt_description_long, flag=wx.ALL | wx.EXPAND)
+        self.szr_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
+        self.szr_long_descrip.Add(self.wgt_txt_description_long, flag=wx.ALL | wx.EXPAND)
         self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.onfocus)
 
-        self.notes_panel = NotesPanel(self)
+        # Notes Panel
+        self.pnl_notes = NotesPanel(self)
+        self.szr_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
+        self.szr_notes.Add(self.pnl_notes, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
 
-        self.sizer_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
-        self.sizer_notes.Add(self.notes_panel, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
 
+        self.pnl_icon_grid = ImgGridPanel(self)
 
-        self.icon_grid = ImgGridPanel(self)
-
-        #Revision Binds
-        self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)
+        # Revision Binds
+        self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)  # Short Description Revision
 
         # Assembly list binds
-        self.wgt_sub_assembly.Bind(wx.EVT_LISTBOX, self.opennewpart)
-        self.wgt_sub_assembly.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
-        self.wgt_super_assembly.Bind(wx.EVT_LISTBOX, self.opennewpart)
-        self.wgt_super_assembly.Bind(wx.EVT_MOTION, self.update_tooltip_super)
+        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.wgt_sub_assm.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
+        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.wgt_super_assm.Bind(wx.EVT_MOTION, self.update_tooltip_super)
 
-        self.mugshot_panel = MugshotPanel(self)
+        self.pnl_mugshot = MugshotPanel(self)
+
+        # Assembly List Sizers
+        self.szr_sub_assm = wx.BoxSizer(wx.VERTICAL)
+        self.szr_sub_assm.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
+        self.szr_sub_assm.Add(self.wgt_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_super_assm = wx.BoxSizer(wx.VERTICAL)
+        self.szr_super_assm.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
+        self.szr_super_assm.Add(self.wgt_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_assm = wx.BoxSizer(wx.HORIZONTAL)
+        self.szr_assm.Add(self.szr_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_assm.Add(self.szr_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+
+        # Left Master Sizer
+        self.szr_master_left = wx.BoxSizer(wx.VERTICAL)
+        self.szr_master_left.Add(self.szr_infoline, flag=wx.ALL | wx.EXPAND)
+        self.szr_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+        self.szr_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+        self.szr_master_left.AddSpacer(5)
+        self.szr_master_left.Add(self.szr_long_descrip, flag=wx.ALL | wx.EXPAND)  # , border=15)
+        self.szr_master_left.Add(self.szr_notes, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
+        self.szr_master_left.Add(self.pnl_icon_grid, proportion=2, flag=wx.ALL | wx.EXPAND)
+
+        # Right Master Sizer
+        self.szr_master_right = wx.BoxSizer(wx.VERTICAL)
+        self.szr_master_right.Add(self.pnl_mugshot, flag=wx.ALL | wx.EXPAND)
+        self.szr_master_right.Add(self.szr_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
 
         # Master Sizer
-        self.sizer_master = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_master_horizontal = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_master_horizontal2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.szr_master = wx.BoxSizer(wx.HORIZONTAL)
+        self.szr_master.Add(self.szr_master_left, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_master.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
+        self.szr_master.Add(self.szr_master_right, flag=wx.ALL | wx.EXPAND)
 
-        self.sizer_master_left = wx.BoxSizer(wx.VERTICAL)
-
-        self.sizer_master_left.Add(self.sizer_infoline, flag=wx.ALL | wx.EXPAND)
-        self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
-        self.sizer_master_left.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
-        self.sizer_master_left.AddSpacer(5)
-
-        self.sizer_master_left.Add(self.sizer_long_descrip, flag=wx.ALL | wx.EXPAND)  # , border=15)
-        self.sizer_master_left.Add(self.sizer_notes, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
-        self.sizer_master_left.Add(self.icon_grid, proportion=2, flag=wx.ALL | wx.EXPAND)
-        #self.sizer_master_left.Add(self.listBox, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
-
-
-        # Assembly Sizers
-        self.sizer_assembly_left = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_assembly_left.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
-        self.sizer_assembly_left.Add(self.wgt_sub_assembly, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_assembly_right = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_assembly_right.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
-        self.sizer_assembly_right.Add(self.wgt_super_assembly, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_assembly = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_assembly.Add(self.sizer_assembly_left, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_assembly.Add(self.sizer_assembly_right, proportion=1, flag=wx.ALL | wx.EXPAND)
-
-        self.sizer_master.Add(self.sizer_master_left, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_master.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
-
-        self.sizer_master_right = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_master_right.Add(self.mugshot_panel, flag=wx.ALL | wx.EXPAND)
-        self.sizer_master_right.Add(self.sizer_assembly, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_master.Add(self.sizer_master_right, flag=wx.ALL | wx.EXPAND)
-
-        self.SetSizer(self.sizer_master)
-
+        # Set Sizer
+        self.SetSizer(self.szr_master)
 
     def revision_bind(self, target, field, pn):
         target.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.revision_dialogue(event, pn, field))
-
 
     def revision_dialogue(self, event, pn, field):
         dialog = ModifyPartsFieldDialog(self, event.GetEventObject(), self.part_num, self.part_rev, "name", "Editing {0} of part {1}".format(field, pn))
@@ -608,16 +602,16 @@ class PartsTabPanel(wx.Panel):
         Update the tooltip to show part name
         """
 
-        mouse_pos = self.wgt_super_assembly.ScreenToClient(wx.GetMousePosition())
-        item_index = self.wgt_super_assembly.HitTest(mouse_pos)
+        mouse_pos = self.wgt_super_assm.ScreenToClient(wx.GetMousePosition())
+        item_index = self.wgt_super_assm.HitTest(mouse_pos)
 
         if item_index != -1:
             num, rev = self.helper_wgt_super[item_index]
             new_msg = self.data_wgt_super[num][rev]
-            if self.wgt_super_assembly.GetToolTipText() != new_msg:
-                self.wgt_super_assembly.SetToolTip(new_msg)
+            if self.wgt_super_assm.GetToolTipText() != new_msg:
+                self.wgt_super_assm.SetToolTip(new_msg)
         else:
-            self.wgt_super_assembly.SetToolTip("")
+            self.wgt_super_assm.SetToolTip("")
 
         event.Skip()
 
@@ -626,16 +620,16 @@ class PartsTabPanel(wx.Panel):
         Update the tooltip to show part name
         """
 
-        mouse_pos = self.wgt_sub_assembly.ScreenToClient(wx.GetMousePosition())
-        item_index = self.wgt_sub_assembly.HitTest(mouse_pos)
+        mouse_pos = self.wgt_sub_assm.ScreenToClient(wx.GetMousePosition())
+        item_index = self.wgt_sub_assm.HitTest(mouse_pos)
 
         if item_index != -1:
             num, rev = self.helper_wgt_sub[item_index]
             new_msg = self.data_wgt_sub[num][rev]
-            if self.wgt_sub_assembly.GetToolTipText() != new_msg:
-                self.wgt_sub_assembly.SetToolTip(new_msg)
+            if self.wgt_sub_assm.GetToolTipText() != new_msg:
+                self.wgt_sub_assm.SetToolTip(new_msg)
         else:
-            self.wgt_sub_assembly.SetToolTip("")
+            self.wgt_sub_assm.SetToolTip("")
 
         event.Skip()
 
