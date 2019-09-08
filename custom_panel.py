@@ -240,7 +240,7 @@ class NotesPanel(wx.Panel):
         # Set up sizer to contain header and scrolled notes
         self.panel_notes = NotesScrolled(self)
 
-        self.panel_notes.Bind(wx.EVT_LEFT_UP, self.test_fulnote_click_trigger)
+        self.panel_notes.Bind(wx.EVT_LEFT_UP, self.event_edit_notes_trigger)
 
         self.sizer_title = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_main = wx.BoxSizer(wx.VERTICAL)
@@ -285,12 +285,15 @@ class NotesPanel(wx.Panel):
 
         self.sizer_title.RecalcSizes()
 
-    def test_fulnote_click_trigger(self, event):
-        """Open note-editing dialog
-        TODO LIN001-00: Implement note-editing event
-        """
+    def event_edit_notes_trigger(self, event):
+        """Determine where in the scrolled panel was clicked and pass that to the method handling the dialog"""
 
-        print(event.GetEventObject().GetId())
+        # Mouse positions within the overall panel, corrected for scroll. The math signage is odd, but works out
+        pos_panel = self.panel_notes.ScreenToClient(wx.GetMousePosition())[1]
+        pos_scroll = -self.panel_notes.CalcScrolledPosition(0, 0)[1]
+
+        # Call method from the panel itself to handle dialog popup
+        self.panel_notes.edit_notes((pos_panel + pos_scroll) // 20)
 
 
 class NotesScrolled(scrolled.ScrolledPanel):
@@ -312,6 +315,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
         self.sizer_grid.AddGrowableCol(2)
         self.sizer_grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.sizer_grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
+        self.notes_list = []
 
         # TODO LIN000-00: Keep for the moment, in case hiding headers is the key to generalizing spacing
         # self.sizer_grid.Add(wx.StaticText(self, label="Date"))
@@ -351,25 +355,41 @@ class NotesScrolled(scrolled.ScrolledPanel):
         # Add the notes to the grid
         # TODO LIN000-00: Unsure that this forced sizing will work cross-platform. Check and/or rewrite to generalize
         for i, note in enumerate(_tmp_list):
-            _tmp_item = wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND)
-            self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
-            _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
-            _tmp_item = wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND)
-            self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
-            _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
-            _tmp_item = wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END)
-            self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
-            _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
+            _tmp_item = []
+            _tmp_item.append(wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND))
+            _tmp_item.append(wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND))
+            _tmp_item.append(wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END))
+
+            for item in _tmp_item:
+                item.Bind(wx.EVT_LEFT_UP, self.event_edit_notes_trigger)
+                self.sizer_grid.Add(item, flag=wx.ALL | wx.EXPAND)
+
+            self.notes_list.append(_tmp_item)
+
+            # _tmp_item = wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND)
+            # self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
+            # _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
+            # _tmp_item = wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND)
+            # self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
+            # _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
+            # _tmp_item = wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END)
+            # self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
+            # _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
 
     def add_note(self):
         pass
 
-    def event_note_click(self, event):
+    def event_edit_notes_trigger(self, event):
+        """Determine which entry in the scrolled panel was clicked and pass that to the method handling the dialog"""
+
+        self.edit_notes(event.GetEventObject().GetId())
+
+    def edit_notes(self, my_index):
         """Open note-editing dialog
-        TODO LIN001-00: Implement note-editing event
+        TODO Implement note-editing
         """
 
-        print(event.GetEventObject().GetId())
+        print(self.notes_list[my_index][0].GetLabel(), self.notes_list[my_index][1].GetLabel(), self.notes_list[my_index][2].GetLabel())
         #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_num, self.parent.part_rev)
         #dialog.ShowModal()
         #dialog.Destroy()
