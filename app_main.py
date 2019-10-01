@@ -1,23 +1,10 @@
-COLORS = ["red", "blue", "black", "yellow", "green"]
-NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019','moretext for my othershit'), "{:<6}|{:<25}|{}".format('J1','23-J019','moretext for my othershit'), '2', '3', '4']
-PANELS = ["107-00107", "G39-00107", "777-00107"]
-SUBLIST = ["999-00107", "G39-00107", "767-00107"]
-SUPLIST = ["456-00107", "G39-06767", "776-04577"]
-DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
+# -*- coding: utf-8 -*-
+"""Main Interface Window and Application Launch"""
 
-import random
-import wx
-import sys, os
-import wx.lib.agw.flatnotebook as fnb
-import wx.lib.agw.ultimatelistctrl as ulc
-import wx.lib.scrolledpanel as scrolled
-import glob
-import config
-from math import ceil, floor
+import sys
+
 from custom_dialog import *
-from custom_pane import *
-import copy
-#from os import path, makedirs, rename
+from cst_pane import *
 
 # Temporary bootstrap for 'current directory' files
 if getattr(sys, 'frozen', False):
@@ -31,7 +18,10 @@ config.app_root = app_root
 
 
 class InterfaceWindow(wx.Frame):
+    """Base class for dialogs to display images relating to part. This class should not be called externally."""
+
     def __init__(self, *args, **kwargs):
+        """Constructor"""
         wx.Frame.__init__(self, *args, **kwargs)
 
         self.sizer_login = wx.BoxSizer(wx.VERTICAL)
@@ -67,7 +57,10 @@ class InterfaceWindow(wx.Frame):
         #PANELS.append("rrr")
         #print("sdgsrg")
 
+
 if __name__ == '__main__':
+    """Launch the application."""
+
     config.load_config()
 
     if getattr(sys, 'frozen', False):

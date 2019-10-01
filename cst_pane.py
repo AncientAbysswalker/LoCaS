@@ -7,7 +7,7 @@ import custom_panel
 
 
 class MainPane(wx.Panel):
-    """Master pane that deals with login behaviour for the application.
+    """Master pane that contains the tabbed data panels
 
             Args:
                 parent (ptr): Reference to the wx.object this panel belongs to
@@ -21,12 +21,10 @@ class MainPane(wx.Panel):
         wx.Panel.__init__(self, parent, *args, **kwargs)
 
         self.parent = parent
-        #self.textextext = wx.StaticText(self, size=(60, -1), label="WORDSFSBNGJGBNG", style = wx.ALIGN_CENTER)
         self.notebook = custom_panel.InterfaceTabs(self)
 
         # Main Sizer
         self.sizer_main = wx.BoxSizer(wx.VERTICAL)
-        #self.sizer_main.Add(self.textextext, flag=wx.EXPAND)
         self.sizer_main.Add(self.notebook, proportion=1, flag=wx.EXPAND)
 
         self.SetSizer(self.sizer_main)
