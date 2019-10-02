@@ -38,13 +38,15 @@ class InterfaceWindow(wx.Frame):
         self.status = self.CreateStatusBar() #???Bottom bar
 
         self.menubar = wx.MenuBar()
-        first = wx.Menu()
-        second = wx.Menu()
-        first.Append(wx.NewId(), "New", "Creates A new file")
-        buttonfish = first.Append(wx.NewId(), "ADID", "Yo")
+        menu_file = wx.Menu()
+        menu_edit = wx.Menu()
+        menu_help = wx.Menu()
+        menu_file.Append(wx.NewId(), "New", "Creates A new file")
+        buttonfish = menu_file.Append(wx.NewId(), "ADID", "Yo")
         self.Bind(wx.EVT_MENU, self.onAdd, buttonfish)
-        self.menubar.Append(first, "File")
-        self.menubar.Append(second, "Edit")
+        self.menubar.Append(menu_file, "File")
+        self.menubar.Append(menu_edit, "Edit")
+        self.menubar.Append(menu_help, "Help")
         self.SetMenuBar(self.menubar)
 
         self.SetSizer(self.sizer_login)
@@ -61,14 +63,14 @@ class InterfaceWindow(wx.Frame):
 if __name__ == '__main__':
     """Launch the application."""
 
+    build = "1.0.0"
     config.load_config()
 
     if getattr(sys, 'frozen', False):
         config.db_location = os.path.join(os.getcwd(), 'LoCaS.sqlite')
-        print("fuckstick", config.db_location)
         config.img_archive = os.getcwd()
-        print("fuckstick", config.img_archive)
 
     app = wx.App(False)
     win = InterfaceWindow(None, size=(1200, 600))
+    win.SetTitle("LoCaS - Build " + build)
     app.MainLoop()

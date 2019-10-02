@@ -186,7 +186,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         """Open image dialog"""
         # TODO REMOVE DUMMY TEXT
         print("Opening Image Index ", self.purgelist.index(event.GetEventObject()))
-        dialog = ImageDialog(self, self.parent.mugshot, self.parent.mugshot_panel, self.image_list, self.purgelist.index(event.GetEventObject()), self.parent.part_num, self.parent.part_rev)
+        dialog = ImageDialog(self, self.parent.mugshot, self.parent.pnl_mugshot, self.image_list, self.purgelist.index(event.GetEventObject()), self.parent.part_num, self.parent.part_rev)
         dialog.ShowModal()
         dialog.Destroy()
 
