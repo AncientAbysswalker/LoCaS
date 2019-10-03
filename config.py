@@ -46,3 +46,4 @@ def load_config():
     else:
         raise Exception("An invalid SQL database management system: " + sql_type)
 
+    "testing kanban"
