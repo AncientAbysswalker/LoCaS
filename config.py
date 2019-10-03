@@ -4,13 +4,16 @@ import yaml
 import os
 
 # Defining & Initializing config variables
-directory_split = None
-db_location = None
-img_archive = None
-sql_db = None
-sql_type = None
-dlg_hide_change_mugshot = None
-dlg_hide_remove_image = None
+cfg_import = [
+            "directory_split",
+            "db_location",
+            "img_archive",
+            "sql_db",
+            "sql_type",
+            "dlg_hide_change_mugshot",
+            "dlg_hide_remove_image"
+
+            ]
 
 
 def load_config():
@@ -23,26 +26,25 @@ def load_config():
 
     # Read YAML file into config variables
     try:
-        with open(os.path.join(app_root, 'config.yaml'), 'r', encoding='utf8') as stream:
+        with open(os.path.join(app_root, 'app_config.yaml'), 'r', encoding='utf8') as stream:
             _loaded = yaml.safe_load(stream)
 
             # Load in variables that match those defined above and are not modules or the like
-            for k in globals():
-                if k[:2] != "__" and k not in ['yaml', 'load_config', 'sql_db', 'os', 'app_root']:
-                    globals()[k] = _loaded[k]
+            _keys = list(_loaded.keys())
+            cfg = {x: _loaded[x] for x in set(cfg_import).intersection(_keys)}
 
-        print(_loaded)
     except FileNotFoundError:
         print("File not found - generate new config file? Or find file and move to home?")
 
+    print(cfg)
     # Special handling for certain imported variables
-    if sql_type == "sqlite3":
+    if cfg['sql_type'] == "sqlite3":
         import sqlite3
-        globals()["sql_db"] = sqlite3
-        print(globals()["sql_db"])
-    elif sql_type == "psycopg2":
+        globals()['sql_db'] = sqlite3
+        print(globals()['sql_db'])
+    elif cfg['sql_type'] == "psycopg2":
         import psycopg2
-        globals()["sql_db"] = psycopg2
+        globals()['sql_db'] = psycopg2
     else:
         raise Exception("An invalid SQL database management system: " + sql_type)
 

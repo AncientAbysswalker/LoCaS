@@ -67,8 +67,8 @@ if __name__ == '__main__':
     config.load_config()
 
     if getattr(sys, 'frozen', False):
-        config.db_location = os.path.join(os.getcwd(), 'LoCaS.sqlite')
-        config.img_archive = os.getcwd()
+        config.cfg["db_location"] = os.path.join(os.getcwd(), 'LoCaS.sqlite')
+        config.cfg["img_archive"] = os.getcwd()
 
     app = wx.App(False)
     win = InterfaceWindow(None, size=(1200, 600))
