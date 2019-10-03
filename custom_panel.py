@@ -104,7 +104,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         self.parent = parent
 
         # Load list of images from database and store the image names with extensions
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
         crsr.execute("SELECT image FROM Images WHERE part_num=(?) AND part_rev=(?);",
                      (self.parent.part_num, self.parent.part_rev))
@@ -341,7 +341,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
         """Open SQL database and load notes from table"""
 
         # Load notes from database
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
         crsr.execute("SELECT date, author, note FROM Notes WHERE part_num=(?) AND part_rev=(?)",
                      (self.parent.parent.part_num, "0"))#self.parent.parent.part_rev))
@@ -540,7 +540,7 @@ class PartsTabPanel(wx.Panel):
         """Load the part data from the database"""
 
         # Load part data from database
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
         crsr.execute("SELECT part_type, name, description, successor_num, successor_rev, mugshot, drawing "
                      "FROM Parts WHERE part_num=(?) AND part_rev=(?)",
@@ -563,7 +563,7 @@ class PartsTabPanel(wx.Panel):
         self.data_wgt_super = {}
         self.data_wgt_sub = {}
         # populate Sub and Super Assembly lists
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
         crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
                      "(SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?))",

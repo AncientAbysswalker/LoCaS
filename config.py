@@ -31,21 +31,23 @@ def load_config():
 
             # Load in variables that match those defined above and are not modules or the like
             _keys = list(_loaded.keys())
-            cfg = {x: _loaded[x] for x in set(cfg_import).intersection(_keys)}
+            globals()['cfg'] = {x: _loaded[x] for x in set(cfg_import).intersection(_keys)}
 
     except FileNotFoundError:
         print("File not found - generate new config file? Or find file and move to home?")
 
-    print(cfg)
-    # Special handling for certain imported variables
-    if cfg['sql_type'] == "sqlite3":
+    # Special handling for missing required variables
+
+    # Special handling for missing optional variables
+
+    # Special handling for sql type
+    if globals()['cfg']['sql_type'] == "sqlite3":  # SQLite
         import sqlite3
         globals()['sql_db'] = sqlite3
-        print(globals()['sql_db'])
-    elif cfg['sql_type'] == "psycopg2":
+    elif globals()['cfg']['sql_type'] == "psycopg2":  # PostgreSQL
         import psycopg2
         globals()['sql_db'] = psycopg2
     else:
-        raise Exception("An invalid SQL database management system: " + sql_type)
+        raise Exception("An invalid SQL database management system provided: " + sql_type)
 
     "testing kanban 2.9"
