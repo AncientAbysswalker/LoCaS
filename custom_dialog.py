@@ -500,8 +500,8 @@ class ImageDialog(ImageDialogBase):
         # Show confirmation dialog if not hidden in config
         if not config.cfg["dlg_hide_change_mugshot"]:
             dlg = wx.RichMessageDialog(self,
-                                       caption = "Update Mugshot?",
-                                       message = "Are you sure you would like to change the mugshot for this part?",
+                                       caption="Update Mugshot?",
+                                       message="Are you sure you would like to change the mugshot for this part?",
                                        style=wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_WARNING)
             dlg.ShowCheckBox("Don't show this notification again")
 

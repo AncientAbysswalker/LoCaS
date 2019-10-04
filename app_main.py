@@ -64,13 +64,14 @@ if __name__ == '__main__':
     """Launch the application."""
 
     build = "1.0.0"
-    config.load_config()
+    app = wx.App(False)
+    config.load_config(app)
 
     if getattr(sys, 'frozen', False):
         config.cfg["db_location"] = os.path.join(os.getcwd(), 'LoCaS.sqlite')
         config.cfg["img_archive"] = os.getcwd()
 
-    app = wx.App(False)
+    #app = wx.App(False)
     win = InterfaceWindow(None, size=(1200, 600))
     win.SetTitle("LoCaS - Build " + build)
     app.MainLoop()
