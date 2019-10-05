@@ -21,11 +21,14 @@ sql_supported = [
                 "SQLite",
                 "PostgreSQL"
                 ]
-cfg_import = [
+cfg_app_import = [
             "directory_split",
             "db_location",
             "img_archive",
-            "sql_type",
+            "sql_type"
+
+            ]
+cfg_user_import = [
             "dlg_hide_change_mugshot",
             "dlg_hide_remove_image"
 
@@ -35,24 +38,50 @@ cfg_import = [
 def load_config(application):
     """Read a yaml file into config dictionary"""
 
-    # Read YAML file into config.cfg dictionary, and prompt to create if absent
+    # Read user YAML file into config.cfg dictionary, and automatically create if absent (all false)
+    try:
+        with open(os.path.join(app_root, 'testuser' + '_config.yaml'), 'r', encoding='utf8') as stream:
+            _loaded = yaml.safe_load(stream)
+
+            # Load in variables intended for import if available
+            _keys = list(_loaded.keys())
+            globals()['opt'] = {x: _loaded[x] for x in set(cfg_user_import).intersection(_keys)}
+
+            # If any user variables are missing
+            if len(set(cfg_user_import).difference(_keys)) != 0:
+                for undefined in set(cfg_user_import).difference(_keys):
+                    globals()['opt'][undefined] = False
+                with open(os.path.join(app_root, 'testuser' + '_config.yaml'), 'w', encoding='utf8') as stream:
+                    yaml.dump(globals()['opt'], stream, default_flow_style=False)
+    # If all user variables or the file are missing
+    except (AttributeError, FileNotFoundError):
+        globals()['opt'] = {x: False for x in cfg_user_import}
+        with open(os.path.join(app_root, 'testuser' + '_config.yaml'), 'w', encoding='utf8') as stream:
+            yaml.dump(globals()['opt'], stream, default_flow_style=False)
+
+    # Read application YAML file into config.cfg dictionary, and prompt to create if absent
     try:
         with open(os.path.join(app_root, 'app_config.yaml'), 'r', encoding='utf8') as stream:
             _loaded = yaml.safe_load(stream)
 
             # Load in variables intended for import if available
             _keys = list(_loaded.keys())
-            globals()['cfg'] = {x: _loaded[x] for x in set(cfg_import).intersection(_keys)}
+            globals()['cfg'] = {x: _loaded[x] for x in set(cfg_app_import).intersection(_keys)}
 
     except FileNotFoundError:
         print("File not found - generate new config file? Or find file and move to home?")
 
 
-    _missing_config = list(set(cfg_import).difference(_keys))
+
+    _missing_config = list(set(cfg_app_import).difference(_keys))
     print("missing", _missing_config)
 
-    if len(_missing_config) != 0 or 'sql_type' not in globals()['cfg']:
-        print("FUCK")
+    if len(_missing_config) != 0:
+        dlg = wx.RichMessageDialog(None,
+                                   caption="Missing Config Values",
+                                   message="Some variables are missing from the config file. Please update them now.",
+                                   style=wx.OK | wx.ICON_WARNING)
+        dlg.ShowModal()
 
     # Special handling for sql type
     if 'sql_type' not in globals()['cfg']:
