@@ -15,7 +15,8 @@ import os
 import wx
 
 # Defining & Initializing config variables
-cfg = None
+cfg = {}
+opt = {}
 sql_db = None
 sql_supported = [
                 'SQLite'
@@ -65,6 +66,7 @@ def load_config(application):
 
             # Load in variables intended for import if available
             _keys = list(_loaded.keys())
+            _missing_config = list(set(cfg_app_import).difference(_keys))
             globals()['cfg'] = {x: _loaded[x] for x in set(cfg_app_import).intersection(_keys)}
 
     except (AttributeError, FileNotFoundError):
@@ -74,13 +76,10 @@ def load_config(application):
                                            "you want to locate the file",
                                    style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if dlg.ShowModal() == wx.ID_OK:
-            # CALL CONFIG DLG
-            pass
+            call_config_dialog()
+            _missing_config = []
         else:
-            pass
-            # END EVERYTHING
-
-    _missing_config = list(set(cfg_app_import).difference(_keys))
+            exit()
 
     if len(_missing_config) != 0: # AND IS VALID
         dlg = wx.RichMessageDialog(None,
