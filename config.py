@@ -18,21 +18,20 @@ import wx
 cfg = None
 sql_db = None
 sql_supported = [
-                "SQLite",
-                "PostgreSQL"
+                'SQLite'
+                # 'PostgreSQL'
+                # 'MySQL'
                 ]
 cfg_app_import = [
-            "directory_split",
-            "db_location",
-            "img_archive",
-            "sql_type"
-
-            ]
+                 'directory_split',
+                 'db_location',
+                 'img_archive',
+                 'sql_type'
+                 ]
 cfg_user_import = [
-            "dlg_hide_change_mugshot",
-            "dlg_hide_remove_image"
-
-            ]
+                  'dlg_hide_change_mugshot',
+                  'dlg_hide_remove_image'
+                  ]
 
 
 def load_config(application):
@@ -135,12 +134,6 @@ class DialogConfigSQL(wx.Dialog):
         self.SetSize((500, 270))
         self.SetTitle("Choose SQL Database Type")
 
-        # Callable widgets
-        self.wgt_dropdown_sql = None
-        self.wgt_entry_sql = None
-        self.wgt_entry_image = None
-        self.wgt_entry_regex = None
-
     def init_dialog(self):
         """Draw the dialog box"""
 
@@ -195,8 +188,41 @@ class DialogConfigSQL(wx.Dialog):
     def event_commit(self, event):
         """Execute when committing the config variables - write configs to yaml"""
 
-        if self.wgt_dropdown_sql.GetSelection() != -1:
-            globals()['cfg']['sql_type'] = globals()['sql_supported'][self.wgt_dropdown_sql.GetSelection()]
+        # SQL type check
+        _sql_type_enum = self.wgt_dropdown_sql.GetSelection()
+        if _sql_type_enum != -1:
+            globals()['cfg']['sql_type'] = globals()['sql_supported'][_sql_type_enum]
+        else:
+            return
+
+        # SQL database location
+        if globals()['cfg']['sql_type'] == 'SQLite':
+            _sql_db = self.wgt_entry_sql.GetValue()
+            print(os.path.splitext(_sql_db)[-1])
+            if os.path.splitext(_sql_db)[-1] == '.sqlite' and os.path.isfile(_sql_db):
+                globals()['cfg']['db_location'] = _sql_db
+            else:
+                return
+        elif globals()['cfg']['sql_type'] == 'PostgreSQL':
+            # Postgres check
+            return
+        else:
+            return
+
+        # Image database location
+        _img_db = self.wgt_entry_image.GetValue()
+        if os.path.isdir(_img_db):
+            globals()['cfg']['img_archive'] = _img_db
+        else:
+            return
+
+        # RegEx
+        globals()['cfg']['directory_split'] = self.wgt_entry_regex.GetValue()
+
+        with open(os.path.join(app_root, 'app_config.yaml'), 'w', encoding='utf8') as stream:
+            yaml.dump(globals()['cfg'], stream, default_flow_style=False)
+
+        self.Destroy()
 
     def event_cancel(self, event):
         """Execute when cancelling a change"""
