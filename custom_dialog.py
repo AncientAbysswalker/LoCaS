@@ -163,7 +163,7 @@ class ModifyPartsFieldDialog(ModifyFieldDialogBase):
         self.rewrite_edit_field(_rewrite_value)
 
         # Connect to the database
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
 
         # Modify the existing cell in the database for existing part number and desired column
@@ -221,7 +221,7 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
         _rewrite_value = self.editbox.GetValue()
 
         # Connect to the database
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
 
         # Check if the image comment should be considered void, and commit the change
@@ -359,7 +359,7 @@ class ImageDialog(ImageDialogBase):
     def load_data(self):
         """Load data from the SQL database"""
 
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
         crsr.execute("SELECT image, description FROM Images WHERE part_num=(?) AND part_rev=(?);",
                      (self.part_num, self.part_rev))
@@ -424,7 +424,7 @@ class ImageDialog(ImageDialogBase):
         image_hash = self.hash_image()
 
         # Connect to the database
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
 
         # Check if the current image is already hashed into the database
@@ -498,10 +498,10 @@ class ImageDialog(ImageDialogBase):
         """Allows the user to change the mugshot for the part"""
 
         # Show confirmation dialog if not hidden in config
-        if not config.dlg_hide_change_mugshot:
+        if not config.cfg["dlg_hide_change_mugshot"]:
             dlg = wx.RichMessageDialog(self,
-                                       caption = "Update Mugshot?",
-                                       message = "Are you sure you would like to change the mugshot for this part?",
+                                       caption="Update Mugshot?",
+                                       message="Are you sure you would like to change the mugshot for this part?",
                                        style=wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_WARNING)
             dlg.ShowCheckBox("Don't show this notification again")
 
@@ -509,7 +509,7 @@ class ImageDialog(ImageDialogBase):
             if dlg.ShowModal() == wx.ID_OK:
                 if dlg.IsCheckBoxChecked():
                     # Set config to hide this dialog next time
-                    config.dlg_hide_change_mugshot = True
+                    config.cfg["dlg_hide_change_mugshot"] = True
             else:
                 return
 
@@ -517,7 +517,7 @@ class ImageDialog(ImageDialogBase):
         self.mugshot_panel.refresh(self.image_list[self.image_index])
 
         # Connect to the database
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
 
         # Modify the existing cell in the database for existing part number and desired column
@@ -532,7 +532,7 @@ class ImageDialog(ImageDialogBase):
         """Removes an image from the image grid and """
 
         # Show confirmation dialog if not hidden in config
-        if not config.dlg_hide_remove_image:
+        if not config.cfg["dlg_hide_remove_image"]:
             dlg = wx.RichMessageDialog(self,
                                        caption="Remove parts image?",
                                        message="Are you sure you would like to remove this image?",
@@ -543,12 +543,12 @@ class ImageDialog(ImageDialogBase):
             if dlg.ShowModal() == wx.ID_OK:
                 if dlg.IsCheckBoxChecked():
                     # Set config to hide this dialog next time
-                    config.dlg_hide_remove_image = True
+                    config.cfg["dlg_hide_remove_image"] = True
             else:
                 return
 
         # Connect to the database
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
 
         # Refresh Mugshot if needed and update SQL
@@ -677,7 +677,7 @@ class ImageAddDialog(ImageDialogBase):
                 _commit_text = self.pnl_comment.GetValue()
 
             # Connect to the database
-            conn = config.sql_db.connect(config.db_location)
+            conn = config.sql_db.connect(config.cfg["db_location"])
             crsr = conn.cursor()
 
             # Check if the image comment should be considered void, and commit the change
@@ -724,7 +724,7 @@ class ImageAddDialog(ImageDialogBase):
         image_hash = self.hash_image()
 
         # Connect to the database
-        conn = config.sql_db.connect(config.db_location)
+        conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
 
         # Check if the current image is already hashed into the database
