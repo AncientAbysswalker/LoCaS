@@ -15,30 +15,30 @@ import os
 import wx
 
 # Defining & Initializing config variables
-cfg = None
+cfg = {}
+opt = {}
 sql_db = None
 sql_supported = [
-                "SQLite",
-                "PostgreSQL"
+                'SQLite'
+                # 'PostgreSQL'
+                # 'MySQL'
                 ]
 cfg_app_import = [
-            "directory_split",
-            "db_location",
-            "img_archive",
-            "sql_type"
-
-            ]
+                 'directory_split',
+                 'db_location',
+                 'img_archive',
+                 'sql_type'
+                 ]
 cfg_user_import = [
-            "dlg_hide_change_mugshot",
-            "dlg_hide_remove_image"
-
-            ]
+                  'dlg_hide_change_mugshot',
+                  'dlg_hide_remove_image'
+                  ]
 
 
 def load_config(application):
     """Read a yaml file into config dictionary"""
 
-    # Read user YAML file into config.cfg dictionary, and automatically create if absent (all false)
+    # Read user YAML file into config.opt dictionary, and automatically create if absent (all false)
     try:
         with open(os.path.join(app_root, 'testuser' + '_config.yaml'), 'r', encoding='utf8') as stream:
             _loaded = yaml.safe_load(stream)
@@ -66,32 +66,38 @@ def load_config(application):
 
             # Load in variables intended for import if available
             _keys = list(_loaded.keys())
+            _missing_config = list(set(cfg_app_import).difference(_keys))
             globals()['cfg'] = {x: _loaded[x] for x in set(cfg_app_import).intersection(_keys)}
 
-    except FileNotFoundError:
-        print("File not found - generate new config file? Or find file and move to home?")
+    except (AttributeError, FileNotFoundError):
+        dlg = wx.RichMessageDialog(None,
+                                   caption="Missing Config File",
+                                   message="The config file is missing or empty. Please generate one now, or cancel if "
+                                           "you want to locate the file",
+                                   style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
+        if dlg.ShowModal() == wx.ID_OK:
+            call_config_dialog()
+            _missing_config = []
+        else:
+            exit()
 
-
-
-    _missing_config = list(set(cfg_app_import).difference(_keys))
-    print("missing", _missing_config)
-
-    if len(_missing_config) != 0:
+    if len(_missing_config) != 0: # AND IS VALID
         dlg = wx.RichMessageDialog(None,
                                    caption="Missing Config Values",
                                    message="Some variables are missing from the config file. Please update them now.",
                                    style=wx.OK | wx.ICON_WARNING)
         dlg.ShowModal()
+        call_config_dialog()
 
     # Special handling for sql type
     if 'sql_type' not in globals()['cfg']:
-        dlg = DialogConfigSQL(application)
+        dlg = DialogConfigSQL()
         dlg.ShowModal()
 
-    if globals()['cfg']['sql_type'] == "sqlite3":  # SQLite
+    if globals()['cfg']['sql_type'] == "SQLite":  # SQLite
         import sqlite3
         globals()['sql_db'] = sqlite3
-    elif globals()['cfg']['sql_type'] == "psycopg2":  # PostgreSQL
+    elif globals()['cfg']['sql_type'] == "PostgreSQL":  # PostgreSQL
         import psycopg2
         globals()['sql_db'] = psycopg2
     else:
@@ -101,6 +107,11 @@ def load_config(application):
     # Special handling for missing required variables
 
     # Special handling for missing optional variables
+
+
+def call_config_dialog():
+    dlg = DialogConfigSQL()
+    dlg.ShowModal()
 
 
 class DialogConfigSQL(wx.Dialog):
@@ -113,25 +124,35 @@ class DialogConfigSQL(wx.Dialog):
             <>
     """
 
-    def __init__(self, application, *args, **kw):
+    def __init__(self, *args, **kw):
         """Constructor"""
         super().__init__(None, *args, **kw)
 
-        self.a = application
+        # Window variables
         self.init_dialog()
-        self.SetSize((500, 160))
+        self.SetSize((500, 270))
         self.SetTitle("Choose SQL Database Type")
 
     def init_dialog(self):
         """Draw the dialog box"""
 
-        # Editable box and outline box
-        wgt_txt_explain = wx.StaticText(self, label="Please select the type of SQL database you intend to use to "
-                                                    "store the part assembly data.\n"
-                                                    "This will affect how the data is loaded.")
-        self.wgt_dropdown_sql = wx.ComboBox(self, value="", choices=globals()['sql_supported'], style=wx.CB_READONLY)
+        # SQL Selection
+        wgt_txt_sql = wx.StaticText(self, label="SQL Database Location and Type")
+        self.wgt_dropdown_sql = wx.ComboBox(self,
+                                            value=self.config_ternary('sql_type'),
+                                            choices=globals()['sql_supported'],
+                                            style=wx.CB_READONLY)
+        self.wgt_entry_sql = wx.TextCtrl(self, value=self.config_ternary('db_location'))
 
-        # Dialog buttons with binds
+        # Image Database
+        wgt_txt_image = wx.StaticText(self, label="Image Database Location")
+        self.wgt_entry_image = wx.TextCtrl(self, value=self.config_ternary('img_archive'))
+
+        # Part Number RegEx
+        wgt_txt_regex = wx.StaticText(self, label="Part Number Regular Expression (Not yet functional)")
+        self.wgt_entry_regex = wx.TextCtrl(self, value=self.config_ternary('directory_split'))
+
+        # Buttons
         btn_commit = wx.Button(self, label='Commit')
         btn_commit.Bind(wx.EVT_BUTTON, self.event_commit)
         btn_cancel = wx.Button(self, label='Cancel')
@@ -144,18 +165,63 @@ class DialogConfigSQL(wx.Dialog):
 
         # Add everything to master sizer and set sizer for pane
         sizer_master = wx.BoxSizer(wx.VERTICAL)
-        sizer_master.Add(wgt_txt_explain, flag=wx.ALL | wx.EXPAND, border=5)
-        sizer_master.Add(self.wgt_dropdown_sql, flag=wx.ALL | wx.LEFT, border=5)
+        sizer_master.Add(wgt_txt_sql, flag=wx.ALL | wx.EXPAND, border=2)
+        sizer_master.Add(self.wgt_dropdown_sql, flag=wx.ALL, border=2)
+        sizer_master.Add(self.wgt_entry_sql, flag=wx.ALL | wx.EXPAND, border=2)
+        sizer_master.AddSpacer(8)
+        sizer_master.Add(wgt_txt_image, flag=wx.ALL | wx.EXPAND, border=2)
+        sizer_master.Add(self.wgt_entry_image, flag=wx.ALL | wx.EXPAND, border=2)
+        sizer_master.AddSpacer(8)
+        sizer_master.Add(wgt_txt_regex, flag=wx.ALL | wx.EXPAND, border=2)
+        sizer_master.Add(self.wgt_entry_regex, flag=wx.ALL | wx.EXPAND, border=2)
         sizer_master.Add(szr_buttons, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
         self.SetSizer(sizer_master)
 
         self.Bind(wx.EVT_CLOSE, self.event_close)
 
-    def event_commit(self, event):
-        """Execute when committing a change - move change to SQL"""
+    @staticmethod
+    def config_ternary(variable):
+        """Common ternary for updating text field"""
+        return globals()['cfg'][variable] if (variable in globals()['cfg']) else ''
 
-        if self.wgt_dropdown_sql.GetSelection() != -1:
-            globals()['cfg']['sql_type'] = globals()['sql_supported'][self.wgt_dropdown_sql.GetSelection()]
+    def event_commit(self, event):
+        """Execute when committing the config variables - write configs to yaml"""
+
+        # SQL type check
+        _sql_type_enum = self.wgt_dropdown_sql.GetSelection()
+        if _sql_type_enum != -1:
+            globals()['cfg']['sql_type'] = globals()['sql_supported'][_sql_type_enum]
+        else:
+            return
+
+        # SQL database location
+        if globals()['cfg']['sql_type'] == 'SQLite':
+            _sql_db = self.wgt_entry_sql.GetValue()
+            print(os.path.splitext(_sql_db)[-1])
+            if os.path.splitext(_sql_db)[-1] == '.sqlite' and os.path.isfile(_sql_db):
+                globals()['cfg']['db_location'] = _sql_db
+            else:
+                return
+        elif globals()['cfg']['sql_type'] == 'PostgreSQL':
+            # Postgres check
+            return
+        else:
+            return
+
+        # Image database location
+        _img_db = self.wgt_entry_image.GetValue()
+        if os.path.isdir(_img_db):
+            globals()['cfg']['img_archive'] = _img_db
+        else:
+            return
+
+        # RegEx
+        globals()['cfg']['directory_split'] = self.wgt_entry_regex.GetValue()
+
+        with open(os.path.join(app_root, 'app_config.yaml'), 'w', encoding='utf8') as stream:
+            yaml.dump(globals()['cfg'], stream, default_flow_style=False)
+
+        self.Destroy()
 
     def event_cancel(self, event):
         """Execute when cancelling a change"""
