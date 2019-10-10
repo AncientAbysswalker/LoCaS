@@ -486,9 +486,9 @@ class PartsTabPanel(wx.Panel):
         self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)  # Short Description Revision
 
         # Assembly list binds
-        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
         self.wgt_sub_assm.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
-        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
         self.wgt_super_assm.Bind(wx.EVT_MOTION, self.update_tooltip_super)
 
         self.pnl_mugshot = MugshotPanel(self)
@@ -612,9 +612,9 @@ class PartsTabPanel(wx.Panel):
 
         return entry_field
 
-    def opennewpart(self, event):
+    def event_click_assm_lists(self, event):
         index = event.GetSelection()
-        self.parent.fuck(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
+        self.parent.open_parts_tab(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
         event.GetEventObject().SetSelection(wx.NOT_FOUND)
 
     def update_tooltip_super(self, event):
@@ -759,9 +759,13 @@ class InterfaceTabs(wx.Notebook):
             self.panels.append(panel)
             self.AddPage(panel, name)
 
-    def fuck(self, name, opt_stay=0):
-        #PANELS.append("rrr")
-        #print("sdgsrg")
+    def open_parts_tab(self, name, opt_stay=False):
+        """Open a new tab using the provided part number
+
+            Args:
+                name (string): The part number to open as a new tab
+                opt_stay (bool): If true, do not change to newly opened tab
+        """
         panel = PartsTabPanel(name, self)
         if name not in [pnl.part_num for pnl in self.panels]:
             self.panels.append(panel)
