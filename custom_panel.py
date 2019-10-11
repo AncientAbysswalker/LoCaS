@@ -789,7 +789,14 @@ class InterfaceTabs(wx.Notebook):
                                                   "Do you want to add %s to the database?" % (part_num,),
                                         style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
             if _dlg.ShowModal() == wx.ID_YES:
-                # Add differences here
+
+                conn = config.sql_db.connect(config.cfg["db_location"])
+                crsr = conn.cursor()
+                crsr.execute("INSERT INTO Parts (part_num, part_rev) VALUES ((?), (?));",
+                             (part_num, "0"))
+                crsr.close()
+                conn.commit()
+
                 panel = PartsTabPanel(part_num, self)
                 if part_num not in [pnl.part_num for pnl in self.panels]:
                     self.panels.append(panel)
