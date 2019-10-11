@@ -2,8 +2,10 @@
 """This module defines panes - master panels that act as direct children of the progenitor frame"""
 
 import wx
+
 import login
 import custom_panel
+import fn_path
 
 
 class MainPane(wx.Panel):
@@ -21,13 +23,46 @@ class MainPane(wx.Panel):
         wx.Panel.__init__(self, parent, *args, **kwargs)
 
         self.parent = parent
-        self.notebook = custom_panel.InterfaceTabs(self)
+
+        # Widgets
+        #wgt_txt_searchbar = wx.StaticText(self, label="Search Part Numbers:")
+        self.wgt_searchbar = wx.TextCtrl(self, value="", size=(250, 25), style=wx.TE_PROCESS_ENTER)
+        btn_search = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('search2.png')), size=(25, 25))
+        btn_search.Bind(wx.EVT_BUTTON, self.event_search)
+        btn_search.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+        self.wgt_notebook = custom_panel.InterfaceTabs(self)
+
+        # Searchbar Bind
+        self.wgt_searchbar.Bind(wx.EVT_TEXT_ENTER, self.event_search)
+        btn_search.Bind(wx.EVT_BUTTON, self.event_search)
+        btn_search.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+
+        # Bar Sizer
+        szr_bar = wx.BoxSizer(wx.HORIZONTAL)
+        szr_bar.AddSpacer(5)
+        #szr_bar.Add(wgt_txt_searchbar, flag=wx.EXPAND)
+        #szr_bar.AddSpacer(2)
+        szr_bar.Add(self.wgt_searchbar)
+        szr_bar.AddSpacer(2)
+        szr_bar.Add(btn_search)
 
         # Main Sizer
-        self.sizer_main = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_main.Add(self.notebook, proportion=1, flag=wx.EXPAND)
+        self.szr_main = wx.BoxSizer(wx.VERTICAL)
+        self.szr_main.Add(szr_bar, flag=wx.EXPAND)
+        self.szr_main.AddSpacer(1)
+        self.szr_main.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+        self.szr_main.Add(self.wgt_notebook, proportion=1, flag=wx.EXPAND)
 
-        self.SetSizer(self.sizer_main)
+        self.SetSizer(self.szr_main)
+
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
+
+    def event_search(self, *args):
+        """Search for a part number"""
+        self.wgt_notebook.open_parts_tab(self.wgt_searchbar.GetValue())
+        self.wgt_searchbar.SetValue("")
 
 
 class LoginPane(wx.Panel):

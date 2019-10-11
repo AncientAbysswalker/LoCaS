@@ -486,9 +486,9 @@ class PartsTabPanel(wx.Panel):
         self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)  # Short Description Revision
 
         # Assembly list binds
-        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
         self.wgt_sub_assm.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
-        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.opennewpart)
+        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
         self.wgt_super_assm.Bind(wx.EVT_MOTION, self.update_tooltip_super)
 
         self.pnl_mugshot = MugshotPanel(self)
@@ -562,6 +562,7 @@ class PartsTabPanel(wx.Panel):
         self.helper_wgt_sub = []
         self.data_wgt_super = {}
         self.data_wgt_sub = {}
+
         # populate Sub and Super Assembly lists
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
@@ -612,9 +613,9 @@ class PartsTabPanel(wx.Panel):
 
         return entry_field
 
-    def opennewpart(self, event):
+    def event_click_assm_lists(self, event):
         index = event.GetSelection()
-        self.parent.fuck(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
+        self.parent.open_parts_tab(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
         event.GetEventObject().SetSelection(wx.NOT_FOUND)
 
     def update_tooltip_super(self, event):
@@ -710,8 +711,8 @@ class MugshotPanel(wx.Panel):
         self.button_dwg = wx.Button(self,
                                     size=(MugshotPanel.btn_size,) * 2,
                                     pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
-        self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
         self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+        self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
 
         self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
 
@@ -732,16 +733,15 @@ class MugshotPanel(wx.Panel):
             temp = fn_path.concat_gui('missing_mugshot.png')
         self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
 
-
     def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
 
-        dialog = wx.RichMessageDialog(self,
+        _dlg = wx.RichMessageDialog(self,
                                    caption="This feature is not yet implemented",
                                    message="This feature will load a production drawing of the current part",
                                    style=wx.OK | wx.ICON_INFORMATION)
-        dialog.ShowModal()
-        dialog.Destroy()
+        _dlg.ShowModal()
+        _dlg.Destroy()
 
     def event_button_no_focus(self, event):
         """Prevents focus from being called on the buttons"""
@@ -750,8 +750,8 @@ class MugshotPanel(wx.Panel):
 
 class InterfaceTabs(wx.Notebook):
     def __init__(self, *args, **kwargs):
-        wx.Notebook.__init__(self, *args, **kwargs) #fnb.FlatNotebook
-        self.SetDoubleBuffered(True) #Remove slight strobiong on tab switch
+        wx.Notebook.__init__(self, *args, **kwargs)  # fnb.FlatNotebook
+        self.SetDoubleBuffered(True)  # Remove slight strobiong on tab switch
 
         self.panels = []
         for name in PANELS:
@@ -759,14 +759,50 @@ class InterfaceTabs(wx.Notebook):
             self.panels.append(panel)
             self.AddPage(panel, name)
 
-    def fuck(self, name, opt_stay=0):
-        #PANELS.append("rrr")
-        #print("sdgsrg")
-        panel = PartsTabPanel(name, self)
-        if name not in [pnl.part_num for pnl in self.panels]:
-            self.panels.append(panel)
-            self.AddPage(panel, name)
-            if not opt_stay:
-                self.SetSelection(self.GetPageCount() - 1)
-        elif not opt_stay:
-            self.SetSelection([pnl.part_num for pnl in self.panels].index(name))
+    def open_parts_tab(self, part_num, opt_stay=False):
+        """Open a new tab using the provided part number
+
+            Args:
+                part_num (string): The part number to open as a new tab
+                opt_stay (bool): If true, do not change to newly opened tab
+        """
+
+        conn = config.sql_db.connect(config.cfg["db_location"])
+        crsr = conn.cursor()
+        crsr.execute("SELECT EXISTS (SELECT 1 FROM Parts WHERE part_num=(?))", (part_num,))
+        _check = crsr.fetchone()[0]
+        conn.close()
+
+        if _check:
+            panel = PartsTabPanel(part_num, self)
+            if part_num not in [pnl.part_num for pnl in self.panels]:
+                self.panels.append(panel)
+                self.AddPage(panel, part_num)
+                if not opt_stay:
+                    self.SetSelection(self.GetPageCount() - 1)
+            elif not opt_stay:
+                self.SetSelection([pnl.part_num for pnl in self.panels].index(part_num))
+        else:
+            _dlg = wx.RichMessageDialog(self,
+                                        caption="Part Not In System",
+                                        message="This part is not currently added to the system.\n"
+                                                  "Do you want to add %s to the database?" % (part_num,),
+                                        style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+            if _dlg.ShowModal() == wx.ID_YES:
+
+                conn = config.sql_db.connect(config.cfg["db_location"])
+                crsr = conn.cursor()
+                crsr.execute("INSERT INTO Parts (part_num, part_rev) VALUES ((?), (?));",
+                             (part_num, "0"))
+                crsr.close()
+                conn.commit()
+
+                panel = PartsTabPanel(part_num, self)
+                if part_num not in [pnl.part_num for pnl in self.panels]:
+                    self.panels.append(panel)
+                    self.AddPage(panel, part_num)
+                    if not opt_stay:
+                        self.SetSelection(self.GetPageCount() - 1)
+                elif not opt_stay:
+                    self.SetSelection([pnl.part_num for pnl in self.panels].index(part_num))
+            _dlg.Destroy()
