@@ -736,12 +736,12 @@ class MugshotPanel(wx.Panel):
     def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
 
-        dialog = wx.RichMessageDialog(self,
+        _dlg = wx.RichMessageDialog(self,
                                    caption="This feature is not yet implemented",
                                    message="This feature will load a production drawing of the current part",
                                    style=wx.OK | wx.ICON_INFORMATION)
-        dialog.ShowModal()
-        dialog.Destroy()
+        _dlg.ShowModal()
+        _dlg.Destroy()
 
     def event_button_no_focus(self, event):
         """Prevents focus from being called on the buttons"""
@@ -759,29 +759,43 @@ class InterfaceTabs(wx.Notebook):
             self.panels.append(panel)
             self.AddPage(panel, name)
 
-    def open_parts_tab(self, name, opt_stay=False):
+    def open_parts_tab(self, part_num, opt_stay=False):
         """Open a new tab using the provided part number
 
             Args:
-                name (string): The part number to open as a new tab
+                part_num (string): The part number to open as a new tab
                 opt_stay (bool): If true, do not change to newly opened tab
         """
 
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
-        crsr.execute("SELECT EXISTS (SELECT 1 FROM Parts WHERE part_num=(?))", (name,))
+        crsr.execute("SELECT EXISTS (SELECT 1 FROM Parts WHERE part_num=(?))", (part_num,))
         _check = crsr.fetchone()[0]
         conn.close()
 
         if _check:
-            panel = PartsTabPanel(name, self)
-            if name not in [pnl.part_num for pnl in self.panels]:
+            panel = PartsTabPanel(part_num, self)
+            if part_num not in [pnl.part_num for pnl in self.panels]:
                 self.panels.append(panel)
-                self.AddPage(panel, name)
+                self.AddPage(panel, part_num)
                 if not opt_stay:
                     self.SetSelection(self.GetPageCount() - 1)
             elif not opt_stay:
-                self.SetSelection([pnl.part_num for pnl in self.panels].index(name))
+                self.SetSelection([pnl.part_num for pnl in self.panels].index(part_num))
         else:
-            print("Need to check to add new part")
-            pass
+            _dlg = wx.RichMessageDialog(self,
+                                        caption="Part Not In System",
+                                        message="This part is not currently added to the system.\n"
+                                                  "Do you want to add %s to the database?" % (part_num,),
+                                        style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+            if _dlg.ShowModal() == wx.ID_YES:
+                # Add differences here
+                panel = PartsTabPanel(part_num, self)
+                if part_num not in [pnl.part_num for pnl in self.panels]:
+                    self.panels.append(panel)
+                    self.AddPage(panel, part_num)
+                    if not opt_stay:
+                        self.SetSelection(self.GetPageCount() - 1)
+                elif not opt_stay:
+                    self.SetSelection([pnl.part_num for pnl in self.panels].index(part_num))
+            _dlg.Destroy()
