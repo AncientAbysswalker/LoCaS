@@ -562,6 +562,7 @@ class PartsTabPanel(wx.Panel):
         self.helper_wgt_sub = []
         self.data_wgt_super = {}
         self.data_wgt_sub = {}
+
         # populate Sub and Super Assembly lists
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
@@ -710,8 +711,8 @@ class MugshotPanel(wx.Panel):
         self.button_dwg = wx.Button(self,
                                     size=(MugshotPanel.btn_size,) * 2,
                                     pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
-        self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
         self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+        self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
 
         self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
 
@@ -732,7 +733,6 @@ class MugshotPanel(wx.Panel):
             temp = fn_path.concat_gui('missing_mugshot.png')
         self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
 
-
     def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
 
@@ -750,8 +750,8 @@ class MugshotPanel(wx.Panel):
 
 class InterfaceTabs(wx.Notebook):
     def __init__(self, *args, **kwargs):
-        wx.Notebook.__init__(self, *args, **kwargs) #fnb.FlatNotebook
-        self.SetDoubleBuffered(True) #Remove slight strobiong on tab switch
+        wx.Notebook.__init__(self, *args, **kwargs)  # fnb.FlatNotebook
+        self.SetDoubleBuffered(True)  # Remove slight strobiong on tab switch
 
         self.panels = []
         for name in PANELS:
@@ -766,11 +766,22 @@ class InterfaceTabs(wx.Notebook):
                 name (string): The part number to open as a new tab
                 opt_stay (bool): If true, do not change to newly opened tab
         """
-        panel = PartsTabPanel(name, self)
-        if name not in [pnl.part_num for pnl in self.panels]:
-            self.panels.append(panel)
-            self.AddPage(panel, name)
-            if not opt_stay:
-                self.SetSelection(self.GetPageCount() - 1)
-        elif not opt_stay:
-            self.SetSelection([pnl.part_num for pnl in self.panels].index(name))
+
+        conn = config.sql_db.connect(config.cfg["db_location"])
+        crsr = conn.cursor()
+        crsr.execute("SELECT EXISTS (SELECT 1 FROM Parts WHERE part_num=(?))", (name,))
+        _check = crsr.fetchone()[0]
+        conn.close()
+
+        if _check:
+            panel = PartsTabPanel(name, self)
+            if name not in [pnl.part_num for pnl in self.panels]:
+                self.panels.append(panel)
+                self.AddPage(panel, name)
+                if not opt_stay:
+                    self.SetSelection(self.GetPageCount() - 1)
+            elif not opt_stay:
+                self.SetSelection([pnl.part_num for pnl in self.panels].index(name))
+        else:
+            print("Need to check to add new part")
+            pass
