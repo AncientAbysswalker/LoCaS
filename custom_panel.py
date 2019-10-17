@@ -118,7 +118,6 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         self.button_add_image.Bind(wx.EVT_BUTTON, self.event_add_image)
         self.button_add_image.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
 
-
         # Create list of raw images
         self.images = [fn_path.concat_img(parent.part_num, img) for img in self.image_list]
 
@@ -210,6 +209,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         """Prevents focus from being called on the buttons"""
         pass
 
+
 class NotesPanel(wx.Panel):
     """Custom panel that contains and scales column headers according to a child scrolled grid panel
 
@@ -236,6 +236,13 @@ class NotesPanel(wx.Panel):
 
         self.parent = parent
         self.purgelist = []
+
+        # Draw button first, as the first object drawn stays on top
+        self.button_add_note = wx.BitmapButton(self,
+                                               bitmap=wx.Bitmap(fn_path.concat_gui('plus.png')),
+                                               size=(ImgGridPanel.btn_size,) * 2)
+        self.button_add_note.Bind(wx.EVT_BUTTON, self.event_add_note)
+        self.button_add_note.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
 
         # Set up sizer to contain header and scrolled notes
         self.panel_notes = NotesScrolled(self)
@@ -295,6 +302,14 @@ class NotesPanel(wx.Panel):
         # Call method from the panel itself to handle dialog popup
         self.panel_notes.edit_notes((pos_panel + pos_scroll) // 20)
 
+    def event_add_note(self, event):
+        """Call up dialogs to add a note to the database"""
+        pass
+
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
+
 
 class NotesScrolled(scrolled.ScrolledPanel):
     """Scrolled panel containing a grid of notes data.
@@ -336,6 +351,9 @@ class NotesScrolled(scrolled.ScrolledPanel):
         self.SetupScrolling()
         self.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
         self.SetWindowStyle(wx.VSCROLL)
+
+        # Bind an event to any resizing of the panel
+        self.Bind(wx.EVT_SIZE, self.resize_panel)
 
     def load_notes(self):
         """Open SQL database and load notes from table"""
@@ -393,6 +411,22 @@ class NotesScrolled(scrolled.ScrolledPanel):
         #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_num, self.parent.part_rev)
         #dialog.ShowModal()
         #dialog.Destroy()
+
+    def resize_panel(self, *args):
+        """Resize the image grid
+
+        Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
+
+        Args:
+            self: A reference to the parent instance of ImgPanel.
+            args[0]: A size object passed from the resize event.
+        """
+
+        # Get width and height of are inside scrolled panel; taking into account the notes header
+        (_w, _h) = (self.GetClientSize()[0], self.parent.GetClientSize()[1])
+
+        # Move the button that adds more images
+        self.parent.button_add_note.SetPosition((_w - ImgGridPanel.btn_size, _h - ImgGridPanel.btn_size))
 
 
 class PartsTabPanel(wx.Panel):
@@ -478,7 +512,6 @@ class PartsTabPanel(wx.Panel):
         self.szr_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
         self.szr_notes.Add(self.pnl_notes, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
         self.szr_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
-
 
         self.pnl_icon_grid = ImgGridPanel(self)
 
