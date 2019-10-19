@@ -573,11 +573,11 @@ class PartsTabPanel(wx.Panel):
         self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.onfocus)
 
         # Notes Panel
-        self.pnl_notes = NotesPanel(self)
+        self.pnl_notes = widget.CompositeNotes(self, self)
         self.szr_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
         self.szr_notes.Add(self.pnl_notes, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
 
-        self.pnl_icon_grid = widget.CompositeGallery(self)
+        self.pnl_icon_grid = widget.CompositeGallery(self, self)
 
         # Revision Binds
         self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)  # Short Description Revision
