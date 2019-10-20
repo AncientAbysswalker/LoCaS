@@ -575,9 +575,11 @@ class PartsTabPanel(wx.Panel):
         # Notes Panel
         self.pnl_notes = widget.CompositeNotes(self, self)
         self.szr_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
-        self.szr_notes.Add(self.pnl_notes, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_notes.Add(self.pnl_notes, proportion=1, flag=wx.ALL | wx.EXPAND)
 
         self.pnl_icon_grid = widget.CompositeGallery(self, self)
+        self.szr_gallery = wx.StaticBoxSizer(wx.StaticBox(self, label='Image Gallery'), orient=wx.VERTICAL)
+        self.szr_gallery.Add(self.pnl_icon_grid, proportion=1, flag=wx.ALL | wx.EXPAND)
 
         # Revision Binds
         self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)  # Short Description Revision
@@ -609,7 +611,7 @@ class PartsTabPanel(wx.Panel):
         self.szr_master_left.AddSpacer(5)
         self.szr_master_left.Add(self.szr_long_descrip, flag=wx.ALL | wx.EXPAND)  # , border=15)
         self.szr_master_left.Add(self.szr_notes, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
-        self.szr_master_left.Add(self.pnl_icon_grid, proportion=2, flag=wx.ALL | wx.EXPAND)
+        self.szr_master_left.Add(self.szr_gallery, proportion=2, flag=wx.ALL | wx.EXPAND)
 
         # Right Master Sizer
         self.szr_master_right = wx.BoxSizer(wx.VERTICAL)
@@ -790,7 +792,7 @@ class PartsTabPanel(wx.Panel):
 class MugshotPanel(wx.Panel):
 
     mug_size = 250
-    btn_size = 35
+    btn_size = 40
 
     def __init__(self, parent, *args, **kwargs):
         """Constructor"""
@@ -805,9 +807,10 @@ class MugshotPanel(wx.Panel):
             image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
 
         # Draw button first as first drawn stays on top
-        self.button_dwg = wx.Button(self,
-                                    size=(MugshotPanel.btn_size,) * 2,
-                                    pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
+        self.button_dwg = wx.BitmapButton(self,
+                                          bitmap=wx.Bitmap(fn_path.concat_gui('schematic.png')),
+                                          size=(MugshotPanel.btn_size,) * 2,
+                                          pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
         self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
         self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
 
@@ -847,8 +850,8 @@ class MugshotPanel(wx.Panel):
 
 class InterfaceTabs(wx.Notebook):
     def __init__(self, *args, **kwargs):
-        wx.Notebook.__init__(self, *args, **kwargs)  # fnb.FlatNotebook
-        self.SetDoubleBuffered(True)  # Remove slight strobiong on tab switch
+        wx.Notebook.__init__(self, *args, **kwargs)
+        self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
 
         self.panels = []
         for name in PANELS:

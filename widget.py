@@ -12,23 +12,13 @@ Attributes:
 """
 
 
-# Import global colors
-import global_colors
-
 import wx
-import glob
-import os
-
-import random
-#import wx.lib.agw.flatnotebook as fnb
-#import wx.lib.agw.ultimatelistctrl as ulc
 import wx.lib.scrolledpanel as scrolled
-from math import ceil, floor
+from math import ceil
 
 import custom_dialog
 import config
 import fn_path
-import datetime
 
 
 def crop_square(image, rescale=None):
@@ -267,12 +257,12 @@ class WidgetGallery(scrolled.ScrolledPanel):
 
 
 class CompositeNotes(wx.Panel):
-    """Custom panel that contains and scales column headers according to a child scrolled grid panel
+    """Custom widget that overlays an "add note" button on top of the WidgetNotes custom widget as well as
+    governs the column header behavior
 
         Class Variables:
             btn_size (int): Size of the "add image" button in the overlay
-            row_gap (int): Vertical spacing between rows in grid
-            col_gap (int): Horizontal spacing between columns in grid
+            col_min (list: int): List of minimum column widths for the column headers
 
         Args:
             parent (ref): Reference to the parent wx.object
@@ -284,8 +274,7 @@ class CompositeNotes(wx.Panel):
     """
 
     btn_size = 25
-    row_gap = 5
-    col_gap = 15
+    col_min = [25, 40, -1]
 
     def __init__(self, parent, root):
         """Constructor"""
@@ -294,7 +283,8 @@ class CompositeNotes(wx.Panel):
         self.parent = parent
         self.root = root
 
-        self.purgelist = []
+        # List of text objects in the header
+        self.header_list = []
 
         # Draw button first, as the first object drawn stays on top
         self.btn_add_note = wx.BitmapButton(self,
@@ -306,16 +296,30 @@ class CompositeNotes(wx.Panel):
 
         # Button overlay binding - Must be after subwidget to bind to
         self.btn_add_note.Bind(wx.EVT_BUTTON, self.pnl_notes.event_add_note)
-        self.btn_add_note.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+        self.btn_add_note.Bind(wx.EVT_SET_FOCUS, self.evt_button_no_focus)
 
         # Binding for clicking between notes text
-        self.pnl_notes.Bind(wx.EVT_LEFT_UP, self.event_edit_notes_trigger)
+        self.pnl_notes.Bind(wx.EVT_LEFT_UP, self.evt_edit_note)
 
         # Main Sizer
         self.szr_title = wx.BoxSizer(wx.HORIZONTAL)
         self.szr_main = wx.BoxSizer(wx.VERTICAL)
         self.szr_main.Add(self.szr_title, flag=wx.ALL | wx.EXPAND)
         self.szr_main.Add(self.pnl_notes, proportion=1, flag=wx.ALL | wx.EXPAND)
+
+        self.header_list.append(
+            wx.StaticText(self,
+                          label="Date", style=wx.ALIGN_LEFT))
+        self.header_list.append(
+            wx.StaticText(self,
+                          label="Author", style=wx.ALIGN_LEFT))
+        self.header_list.append(wx.StaticText(self, label="Note", style=wx.ALIGN_LEFT))
+        self.header_list.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER))  # TODO: Line removal failure
+
+        self.szr_title.Add(self.header_list[0])
+        self.szr_title.Add(self.header_list[1])
+        self.szr_title.Add(self.header_list[2], proportion=1)
+        self.szr_title.Add(self.header_list[3])
 
         # Refresh headers, repopulating self.sizer_title
         self.refresh_headers()
@@ -330,37 +334,23 @@ class CompositeNotes(wx.Panel):
     def refresh_headers(self):
         """Refresh the column headers to reflect the column widths in the lower scrolled sizer"""
 
-        column_widths = self.pnl_notes.sizer_grid.GetColWidths()
-        column_widths.append(0)
-        column_widths.append(0)
-        column_widths.append(0)
+        # Append three 0s in case the notes list is empty. Only the first 3 entries are observed
+        column_widths = [*self.pnl_notes.szr_grid.GetColWidths(), 0, 0, 0][:3]
 
-        for purge in self.purgelist:
-            purge.Destroy()
-        self.purgelist = []
+        # Change the size of the first two column headers
+        self.header_list[0].SetMinSize((max(column_widths[0], 25) + NotesScrolled.col_gap, -1))
+        self.header_list[1].SetMinSize((max(column_widths[1], 40) + NotesScrolled.col_gap, -1))
 
-        while not self.szr_title.IsEmpty():
-            self.szr_title.Remove(0)
+        # Ensure headers resize properly
+        self.Layout()
 
-        # TODO LIN000-00: Once again check generalization for spacing
-        self.purgelist.append(
-            wx.StaticText(self, size=(max(column_widths[0], 25) + CompositeNotes.col_gap, -1),
-                          label="Date", style=wx.ALIGN_LEFT))
-        self.purgelist.append(
-            wx.StaticText(self, size=(max(column_widths[1], 40) + CompositeNotes.col_gap, -1),
-                          label="Author", style=wx.ALIGN_LEFT))
-        self.purgelist.append(wx.StaticText(self, label="Note", style=wx.ALIGN_LEFT))
-        self.purgelist.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER))  # TODO: Line removal failure
+    def evt_edit_note(self, event):
+        """Determine where in the scrolled panel was clicked and pass that to the method handling the dialog
 
-        self.szr_title.Add(self.purgelist[0])
-        self.szr_title.Add(self.purgelist[1])
-        self.szr_title.Add(self.purgelist[2], proportion=1)
-        self.szr_title.Add(self.purgelist[3])
-
-        self.szr_title.RecalcSizes()
-
-    def event_edit_notes_trigger(self, event):
-        """Determine where in the scrolled panel was clicked and pass that to the method handling the dialog"""
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A resize event object passed from the click event
+        """
 
         # Mouse positions within the overall panel, corrected for scroll. The math signage is odd, but works out
         pos_panel = self.pnl_notes.ScreenToClient(wx.GetMousePosition())[1]
@@ -368,10 +358,6 @@ class CompositeNotes(wx.Panel):
 
         # Call method from the panel itself to handle dialog popup
         self.pnl_notes.edit_notes((pos_panel + pos_scroll) // 20)
-
-    def event_add_note(self, event):
-        """Call up dialogs to add a note to the database"""
-        pass
 
     def evt_resize(self, event):
         """Move the button overlay when resized
@@ -390,52 +376,54 @@ class CompositeNotes(wx.Panel):
         # Refresh Layout required for unknown reasons - otherwise odd scale behaviour on pnl_gallery
         self.Layout()
 
-    def event_button_no_focus(self, event):
+    def evt_button_no_focus(self, event):
         """Prevents focus from being called on the buttons"""
         pass
 
 
 class NotesScrolled(scrolled.ScrolledPanel):
-    """Scrolled panel containing a grid of notes data.
+    """Custom scrolled widget to contain notes associated with the part of the parent tab
 
-    This class is generally the child of NotesPanel, which contains the headers outside the scroll
+        Class Variables:
+            row_gap (int): Vertical spacing between rows in grid
+            col_gap (int): Horizontal spacing between columns in grid
 
-    Attributes:
-        likes_spam: A boolean indicating if we like SPAM or not.
-        eggs: An integer count of the eggs we have laid.
+        Args:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+
+        Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
     """
+
+    row_gap = 5
+    col_gap = 15
 
     def __init__(self, parent, root):
         """Constructor"""
-        super().__init__(parent, style=wx.ALL | wx.VSCROLL)#, style=wx.BORDER_SIMPLE)
+        super().__init__(parent, style=wx.ALL | wx.VSCROLL)
 
         self.parent = parent
-        self.sizer_grid = wx.FlexGridSizer(3, CompositeNotes.row_gap, CompositeNotes.col_gap)
-        self.sizer_grid.AddGrowableCol(2)
-        self.sizer_grid.SetFlexibleDirection(wx.HORIZONTAL)
-        self.sizer_grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
+        self.root = root
+
+        # List of current notes items in widget; each entry is a list of three wx.objects
         self.notes_list = []
 
-        # TODO LIN000-00: Keep for the moment, in case hiding headers is the key to generalizing spacing
-        # self.sizer_grid.Add(wx.StaticText(self, label="Date"))
-        # self.sizer_grid.Add(wx.StaticText(self, label="Author"))
-        # self.sizer_grid.Add(wx.StaticText(self, label="Note"))
+        # Sizer to hold notes entries - Also set as main sizer
+        self.szr_grid = wx.FlexGridSizer(3, NotesScrolled.row_gap, NotesScrolled.col_gap)
+        self.szr_grid.AddGrowableCol(2)
+        self.szr_grid.SetFlexibleDirection(wx.HORIZONTAL)
+        self.szr_grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
+        self.SetSizer(self.szr_grid)
 
-        self.SetSizer(self.sizer_grid)
-        self.Layout()
-        self.min_widths = self.sizer_grid.GetColWidths()
-        print(self.min_widths)
-
-        # for header_item in self.sizer_grid.GetChildren():
-        #     header_item.Show(False)
-
+        # Load notes into the provided grid sizer
         self.load_notes()
 
         # Setup the scrolling style and function, wanting only vertical scroll to be available
         self.SetupScrolling()
         self.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
         self.SetWindowStyle(wx.VSCROLL)
-
 
     def load_notes(self):
         """Open SQL database and load notes from table"""
@@ -453,33 +441,22 @@ class NotesScrolled(scrolled.ScrolledPanel):
             _tmp_list = [(a[0][:10],)+a[1:] for a in sorted(_tmp_list, key=lambda x: x[0])]
 
         # Add the notes to the grid
-        # TODO LIN000-00: Unsure that this forced sizing will work cross-platform. Check and/or rewrite to generalize
         for i, note in enumerate(_tmp_list):
-            _tmp_item = []
-            _tmp_item.append(wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND))
-            _tmp_item.append(wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND))
-            _tmp_item.append(wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END))
+            _tmp_item = [wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND),
+                         wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND),
+                         wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END)]
 
+            # Binding for the items in the notes widget
             for item in _tmp_item:
-                item.Bind(wx.EVT_LEFT_UP, self.event_edit_notes_trigger)
-                self.sizer_grid.Add(item, flag=wx.ALL | wx.EXPAND)
+                item.Bind(wx.EVT_LEFT_UP, self.evt_edit_notes_trigger)
+                self.szr_grid.Add(item, flag=wx.ALL | wx.EXPAND)
 
             self.notes_list.append(_tmp_item)
 
-            # _tmp_item = wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND)
-            # self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
-            # _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
-            # _tmp_item = wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND)
-            # self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
-            # _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
-            # _tmp_item = wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END)
-            # self.sizer_grid.Add(_tmp_item, flag=wx.ALL | wx.EXPAND)
-            # _tmp_item.Bind(wx.EVT_LEFT_UP, self.event_note_click)
-
-    def event_add_note(self):
+    def event_add_note(self, event):
         pass
 
-    def event_edit_notes_trigger(self, event):
+    def evt_edit_notes_trigger(self, event):
         """Determine which entry in the scrolled panel was clicked and pass that to the method handling the dialog"""
 
         self.edit_notes(event.GetEventObject().GetId())
@@ -493,3 +470,62 @@ class NotesScrolled(scrolled.ScrolledPanel):
         #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_num, self.parent.part_rev)
         #dialog.ShowModal()
         #dialog.Destroy()
+
+
+class MugshotPanel(wx.Panel):
+
+    mug_size = 250
+    btn_size = 40
+
+    def __init__(self, parent, *args, **kwargs):
+        """Constructor"""
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+
+        self.parent = parent
+
+        # Primary part image
+        if self.parent.mugshot:
+            image = wx.Image(fn_path.concat_img(self.parent.part_num, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
+        else:
+            image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
+
+        # Draw button first as first drawn stays on top
+        self.button_dwg = wx.BitmapButton(self,
+                                          bitmap=wx.Bitmap(fn_path.concat_gui('schematic.png')),
+                                          size=(MugshotPanel.btn_size,) * 2,
+                                          pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
+        self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+        self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
+
+        self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
+
+        self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
+        # self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
+        #self.button_dwg = wx.Button(self, size=(50, 50), pos=(50, 0))
+        #self.sizer_main.Add(self.button_dwg, flag=wx.ALL)
+        #self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
+
+        self.SetSizer(self.sizer_main)
+        self.Layout()
+
+    def refresh(self, new_image=None):
+        if new_image:
+            temp = fn_path.concat_img(self.parent.part_num, new_image)
+        else:
+            temp = fn_path.concat_gui('missing_mugshot.png')
+        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
+
+    def event_drawing(self, event):
+        """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
+
+        _dlg = wx.RichMessageDialog(self,
+                                   caption="This feature is not yet implemented",
+                                   message="This feature will load a production drawing of the current part",
+                                   style=wx.OK | wx.ICON_INFORMATION)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
