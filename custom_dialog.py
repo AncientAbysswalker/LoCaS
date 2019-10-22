@@ -694,7 +694,7 @@ class ImageAddDialog(ImageDialogBase):
             _n = len(self.parent.images)
             _tmp = crop_square(wx.Image(fn_path.concat_img(self.part_num, image_hash), wx.BITMAP_TYPE_ANY), 120)  # TODO: ImgGridPanel.icon_size)
             _temp = wx.StaticBitmap(self.parent, id=_n, bitmap=wx.Bitmap(_tmp))
-            _temp.Bind(wx.EVT_LEFT_UP, self.parent.event_image_click)
+            _temp.Bind(wx.EVT_LEFT_UP, self.parent.evt_image_click)
             self.parent.sizer_grid.Add(_temp, wx.EXPAND)
             self.parent.image_list.append(image_hash)
 

@@ -35,6 +35,8 @@ import config
 import fn_path
 import datetime
 
+import widget
+
 
 def crop_square(image, rescale=None):
     """Crop an image to a square and resize if desired
@@ -66,6 +68,57 @@ def part_to_dir(pn):
     dir2 = temp[:2]
     dir3 = temp[2:]
     return [dir1, dir2, dir3]
+
+
+class ImgGridPanelWrapper(wx.Panel):
+
+    btn_size = 25
+
+    def __init__(self, parent, *args, **kwargs):
+        """Constructor"""
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+
+        self.parent = parent
+        self.btn_add_image = wx.BitmapButton(self,
+                                             bitmap=wx.Bitmap(fn_path.concat_gui('plus.png')),
+                                             size=(ImgGridPanelWrapper.btn_size,) * 2)
+
+        self.pnl_image_grid = ImgGridPanel(self)
+
+        self.btn_add_image.Bind(wx.EVT_BUTTON, self.pnl_image_grid.event_add_image)
+        self.btn_add_image.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+
+        #self.pnl_image_grid = ImgGridPanel()
+
+        self.sizer_main = wx.BoxSizer(wx.VERTICAL)
+        self.sizer_main.Add(self.pnl_image_grid, proportion=1, flag=wx.EXPAND)
+
+        self.SetSizer(self.sizer_main)
+        self.Layout()
+
+        self.Bind(wx.EVT_SIZE, self.event_resize)
+
+    def event_resize(self, *args):
+        """Resize the image grid
+
+        Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
+
+        Args:
+            self: A reference to the parent instance of ImgPanel.
+            args[0]: A size object passed from the resize event.
+        """
+        # Get width and height of are inside scrolled panel; calculate number of columns that fit
+        (_w, _h) = self.GetClientSize() - (16, 0)
+        #_c = (_w - ImgGridPanel.icon_gap) // (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)
+
+        # Move the button that adds more images
+        self.btn_add_image.SetPosition((_w - ImgGridPanelWrapper.btn_size, _h - ImgGridPanelWrapper.btn_size))
+
+        self.Layout()
+
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
 
 
 class ImgGridPanel(scrolled.ScrolledPanel):
@@ -101,7 +154,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         # Variables
         self.hyster_low = 5
         self.hyster_high = ImgGridPanel.icon_size - self.hyster_low
-        self.parent = parent
+        self.parent = parent.parent
 
         # Load list of images from database and store the image names with extensions
         conn = config.sql_db.connect(config.cfg["db_location"])
@@ -112,15 +165,14 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         conn.close()
 
         # Draw button first, as the first object drawn stays on top
-        self.button_add_image = wx.BitmapButton(self,
-                                                bitmap=wx.Bitmap(fn_path.concat_gui('plus.png')),
-                                                size=(ImgGridPanel.btn_size,) * 2)
-        self.button_add_image.Bind(wx.EVT_BUTTON, self.event_add_image)
-        self.button_add_image.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
-
+        # self.button_add_image = wx.BitmapButton(self,
+        #                                         bitmap=wx.Bitmap(fn_path.concat_gui('plus.png')),
+        #                                         size=(ImgGridPanel.btn_size,) * 2)
+        # self.button_add_image.Bind(wx.EVT_BUTTON, self.event_add_image)
+        # self.button_add_image.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
 
         # Create list of raw images
-        self.images = [fn_path.concat_img(parent.part_num, img) for img in self.image_list]
+        self.images = [fn_path.concat_img(self.parent.part_num, img) for img in self.image_list]
 
         # Create a grid sizer to contain image icons
         self.nrows, self.ncols = 1, len(self.images)
@@ -159,9 +211,12 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         self.SetWindowStyle(wx.VSCROLL)
 
         # Bind an event to any resizing of the grid
-        self.Bind(wx.EVT_SIZE, self.resize_grid)
+        #
 
-    def resize_grid(self, *args):
+        self.Bind(wx.EVT_SIZE, self.event_resize)
+        #self.Bind(wx.EVT_MOTION, self.event_resize)
+
+    def event_resize(self, *args):
         """Resize the image grid
 
         Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
@@ -170,17 +225,17 @@ class ImgGridPanel(scrolled.ScrolledPanel):
             self: A reference to the parent instance of ImgPanel.
             args[0]: A size object passed from the resize event.
         """
-
         # Get width and height of are inside scrolled panel; calculate number of columns that fit
         (_w, _h) = self.GetClientSize()
         _c = (_w - ImgGridPanel.icon_gap) // (ImgGridPanel.icon_size + ImgGridPanel.icon_gap)
 
         # Redistribute rows and columns for the grid
-        self.sizer_grid.SetCols(_c)
-        self.sizer_grid.SetRows(ceil(len(self.image_list)/_c))
+        #self.sizer_grid.SetCols(_c)
+        #self.sizer_grid.SetRows(ceil(len(self.image_list)/_c))
 
         # Move the button that adds more images
-        self.button_add_image.SetPosition((_w - ImgGridPanel.btn_size, _h - ImgGridPanel.btn_size))
+        #self.button_add_image.SetPosition((_w - ImgGridPanel.btn_size, _h - ImgGridPanel.btn_size - self.CalcScrolledPosition(0, 0)[1]/2))
+        pass
 
     def event_image_click(self, event):
         """Open image dialog"""
@@ -210,6 +265,7 @@ class ImgGridPanel(scrolled.ScrolledPanel):
         """Prevents focus from being called on the buttons"""
         pass
 
+
 class NotesPanel(wx.Panel):
     """Custom panel that contains and scales column headers according to a child scrolled grid panel
 
@@ -236,6 +292,13 @@ class NotesPanel(wx.Panel):
 
         self.parent = parent
         self.purgelist = []
+
+        # Draw button first, as the first object drawn stays on top
+        self.button_add_note = wx.BitmapButton(self,
+                                               bitmap=wx.Bitmap(fn_path.concat_gui('plus3.png')),
+                                               size=(17,) * 2)
+        self.button_add_note.Bind(wx.EVT_BUTTON, self.event_add_note)
+        self.button_add_note.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
 
         # Set up sizer to contain header and scrolled notes
         self.panel_notes = NotesScrolled(self)
@@ -295,6 +358,14 @@ class NotesPanel(wx.Panel):
         # Call method from the panel itself to handle dialog popup
         self.panel_notes.edit_notes((pos_panel + pos_scroll) // 20)
 
+    def event_add_note(self, event):
+        """Call up dialogs to add a note to the database"""
+        pass
+
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
+
 
 class NotesScrolled(scrolled.ScrolledPanel):
     """Scrolled panel containing a grid of notes data.
@@ -336,6 +407,10 @@ class NotesScrolled(scrolled.ScrolledPanel):
         self.SetupScrolling()
         self.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
         self.SetWindowStyle(wx.VSCROLL)
+
+        # Bind an event to any resizing of the panel
+        self.Bind(wx.EVT_SIZE, self.event_resize)
+        self.Bind(wx.EVT_SCROLL, self.event_resize)
 
     def load_notes(self):
         """Open SQL database and load notes from table"""
@@ -393,6 +468,30 @@ class NotesScrolled(scrolled.ScrolledPanel):
         #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_num, self.parent.part_rev)
         #dialog.ShowModal()
         #dialog.Destroy()
+
+    def event_resize(self, *args):
+        """Resize the image grid
+
+        Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
+
+        Args:
+            self: A reference to the parent instance of ImgPanel.
+            args[0]: A size object passed from the resize event.
+        """
+
+        # Get width and height of are inside scrolled panel; taking into account the notes header
+        (_w, _h) = (self.GetClientSize()[0], self.parent.GetClientSize()[1])
+
+        # Move the button that adds more images
+        self.parent.button_add_note.SetPosition((_w - 17, _h - 17))#(_w - ImgGridPanel.btn_size, _h - ImgGridPanel.btn_size))
+        self.Refresh()
+        self.Layout()
+        # # Mouse positions within the overall panel, corrected for scroll. The math signage is odd, but works out
+        # pos_panel = self.panel_notes.ScreenToClient(wx.GetMousePosition())[1]
+        # pos_scroll = -self.panel_notes.CalcScrolledPosition(0, 0)[1]
+        #
+        # # Call method from the panel itself to handle dialog popup
+        # self.panel_notes.edit_notes((pos_panel + pos_scroll) // 20)
 
 
 class PartsTabPanel(wx.Panel):
@@ -474,13 +573,13 @@ class PartsTabPanel(wx.Panel):
         self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.onfocus)
 
         # Notes Panel
-        self.pnl_notes = NotesPanel(self)
+        self.pnl_notes = widget.CompositeNotes(self, self)
         self.szr_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
-        self.szr_notes.Add(self.pnl_notes, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.szr_notes.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+        self.szr_notes.Add(self.pnl_notes, proportion=1, flag=wx.ALL | wx.EXPAND)
 
-
-        self.pnl_icon_grid = ImgGridPanel(self)
+        self.pnl_icon_grid = widget.CompositeGallery(self, self)
+        self.szr_gallery = wx.StaticBoxSizer(wx.StaticBox(self, label='Image Gallery'), orient=wx.VERTICAL)
+        self.szr_gallery.Add(self.pnl_icon_grid, proportion=1, flag=wx.ALL | wx.EXPAND)
 
         # Revision Binds
         self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)  # Short Description Revision
@@ -512,7 +611,7 @@ class PartsTabPanel(wx.Panel):
         self.szr_master_left.AddSpacer(5)
         self.szr_master_left.Add(self.szr_long_descrip, flag=wx.ALL | wx.EXPAND)  # , border=15)
         self.szr_master_left.Add(self.szr_notes, proportion=1, flag=wx.ALL | wx.EXPAND)  # , border=15)
-        self.szr_master_left.Add(self.pnl_icon_grid, proportion=2, flag=wx.ALL | wx.EXPAND)
+        self.szr_master_left.Add(self.szr_gallery, proportion=2, flag=wx.ALL | wx.EXPAND)
 
         # Right Master Sizer
         self.szr_master_right = wx.BoxSizer(wx.VERTICAL)
@@ -693,7 +792,7 @@ class PartsTabPanel(wx.Panel):
 class MugshotPanel(wx.Panel):
 
     mug_size = 250
-    btn_size = 35
+    btn_size = 40
 
     def __init__(self, parent, *args, **kwargs):
         """Constructor"""
@@ -708,9 +807,10 @@ class MugshotPanel(wx.Panel):
             image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
 
         # Draw button first as first drawn stays on top
-        self.button_dwg = wx.Button(self,
-                                    size=(MugshotPanel.btn_size,) * 2,
-                                    pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
+        self.button_dwg = wx.BitmapButton(self,
+                                          bitmap=wx.Bitmap(fn_path.concat_gui('schematic.png')),
+                                          size=(MugshotPanel.btn_size,) * 2,
+                                          pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
         self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
         self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
 
@@ -750,8 +850,8 @@ class MugshotPanel(wx.Panel):
 
 class InterfaceTabs(wx.Notebook):
     def __init__(self, *args, **kwargs):
-        wx.Notebook.__init__(self, *args, **kwargs)  # fnb.FlatNotebook
-        self.SetDoubleBuffered(True)  # Remove slight strobiong on tab switch
+        wx.Notebook.__init__(self, *args, **kwargs)
+        self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
 
         self.panels = []
         for name in PANELS:
