@@ -189,6 +189,9 @@ class WidgetGallery(scrolled.ScrolledPanel):
         # Bind button movement to resize
         self.Bind(wx.EVT_SIZE, self.evt_resize)
 
+        # Bind layout recalculation to scrolling
+        self.Bind(wx.EVT_SCROLLWIN, self.evt_scroll)
+
     def evt_resize(self, event):
         """Resize the image grid
 
@@ -251,9 +254,15 @@ class WidgetGallery(scrolled.ScrolledPanel):
         dialog.ShowModal()
         dialog.Destroy()
 
-    def evt_btn_no_focus(self, event):
-        """Prevents focus from being called on the buttons"""
-        pass
+    def evt_scroll(self, event):
+        """Adds forced recalculation of layout on scroll - as default repainting of frames does not work here
+
+        Args:
+            event: Scroll event
+        """
+
+        wx.CallAfter(self.Layout)
+        event.Skip()
 
 
 class CompositeNotes(wx.Panel):
@@ -295,7 +304,7 @@ class CompositeNotes(wx.Panel):
         self.pnl_notes = NotesScrolled(self, self.root)
 
         # Button overlay binding - Must be after subwidget to bind to
-        self.btn_add_note.Bind(wx.EVT_BUTTON, self.pnl_notes.event_add_note)
+        self.btn_add_note.Bind(wx.EVT_BUTTON, self.pnl_notes.evt_add_note)
         self.btn_add_note.Bind(wx.EVT_SET_FOCUS, self.evt_button_no_focus)
 
         # Binding for clicking between notes text
@@ -314,12 +323,12 @@ class CompositeNotes(wx.Panel):
             wx.StaticText(self,
                           label="Author", style=wx.ALIGN_LEFT))
         self.header_list.append(wx.StaticText(self, label="Note", style=wx.ALIGN_LEFT))
-        self.header_list.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER))  # TODO: Line removal failure
+        # self.header_list.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER))  # TODO: Line removal failure
 
         self.szr_title.Add(self.header_list[0])
         self.szr_title.Add(self.header_list[1])
         self.szr_title.Add(self.header_list[2], proportion=1)
-        self.szr_title.Add(self.header_list[3])
+        #self.szr_title.Add(self.header_list[3])
 
         # Refresh headers, repopulating self.sizer_title
         self.refresh_headers()
@@ -338,8 +347,8 @@ class CompositeNotes(wx.Panel):
         column_widths = [*self.pnl_notes.szr_grid.GetColWidths(), 0, 0, 0][:3]
 
         # Change the size of the first two column headers
-        self.header_list[0].SetMinSize((max(column_widths[0], 25) + NotesScrolled.col_gap, -1))
-        self.header_list[1].SetMinSize((max(column_widths[1], 40) + NotesScrolled.col_gap, -1))
+        self.header_list[0].SetMinSize((max(column_widths[0], CompositeNotes.col_min[0]) + NotesScrolled.col_gap, -1))
+        self.header_list[1].SetMinSize((max(column_widths[1], CompositeNotes.col_min[1]) + NotesScrolled.col_gap, -1))
 
         # Ensure headers resize properly
         self.Layout()
@@ -425,6 +434,9 @@ class NotesScrolled(scrolled.ScrolledPanel):
         self.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
         self.SetWindowStyle(wx.VSCROLL)
 
+        # Bind layout recalculation to scrolling
+        self.Bind(wx.EVT_SCROLLWIN, self.evt_scroll)
+
     def load_notes(self):
         """Open SQL database and load notes from table"""
 
@@ -453,8 +465,21 @@ class NotesScrolled(scrolled.ScrolledPanel):
 
             self.notes_list.append(_tmp_item)
 
-    def event_add_note(self, event):
-        pass
+    def evt_add_note(self, event):
+        _tmp_item = [wx.StaticText(self, id=7, label="FRY", style=wx.EXPAND),
+                     wx.StaticText(self, size=(40, -1), id=7, label="PORK", style=wx.EXPAND),
+                     wx.StaticText(self, size=(50, -1), id=7, label="NOTE", style=wx.ST_ELLIPSIZE_END)]
+
+        # Binding for the items in the notes widget
+        for item in _tmp_item:
+            item.Bind(wx.EVT_LEFT_UP, self.evt_edit_notes_trigger)
+            self.szr_grid.Add(item, flag=wx.ALL | wx.EXPAND)
+
+        self.notes_list.append(_tmp_item)
+
+        # Refresh both layouts so the scrollbar resets
+        self.Layout()
+        self.parent.Layout()
 
     def evt_edit_notes_trigger(self, event):
         """Determine which entry in the scrolled panel was clicked and pass that to the method handling the dialog"""
@@ -471,6 +496,15 @@ class NotesScrolled(scrolled.ScrolledPanel):
         #dialog.ShowModal()
         #dialog.Destroy()
 
+    def evt_scroll(self, event):
+        """Adds forced recalculation of layout on scroll - as default repainting of frames does not work here
+
+        Args:
+            event: Scroll event
+        """
+
+        wx.CallAfter(self.Layout)
+        event.Skip()
 
 class MugshotPanel(wx.Panel):
 
