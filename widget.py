@@ -1,15 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module contains widgets (composite panels) to be used in the application frame.
-
-Attributes:
-    module_level_variable1 (int): Module level variables may be documented in
-        either the ``Attributes`` section of the module docstring, or in an
-        inline docstring immediately following the variable.
-
-        Either form is acceptable, but the two should not be mixed. Choose
-        one convention to document module level variables and be consistent
-        with it.
-"""
+"""This module contains widgets (composite panels) to be used in the main application frame."""
 
 
 import wx
@@ -192,26 +182,6 @@ class WidgetGallery(scrolled.ScrolledPanel):
         # Bind layout recalculation to scrolling
         self.Bind(wx.EVT_SCROLLWIN, self.evt_scroll)
 
-    def evt_resize(self, event):
-        """Resize the image grid
-
-        Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
-
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A resize event object passed from the resize event
-        """
-
-        # Get width and height of the resize
-        (_w, _h) = event.GetSize()
-
-        # Calculate the number of columns that fit in the scrolled panel, force a minimum of 1 columns
-        _c = max((_w - WidgetGallery.icon_gap) // (WidgetGallery.icon_size + WidgetGallery.icon_gap), 1)
-
-        # Redistribute rows and columns for the grid
-        self.sizer_grid.SetCols(_c)
-        self.sizer_grid.SetRows(ceil(len(self.image_list)/_c))
-
     def evt_image_click(self, event):
         """Call up the dialog for when an image is clicked
 
@@ -253,6 +223,26 @@ class WidgetGallery(scrolled.ScrolledPanel):
         dialog = custom_dialog.ImageAddDialog(self, selected_files, self.root.part_num, self.root.part_rev)
         dialog.ShowModal()
         dialog.Destroy()
+
+    def evt_resize(self, event):
+        """Resize the image grid
+
+        Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A resize event object passed from the resize event
+        """
+
+        # Get width and height of the resize
+        (_w, _h) = event.GetSize()
+
+        # Calculate the number of columns that fit in the scrolled panel, force a minimum of 1 columns
+        _c = max((_w - WidgetGallery.icon_gap) // (WidgetGallery.icon_size + WidgetGallery.icon_gap), 1)
+
+        # Redistribute rows and columns for the grid
+        self.sizer_grid.SetCols(_c)
+        self.sizer_grid.SetRows(ceil(len(self.image_list)/_c))
 
     def evt_scroll(self, event):
         """Adds forced recalculation of layout on scroll - as default repainting of frames does not work here
@@ -482,13 +472,19 @@ class NotesScrolled(scrolled.ScrolledPanel):
         self.parent.Layout()
 
     def evt_edit_notes_trigger(self, event):
-        """Determine which entry in the scrolled panel was clicked and pass that to the method handling the dialog"""
+        """Determine which entry in the scrolled panel was clicked and pass that to the method handling the dialog
+
+        Args:
+            event: Click event that triggered this function
+        """
 
         self.edit_notes(event.GetEventObject().GetId())
 
     def edit_notes(self, my_index):
-        """Open note-editing dialog
-        TODO Implement note-editing
+        """Method to edit an existing note, based on the provided index in the list
+
+        Args:
+            my_index (int): Index for the notes entry you want to edit
         """
 
         print(self.notes_list[my_index][0].GetLabel(), self.notes_list[my_index][1].GetLabel(), self.notes_list[my_index][2].GetLabel())
@@ -505,6 +501,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
 
         wx.CallAfter(self.Layout)
         event.Skip()
+
 
 class MugshotPanel(wx.Panel):
 
