@@ -568,6 +568,23 @@ class CompositeMugshot(wx.Panel):
 
 
 class CompositeAssemblies(wx.Panel):
+    """Custom scrolled widget to contain notes associated with the part of the parent tab
+
+            TODO AL THIS STUFF HERE
+            Class Variables:
+                row_gap (int): Vertical spacing between rows in grid
+                col_gap (int): Horizontal spacing between columns in grid
+
+            Args:
+                parent (ref): Reference to the parent wx.object
+                root (ref): Reference to the root parts tab
+
+            Attributes:
+                parent (ref): Reference to the parent wx.object
+                root (ref): Reference to the root parts tab
+    """
+
+    btn_size = 25
 
     def __init__(self, parent, root):
         """Constructor"""
@@ -575,6 +592,28 @@ class CompositeAssemblies(wx.Panel):
 
         self.parent = parent
         self.root = root
+
+        # Draw Sub-Assembly edit button
+        self.btn_sub_edit = wx.BitmapButton(self,
+                                            bitmap=wx.Bitmap(fn_path.concat_gui('edit.png')),
+                                            size=(CompositeAssemblies.btn_size,) * 2)
+        self.btn_sub_edit.Bind(wx.EVT_SET_FOCUS, self.evt_button_no_focus)
+        self.btn_sub_edit.Bind(wx.EVT_BUTTON, self.event_drawing)
+
+        # Draw Sub-Assembly help button
+        self.btn_sub_help = wx.StaticBitmap(self, bitmap=wx.Bitmap(fn_path.concat_gui('help.png')))
+        self.btn_sub_help.Bind(wx.EVT_LEFT_UP, self.evt_sub_help)
+
+        # Draw Super-Assembly edit button
+        self.btn_super_edit = wx.BitmapButton(self,
+                                              bitmap=wx.Bitmap(fn_path.concat_gui('edit.png')),
+                                              size=(CompositeAssemblies.btn_size,) * 2)
+        self.btn_super_edit.Bind(wx.EVT_SET_FOCUS, self.evt_button_no_focus)
+        self.btn_super_edit.Bind(wx.EVT_BUTTON, self.event_drawing)
+
+        # Draw Super-Assembly help button
+        self.btn_super_help = wx.StaticBitmap(self, bitmap=wx.Bitmap(fn_path.concat_gui('help.png')))
+        self.btn_super_help.Bind(wx.EVT_LEFT_UP, self.evt_super_help)
 
         # Lists containing sub and super assembly info
         self.wgt_sub_assm = wx.ListBox(self, choices=[i[0] for i in self.root.helper_wgt_sub], size=(CompositeMugshot.mug_size//2, -1))  # , size=(-1, 200), style=wx.LB_SINGLE)
@@ -624,6 +663,9 @@ class CompositeAssemblies(wx.Panel):
 
         self.SetSizer(self.sizer_main)
         self.Layout()
+
+        # Bind button movement to resize
+        self.Bind(wx.EVT_SIZE, self.evt_resize)
 
     def refresh(self, new_image=None):
         if new_image:
@@ -684,8 +726,53 @@ class CompositeAssemblies(wx.Panel):
         _dlg.ShowModal()
         _dlg.Destroy()
 
+    def evt_sub_help(self, event):
+        """Loads a dialog showing the definition of 'sub-assembly'"""
 
+        _dlg = wx.RichMessageDialog(self,
+                                    caption="Help: Term Definition",
+                                    message="A sub-assembly in this context refers to components or assemblies that, "
+                                            "together, assemble into this part.",
+                                    style=wx.OK | wx.ICON_INFORMATION)
+        _dlg.ShowModal()
+        _dlg.Destroy()
 
-    def event_button_no_focus(self, event):
+    def evt_super_help(self, event):
+        """Loads a dialog showing the definition of 'super-assembly'"""
+
+        _dlg = wx.RichMessageDialog(self,
+                                    caption="Help: Term Definition",
+                                    message="A super-assembly in this context refers to assemblies that contain "
+                                            "this part.",
+                                    style=wx.OK | wx.ICON_INFORMATION)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+    def evt_resize(self, event):
+        """Move the button overlay when resized
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A resize event object passed from the resize event
+        """
+
+        _shift = 6
+        _help_size = 10
+
+        # Get width and height of the resize and subtract a correction tuple
+        (_w, _h) = event.GetSize() - (1, 1)
+
+        # Move the buttons that edit the assembly lists
+        self.btn_super_edit.SetPosition((_w - CompositeAssemblies.btn_size, _h - CompositeAssemblies.btn_size))
+        self.btn_sub_edit.SetPosition((_w // 2 - CompositeAssemblies.btn_size, _h - CompositeAssemblies.btn_size))
+
+        # Move the buttons that display help for the assembly lists
+        self.btn_super_help.SetPosition((_w - _shift - _help_size//2, (self.wgt_sub_assm.GetCharHeight() - _help_size) // 2 + 6))
+        self.btn_sub_help.SetPosition((_w // 2 - _shift - _help_size//2, (self.wgt_sub_assm.GetCharHeight() - _help_size) // 2 + 6))
+
+        # Refresh Layout required for unknown reasons - otherwise odd scale behaviour
+        self.Layout()
+
+    def evt_button_no_focus(self, event):
         """Prevents focus from being called on the buttons"""
         pass
