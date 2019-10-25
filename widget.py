@@ -437,7 +437,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
         crsr.execute("SELECT date, author, note FROM Notes WHERE part_num=(?) AND part_rev=(?)",
-                     (self.parent.parent.part_num, "0"))#self.parent.parent.part_rev))
+                     (self.root.part_num, self.root.part_rev))
         _tmp_list = crsr.fetchall()
         conn.close()
 
@@ -506,16 +506,17 @@ class NotesScrolled(scrolled.ScrolledPanel):
         event.Skip()
 
 
-class MugshotPanel(wx.Panel):
+class CompositeMugshot(wx.Panel):
 
     mug_size = 250
     btn_size = 40
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, root):
         """Constructor"""
-        wx.Panel.__init__(self, parent, *args, **kwargs)
+        wx.Panel.__init__(self, parent)
 
         self.parent = parent
+        self.root = root
 
         # Primary part image
         if self.parent.mugshot:
@@ -526,12 +527,12 @@ class MugshotPanel(wx.Panel):
         # Draw button first as first drawn stays on top
         self.button_dwg = wx.BitmapButton(self,
                                           bitmap=wx.Bitmap(fn_path.concat_gui('schematic.png')),
-                                          size=(MugshotPanel.btn_size,) * 2,
-                                          pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
+                                          size=(CompositeMugshot.btn_size,) * 2,
+                                          pos=(0, CompositeMugshot.mug_size - CompositeMugshot.btn_size))
         self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
         self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
 
-        self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
+        self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, CompositeMugshot.mug_size)))
 
         self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
@@ -542,13 +543,14 @@ class MugshotPanel(wx.Panel):
 
         self.SetSizer(self.sizer_main)
         self.Layout()
+        self.Fit()
 
     def refresh(self, new_image=None):
         if new_image:
             temp = fn_path.concat_img(self.parent.part_num, new_image)
         else:
             temp = fn_path.concat_gui('missing_mugshot.png')
-        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
+        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), CompositeMugshot.mug_size)))
 
     def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
@@ -559,6 +561,130 @@ class MugshotPanel(wx.Panel):
                                    style=wx.OK | wx.ICON_INFORMATION)
         _dlg.ShowModal()
         _dlg.Destroy()
+
+    def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
+
+
+class CompositeAssemblies(wx.Panel):
+
+    def __init__(self, parent, root):
+        """Constructor"""
+        wx.Panel.__init__(self, parent)
+
+        self.parent = parent
+        self.root = root
+
+        # Lists containing sub and super assembly info
+        self.wgt_sub_assm = wx.ListBox(self, choices=[i[0] for i in self.root.helper_wgt_sub], size=(CompositeMugshot.mug_size//2, -1))  # , size=(-1, 200), style=wx.LB_SINGLE)
+        self.wgt_super_assm = wx.ListBox(self, choices=[i[0] for i in self.root.helper_wgt_super], size=(CompositeMugshot.mug_size//2, -1))  # , size=(-1, 200), style=wx.LB_SINGLE)
+
+        # Assembly list binds
+        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
+        self.wgt_sub_assm.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
+        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
+        self.wgt_super_assm.Bind(wx.EVT_MOTION, self.update_tooltip_super)
+
+        # Assembly List Sizers
+        self.szr_sub_assm = wx.BoxSizer(wx.VERTICAL)
+        self.szr_sub_assm.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5,
+                              flag=wx.ALL | wx.EXPAND)
+        self.szr_sub_assm.Add(self.wgt_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_super_assm = wx.BoxSizer(wx.VERTICAL)
+        self.szr_super_assm.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5,
+                                flag=wx.ALL | wx.EXPAND)
+        self.szr_super_assm.Add(self.wgt_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer_main.Add(self.szr_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.sizer_main.Add(self.szr_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+
+        # # Primary part image
+        # if self.parent.mugshot:
+        #     image = wx.Image(fn_path.concat_img(self.parent.part_num, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
+        # else:
+        #     image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
+        #
+        # # Draw button first as first drawn stays on top
+        # self.button_dwg = wx.BitmapButton(self,
+        #                                   bitmap=wx.Bitmap(fn_path.concat_gui('schematic.png')),
+        #                                   size=(CompositeMugshot.btn_size,) * 2,
+        #                                   pos=(0, CompositeMugshot.mug_size - CompositeMugshot.btn_size))
+        # self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+        # self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
+        #
+        # self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, CompositeMugshot.mug_size)))
+        #
+        # self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
+        # self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
+        # # self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
+        # #self.button_dwg = wx.Button(self, size=(50, 50), pos=(50, 0))
+        # #self.sizer_main.Add(self.button_dwg, flag=wx.ALL)
+        # #self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
+
+        self.SetSizer(self.sizer_main)
+        self.Layout()
+
+    def refresh(self, new_image=None):
+        if new_image:
+            temp = fn_path.concat_img(self.parent.part_num, new_image)
+        else:
+            temp = fn_path.concat_gui('missing_mugshot.png')
+        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), CompositeMugshot.mug_size)))
+
+    def event_click_assm_lists(self, event):
+        index = event.GetSelection()
+        self.root.parent.open_parts_tab(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
+        event.GetEventObject().SetSelection(wx.NOT_FOUND)
+
+    def update_tooltip_super(self, event):
+        """
+        Update the tooltip to show part name
+        """
+
+        mouse_pos = self.wgt_super_assm.ScreenToClient(wx.GetMousePosition())
+        item_index = self.wgt_super_assm.HitTest(mouse_pos)
+
+        if item_index != -1:
+            num, rev = self.root.helper_wgt_super[item_index]
+            new_msg = self.root.data_wgt_super[num][rev]
+            if self.wgt_super_assm.GetToolTipText() != new_msg:
+                self.wgt_super_assm.SetToolTip(new_msg)
+        else:
+            self.wgt_super_assm.SetToolTip("")
+
+        event.Skip()
+
+    def update_tooltip_sub(self, event):
+        """
+        Update the tooltip to show part name
+        """
+
+        mouse_pos = self.wgt_sub_assm.ScreenToClient(wx.GetMousePosition())
+        item_index = self.wgt_sub_assm.HitTest(mouse_pos)
+
+        if item_index != -1:
+            num, rev = self.root.helper_wgt_sub[item_index]
+            new_msg = self.root.data_wgt_sub[num][rev]
+            if self.wgt_sub_assm.GetToolTipText() != new_msg:
+                self.wgt_sub_assm.SetToolTip(new_msg)
+        else:
+            self.wgt_sub_assm.SetToolTip("")
+
+        event.Skip()
+
+
+    def event_drawing(self, event):
+        """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
+
+        _dlg = wx.RichMessageDialog(self,
+                                   caption="This feature is not yet implemented",
+                                   message="This feature will load a production drawing of the current part",
+                                   style=wx.OK | wx.ICON_INFORMATION)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+
 
     def event_button_no_focus(self, event):
         """Prevents focus from being called on the buttons"""
