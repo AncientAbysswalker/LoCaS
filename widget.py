@@ -615,17 +615,24 @@ class CompositeAssemblies(wx.Panel):
         self.btn_super_help = wx.StaticBitmap(self, bitmap=wx.Bitmap(fn_path.concat_gui('help.png')))
         self.btn_super_help.Bind(wx.EVT_LEFT_UP, self.evt_super_help)
 
+        print("rrr", self.root.helper_wgt_sub)
+        print("rtr", self.root.helper_wgt_super)
+
         # Lists containing sub and super assembly info
-        self.wgt_sub_assm = wx.ListBox(self, choices=[i[0] for i in self.root.helper_wgt_sub], size=(CompositeMugshot.mug_size//2, -1))  # , size=(-1, 200), style=wx.LB_SINGLE)
-        self.wgt_super_assm = wx.ListBox(self, choices=[i[0] for i in self.root.helper_wgt_super], size=(CompositeMugshot.mug_size//2, -1))  # , size=(-1, 200), style=wx.LB_SINGLE)
+        self.wgt_sub_assm = wx.ListBox(self,
+                                       choices=[i[0] for i in self.root.helper_wgt_sub],
+                                       size=(CompositeMugshot.mug_size//2, -1))# , size=(-1, 200), style=wx.LB_SINGLE)
+        self.wgt_super_assm = wx.ListBox(self,
+                                         choices=[i[0] for i in self.root.helper_wgt_super],
+                                         size=(CompositeMugshot.mug_size//2, -1))# , size=(-1, 200), style=wx.LB_SINGLE)
 
         # Assembly list binds
-        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
-        self.wgt_sub_assm.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
-        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
-        self.wgt_super_assm.Bind(wx.EVT_MOTION, self.update_tooltip_super)
+        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.evt_click_assm_lists)
+        self.wgt_sub_assm.Bind(wx.EVT_MOTION, self.evt_update_tooltip_sub)
+        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.evt_click_assm_lists)
+        self.wgt_super_assm.Bind(wx.EVT_MOTION, self.evt_update_tooltip_super)
 
-        # Assembly List Sizers
+        # Assembly and Main Sizers
         self.szr_sub_assm = wx.BoxSizer(wx.VERTICAL)
         self.szr_sub_assm.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5,
                               flag=wx.ALL | wx.EXPAND)
@@ -634,87 +641,71 @@ class CompositeAssemblies(wx.Panel):
         self.szr_super_assm.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5,
                                 flag=wx.ALL | wx.EXPAND)
         self.szr_super_assm.Add(self.wgt_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_main.Add(self.szr_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
-        self.sizer_main.Add(self.szr_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_main = wx.BoxSizer(wx.HORIZONTAL)
+        self.szr_main.Add(self.szr_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_main.Add(self.szr_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
 
-        # # Primary part image
-        # if self.parent.mugshot:
-        #     image = wx.Image(fn_path.concat_img(self.parent.part_num, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
-        # else:
-        #     image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
-        #
-        # # Draw button first as first drawn stays on top
-        # self.button_dwg = wx.BitmapButton(self,
-        #                                   bitmap=wx.Bitmap(fn_path.concat_gui('schematic.png')),
-        #                                   size=(CompositeMugshot.btn_size,) * 2,
-        #                                   pos=(0, CompositeMugshot.mug_size - CompositeMugshot.btn_size))
-        # self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
-        # self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
-        #
-        # self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, CompositeMugshot.mug_size)))
-        #
-        # self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
-        # self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
-        # # self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
-        # #self.button_dwg = wx.Button(self, size=(50, 50), pos=(50, 0))
-        # #self.sizer_main.Add(self.button_dwg, flag=wx.ALL)
-        # #self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
-
-        self.SetSizer(self.sizer_main)
+        # Set main sizer and recalculate the layout
+        self.SetSizer(self.szr_main)
         self.Layout()
 
         # Bind button movement to resize
         self.Bind(wx.EVT_SIZE, self.evt_resize)
 
-    def refresh(self, new_image=None):
-        if new_image:
-            temp = fn_path.concat_img(self.parent.part_num, new_image)
-        else:
-            temp = fn_path.concat_gui('missing_mugshot.png')
-        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), CompositeMugshot.mug_size)))
+    def evt_click_assm_lists(self, event):
+        """Open a parts tab based on what entry has been clicked
 
-    def event_click_assm_lists(self, event):
+                Args:
+                    self: A reference to the parent wx.object instance
+                    event: A list box click event object passed from the list box when activated
+        """
+
+        # Get the index of the clicked item, and open a new parts tab
         index = event.GetSelection()
         self.root.parent.open_parts_tab(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
+
+        # Deselect the clicked entry of the list box
         event.GetEventObject().SetSelection(wx.NOT_FOUND)
 
-    def update_tooltip_super(self, event):
-        """
-        Update the tooltip to show part name
+    def evt_update_tooltip_super(self, event):
+        """Update the tooltip with the name of the super-assembly entry the mouse is over
+
+                Args:
+                    self: A reference to the parent wx.object instance
+                    event: A mouse movement event object passed from the movement event
         """
 
-        mouse_pos = self.wgt_super_assm.ScreenToClient(wx.GetMousePosition())
-        item_index = self.wgt_super_assm.HitTest(mouse_pos)
+        # Calculate the index of the item that is under the mouse pointer
+        _item_index = self.wgt_super_assm.HitTest(event.GetPosition())
 
-        if item_index != -1:
-            num, rev = self.root.helper_wgt_super[item_index]
-            new_msg = self.root.data_wgt_super[num][rev]
-            if self.wgt_super_assm.GetToolTipText() != new_msg:
-                self.wgt_super_assm.SetToolTip(new_msg)
+        # As long as we have a valid index then update the tooltip, otherwise empty it
+        if _item_index != -1:
+            _num, _rev = self.root.helper_wgt_super[_item_index]
+            _new_msg = self.root.data_wgt_super[_num][_rev]
+            if self.wgt_super_assm.GetToolTipText() != _new_msg:
+                self.wgt_super_assm.SetToolTip(_new_msg)
         else:
             self.wgt_super_assm.SetToolTip("")
 
-        event.Skip()
+    def evt_update_tooltip_sub(self, event):
+        """Update the tooltip with the name of the sub-assembly entry the mouse is over
 
-    def update_tooltip_sub(self, event):
+                Args:
+                    self: A reference to the parent wx.object instance
+                    event: A mouse movement event object passed from the movement event
         """
-        Update the tooltip to show part name
-        """
 
-        mouse_pos = self.wgt_sub_assm.ScreenToClient(wx.GetMousePosition())
-        item_index = self.wgt_sub_assm.HitTest(mouse_pos)
+        # Calculate the index of the item that is under the mouse pointer
+        _item_index = self.wgt_sub_assm.HitTest(event.GetPosition())
 
-        if item_index != -1:
-            num, rev = self.root.helper_wgt_sub[item_index]
-            new_msg = self.root.data_wgt_sub[num][rev]
-            if self.wgt_sub_assm.GetToolTipText() != new_msg:
-                self.wgt_sub_assm.SetToolTip(new_msg)
+        # As long as we have a valid index then update the tooltip, otherwise empty it
+        if _item_index != -1:
+            _num, _rev = self.root.helper_wgt_sub[_item_index]
+            _new_msg = self.root.data_wgt_sub[_num][_rev]
+            if self.wgt_sub_assm.GetToolTipText() != _new_msg:
+                self.wgt_sub_assm.SetToolTip(_new_msg)
         else:
             self.wgt_sub_assm.SetToolTip("")
-
-        event.Skip()
-
 
     def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
