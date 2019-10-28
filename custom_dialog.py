@@ -783,13 +783,15 @@ class BaseEditAssemblies(wx.Dialog):
         self.load_data()
 
         # Add assembly section widgets, with bind
-        self.wgt_txt_add = wx.TextCtrl(self, value="")
+        self.wgt_txt_add_num = wx.TextCtrl(self, value="")
+        self.wgt_txt_add_rev = wx.TextCtrl(self, size=(80, -1), value="")
         btn_add = wx.Button(self, size=(80, -1), label="Add Part")
         btn_add.Bind(wx.EVT_BUTTON, self.evt_add)
 
         # Add assembly section sizer
         szr_add = wx.StaticBoxSizer(wx.StaticBox(self, label="Add a Sub-Assembly"), orient=wx.HORIZONTAL)
-        szr_add.Add(self.wgt_txt_add, proportion=1, flag=wx.ALL, border=5)
+        szr_add.Add(self.wgt_txt_add_num, proportion=1, flag=wx.ALL, border=5)
+        szr_add.Add(self.wgt_txt_add_rev, flag=wx.ALL, border=5)
         szr_add.Add(btn_add, flag=wx.ALL, border=4)
 
         # Remove assembly section widgets, with bind
@@ -884,9 +886,54 @@ class EditSubAssemblies(BaseEditAssemblies):
             event: A button event object passed from the button click
         """
 
-        pass
+        # Get part number and rev to remove
+        _num = self.wgt_txt_add_num.GetValue()
+        _rev = self.wgt_txt_add_rev.GetValue()
 
-        self.parent.wgt_sub_assm.Append("add")
+        # Only execute if the two text boxes have been filled out
+        if _num != "" and _rev != "":
+            conn = config.sql_db.connect(config.cfg["db_location"])
+            crsr = conn.cursor()
+
+            # Check if the subassembly is already listed for this part
+            crsr.execute("SELECT EXISTS (SELECT 1 FROM Children WHERE part_num=(?) AND part_rev=(?) AND child_num=(?) AND child_rev=(?));",
+                         (_num, _rev, self.root.part_num, self.root.part_rev))
+
+            # If the sub-assembly is not yet in the DB, carry out the additions
+            if not crsr.fetchone()[0]:
+                # Add the part from the assembly list on the parts tab
+                self.parent.wgt_sub_assm.Append("%s r%s" % (_num, _rev))
+
+                # Insert the sub-assembly into the DB
+                crsr.execute(
+                    "INSERT INTO Children (part_num, part_rev, child_num, child_rev) VALUES ((?), (?), (?), (?));",
+                    (_num, _rev, self.root.part_num, self.root.part_rev))
+                conn.commit()
+
+                # Get the name of the sub-assembly if it exists
+                crsr.execute("SELECT name FROM Parts WHERE part_num=(?) AND part_rev=(?);", (_num, _rev))
+                try:
+                    _name = crsr.fetchone()[0]
+                except:
+                    _name = None
+                print("name", _name)
+
+                crsr.close()
+                conn.close()
+
+                # Add the part to the data structures holding the data for the assembly widget
+                self.root.helper_wgt_sub.append([_num, _rev])
+                if _num not in self.root.data_wgt_sub:
+                    self.root.data_wgt_sub[_num] = {_rev: _name}
+                elif _rev not in self.root.data_wgt_sub[_num]:
+                    self.root.data_wgt_sub[_num][_rev] = _name
+
+                print(self.root.data_wgt_sub)
+                print(self.root.helper_wgt_sub)
+
+                # Clear the dialog widgets of any text
+                self.wgt_txt_add_num.SetLabel("")
+                self.wgt_txt_add_rev.SetLabel("")
 
     def evt_remove(self, event):
         """Remove a part from the assembly list, overload for super vs sub assemblies
@@ -911,24 +958,20 @@ class EditSubAssemblies(BaseEditAssemblies):
             self.parent.wgt_sub_assm.Delete(_index)
 
             # Remove the part from the SQL database
-            # conn = config.sql_db.connect(config.cfg["db_location"])
-            # crsr = conn.cursor()
-            #
-            # # Remove image from database
-            # crsr.execute("DELETE FROM Children WHERE part_num=(?) AND part_rev=(?) AND child_num=(?) AND child_rev=(?);",
-            #              (_num, _rev, self.root.part_num, self.root.part_rev))
-            #
-            # conn.commit()
-            # crsr.close()
-            # conn.close()
+            conn = config.sql_db.connect(config.cfg["db_location"])
+            crsr = conn.cursor()
 
-            # Remove the part from the data structures holding the data
-            print(_index,self.root.helper_wgt_sub, self.root.data_wgt_sub)
+            # Remove image from database
+            crsr.execute("DELETE FROM Children WHERE part_num=(?) AND part_rev=(?) AND child_num=(?) AND child_rev=(?);",
+                         (_num, _rev, self.root.part_num, self.root.part_rev))
+
+            conn.commit()
+            crsr.close()
+            conn.close()
+
+            # Remove the part from the data structures holding the data for the assembly widget
             del self.root.data_wgt_sub[_num][_rev]
             del self.root.helper_wgt_sub[int(_index)]
-            print("2", self.root.helper_wgt_sub, self.root.data_wgt_sub)
-
-            pass
 
 
 class EditSuperAssemblies(BaseEditAssemblies):
