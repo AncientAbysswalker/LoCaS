@@ -755,4 +755,149 @@ class ImageAddDialog(ImageDialogBase):
         return hasher.hexdigest() + os.path.splitext(self.image_list[self.image_index])[1]
 
 
+class BaseEditAssemblies(wx.Dialog):
+    """Opens a dialog to modify an image comment.
 
+        Args:
+            header_text (str): String to display in the dialog header
+            edit_field (wx.obj): Reference to the wx.object we are editing
+            comment_key (str): Key in the image:comment dict
+            comment_path (str): Path of the image:comment dict file
+
+        Attributes:
+            header_text (str): String to display in the dialog header
+            edit_field (wx.obj): Reference to the wx.object we are editing
+            comment_key (str): Key in the image:comment dict
+            comment_path (str): Path of the image:comment dict file
+            orig_field_text (str): Original text to display when editing
+    """
+
+    def __init__(self, parent, root):
+        """Constructor"""
+        super().__init__(parent)
+
+        self.parent = parent
+        self.root = root
+
+        # Variables to be overridden in load_data() method
+        self.remove_choices = []
+        self.title = ""
+
+        self.load_data()
+
+        # Add assembly section widgets, with bind
+        self.wgt_txt_add = wx.TextCtrl(self, value="")
+        btn_add = wx.Button(self, size=(80, -1), label="Add Part")
+        btn_add.Bind(wx.EVT_BUTTON, self.evt_add)
+
+        # Add assembly section sizer
+        szr_add = wx.StaticBoxSizer(wx.StaticBox(self, label="Add a Sub-Assembly"), orient=wx.HORIZONTAL)
+        szr_add.Add(self.wgt_txt_add, proportion=1, flag=wx.ALL, border=5)
+        szr_add.Add(btn_add, flag=wx.ALL, border=4)
+
+        # Remove assembly section widgets, with bind
+        self.wgt_txt_remove = wx.ComboBox(self, choices=self.remove_choices, style=wx.CB_READONLY)
+        btn_remove = wx.Button(self, size=(80, -1), label="Remove Part")
+        btn_remove.Bind(wx.EVT_BUTTON, self.evt_remove)
+
+        # Remove assembly section sizer
+        szr_remove = wx.StaticBoxSizer(wx.StaticBox(self, label="Remove a Sub-Assembly"), orient=wx.HORIZONTAL)
+        szr_remove.Add(self.wgt_txt_remove, proportion=1, flag=wx.ALL, border=5)
+        szr_remove.Add(btn_remove, flag=wx.ALL, border=4)
+
+        # Done button with bind
+        btn_done = wx.Button(self, label='Done')
+        btn_done.Bind(wx.EVT_BUTTON, self.evt_done)
+
+        # Add everything to master sizer and set sizer for pane
+        szr_main = wx.BoxSizer(wx.VERTICAL)
+        szr_main.Add(szr_add, flag=wx.ALL | wx.EXPAND, border=5)
+        szr_main.Add(szr_remove, flag=wx.ALL | wx.EXPAND, border=5)
+        szr_main.Add(btn_done, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=5)
+
+        # Set main sizer
+        self.SetSizer(szr_main)
+
+        # Set size and title
+        self.SetSize((500, 220))
+        self.SetTitle(self.title)
+
+    def load_data(self):
+        """Load data pertinent to variations of this dialog - overload method in derived classes"""
+
+        pass
+
+    def evt_add(self, event):
+        """Add a part to the assembly list - overload method in derived classes
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        pass
+
+    def evt_remove(self, event):
+        """Remove a part from the assembly list - overload method in derived classes
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        pass
+
+    def evt_done(self, event):
+        """Close the dialog because we are done
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        self.Destroy()
+
+
+class EditSubAssemblies(BaseEditAssemblies):
+    """Opens a dialog to modify an image comment.
+
+        Args:
+            header_text (str): String to display in the dialog header
+            edit_field (wx.obj): Reference to the wx.object we are editing
+            comment_key (str): Key in the image:comment dict
+            comment_path (str): Path of the image:comment dict file
+
+        Attributes:
+            header_text (str): String to display in the dialog header
+            edit_field (wx.obj): Reference to the wx.object we are editing
+            comment_key (str): Key in the image:comment dict
+            comment_path (str): Path of the image:comment dict file
+            orig_field_text (str): Original text to display when editing
+    """
+
+    def load_data(self):
+        """Draw the dialog box details - common between subclasses"""
+
+        self.title = "Edit List of Sub-Assemblies"
+        self.remove_choices = ["%s (%s r%s)" % (self.root.data_wgt_sub[i[0]][i[1]], i[0], i[1])
+                               for i in self.root.helper_wgt_sub]
+
+    def evt_add(self, event):
+        """Add a part to the assembly list, overload for super vs sub assemblies
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        pass
+
+    def evt_remove(self, event):
+        """Remove a part from the assembly list, overload for super vs sub assemblies
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        pass

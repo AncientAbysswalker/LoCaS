@@ -251,7 +251,7 @@ class PartsTabPanel(wx.Panel):
 
         a = crsr.fetchall()
         print(self.part_num, self.part_rev)
-        print(a)
+        print("useless", a)
         for num, rev, name in a:
 
             self.helper_wgt_sub.append([num, rev])
