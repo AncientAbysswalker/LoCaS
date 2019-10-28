@@ -759,17 +759,14 @@ class BaseEditAssemblies(wx.Dialog):
     """Opens a dialog to modify an image comment.
 
         Args:
-            header_text (str): String to display in the dialog header
-            edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
 
         Attributes:
-            header_text (str): String to display in the dialog header
-            edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
-            orig_field_text (str): Original text to display when editing
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+            remove_choices (list: str): List of choices to be shown in the dropdown box
+            title (str): Title to be shown on the dialog window
     """
 
     def __init__(self, parent, root):
@@ -862,17 +859,14 @@ class EditSubAssemblies(BaseEditAssemblies):
     """Opens a dialog to modify an image comment.
 
         Args:
-            header_text (str): String to display in the dialog header
-            edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
 
         Attributes:
-            header_text (str): String to display in the dialog header
-            edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
-            orig_field_text (str): Original text to display when editing
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+            remove_choices (list: str): List of choices to be shown in the dropdown box
+            title (str): Title to be shown on the dialog window
     """
 
     def load_data(self):
@@ -881,6 +875,82 @@ class EditSubAssemblies(BaseEditAssemblies):
         self.title = "Edit List of Sub-Assemblies"
         self.remove_choices = ["%s (%s r%s)" % (self.root.data_wgt_sub[i[0]][i[1]], i[0], i[1])
                                for i in self.root.helper_wgt_sub]
+
+    def evt_add(self, event):
+        """Add a part to the assembly list, overload for super vs sub assemblies
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        pass
+
+        self.parent.wgt_sub_assm.Append("add")
+
+    def evt_remove(self, event):
+        """Remove a part from the assembly list, overload for super vs sub assemblies
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        # Get index of the selected part
+        _index = self.wgt_txt_remove.GetSelection()
+
+        # Only do anything if something is selected
+        if _index != -1:
+            # Get part number and rev to remove
+            _num, _rev = self.root.helper_wgt_sub[_index]
+
+            # Remove the part from the dialog dropdown list
+            self.wgt_txt_remove.Delete(_index)
+
+            # Remove the part from the assembly list on the parts tab
+            self.parent.wgt_sub_assm.Delete(_index)
+
+            # Remove the part from the SQL database
+            # conn = config.sql_db.connect(config.cfg["db_location"])
+            # crsr = conn.cursor()
+            #
+            # # Remove image from database
+            # crsr.execute("DELETE FROM Children WHERE part_num=(?) AND part_rev=(?) AND child_num=(?) AND child_rev=(?);",
+            #              (_num, _rev, self.root.part_num, self.root.part_rev))
+            #
+            # conn.commit()
+            # crsr.close()
+            # conn.close()
+
+            # Remove the part from the data structures holding the data
+            print(_index,self.root.helper_wgt_sub, self.root.data_wgt_sub)
+            del self.root.data_wgt_sub[_num][_rev]
+            del self.root.helper_wgt_sub[int(_index)]
+            print("2", self.root.helper_wgt_sub, self.root.data_wgt_sub)
+
+            pass
+
+
+class EditSuperAssemblies(BaseEditAssemblies):
+    """Opens a dialog to modify an image comment.
+
+        Args:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+
+        Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+            remove_choices (list: str): List of choices to be shown in the dropdown box
+            title (str): Title to be shown on the dialog window
+    """
+
+    def load_data(self):
+        """Draw the dialog box details - common between subclasses"""
+
+        self.title = "Edit List of Super-Assemblies"
+        self.remove_choices = ["%s (%s r%s)" % (self.root.data_wgt_super[i[0]][i[1]], i[0], i[1])
+                               for i in self.root.helper_wgt_super]
 
     def evt_add(self, event):
         """Add a part to the assembly list, overload for super vs sub assemblies
