@@ -200,7 +200,7 @@ class WidgetGallery(scrolled.ScrolledPanel):
 
         Args:
             self: A reference to the parent wx.object instance
-            event: The triggering event object - often click
+            event: A button event object passed from the button click
         """
 
         # Open an explorer dialog to select images to import
@@ -437,7 +437,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
         crsr.execute("SELECT date, author, note FROM Notes WHERE part_num=(?) AND part_rev=(?)",
-                     (self.parent.parent.part_num, "0"))#self.parent.parent.part_rev))
+                     (self.root.part_num, self.root.part_rev))
         _tmp_list = crsr.fetchall()
         conn.close()
 
@@ -459,6 +459,13 @@ class NotesScrolled(scrolled.ScrolledPanel):
             self.notes_list.append(_tmp_item)
 
     def evt_add_note(self, event):
+        """Event to add entries to the notes widget
+
+                Args:
+                    self: A reference to the parent wx.object instance
+                    event: A button event object passed from the button click
+        """
+
         _tmp_item = [wx.StaticText(self, id=7, label="FRY", style=wx.EXPAND),
                      wx.StaticText(self, size=(40, -1), id=7, label="PORK", style=wx.EXPAND),
                      wx.StaticText(self, size=(50, -1), id=7, label="NOTE", style=wx.ST_ELLIPSIZE_END)]
@@ -506,16 +513,17 @@ class NotesScrolled(scrolled.ScrolledPanel):
         event.Skip()
 
 
-class MugshotPanel(wx.Panel):
+class CompositeMugshot(wx.Panel):
 
     mug_size = 250
     btn_size = 40
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, root):
         """Constructor"""
-        wx.Panel.__init__(self, parent, *args, **kwargs)
+        wx.Panel.__init__(self, parent)
 
         self.parent = parent
+        self.root = root
 
         # Primary part image
         if self.parent.mugshot:
@@ -526,12 +534,12 @@ class MugshotPanel(wx.Panel):
         # Draw button first as first drawn stays on top
         self.button_dwg = wx.BitmapButton(self,
                                           bitmap=wx.Bitmap(fn_path.concat_gui('schematic.png')),
-                                          size=(MugshotPanel.btn_size,) * 2,
-                                          pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
+                                          size=(CompositeMugshot.btn_size,) * 2,
+                                          pos=(0, CompositeMugshot.mug_size - CompositeMugshot.btn_size))
         self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
         self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
 
-        self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
+        self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, CompositeMugshot.mug_size)))
 
         self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
@@ -542,13 +550,14 @@ class MugshotPanel(wx.Panel):
 
         self.SetSizer(self.sizer_main)
         self.Layout()
+        self.Fit()
 
     def refresh(self, new_image=None):
         if new_image:
             temp = fn_path.concat_img(self.parent.part_num, new_image)
         else:
             temp = fn_path.concat_gui('missing_mugshot.png')
-        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
+        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), CompositeMugshot.mug_size)))
 
     def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
@@ -561,5 +570,256 @@ class MugshotPanel(wx.Panel):
         _dlg.Destroy()
 
     def event_button_no_focus(self, event):
+        """Prevents focus from being called on the buttons"""
+        pass
+
+
+class CompositeAssemblies(wx.Panel):
+    """Custom scrolled widget to contain sub-assembly and super-assembly data associated with the part of the parent tab
+
+            Class Variables:
+                btn_size (int): Size of the "add image" button in the overlay
+
+            Args:
+                parent (ref): Reference to the parent wx.object
+                root (ref): Reference to the root parts tab
+
+            Attributes:
+                parent (ref): Reference to the parent wx.object
+                root (ref): Reference to the root parts tab
+    """
+
+    btn_size = 25
+
+    def __init__(self, parent, root):
+        """Constructor"""
+        wx.Panel.__init__(self, parent)
+
+        self.parent = parent
+        self.root = root
+
+        # Draw Sub-Assembly edit button
+        self.btn_sub_edit = wx.BitmapButton(self,
+                                            bitmap=wx.Bitmap(fn_path.concat_gui('edit.png')),
+                                            size=(CompositeAssemblies.btn_size,) * 2)
+        self.btn_sub_edit.Bind(wx.EVT_SET_FOCUS, self.evt_button_no_focus)
+        self.btn_sub_edit.Bind(wx.EVT_BUTTON, self.evt_sub_edit)
+
+        # Draw Sub-Assembly help button
+        self.btn_sub_help = wx.StaticBitmap(self, bitmap=wx.Bitmap(fn_path.concat_gui('help.png')))
+        self.btn_sub_help.Bind(wx.EVT_LEFT_UP, self.evt_sub_help)
+
+        # Draw Super-Assembly edit button
+        self.btn_super_edit = wx.BitmapButton(self,
+                                              bitmap=wx.Bitmap(fn_path.concat_gui('edit.png')),
+                                              size=(CompositeAssemblies.btn_size,) * 2)
+        self.btn_super_edit.Bind(wx.EVT_SET_FOCUS, self.evt_button_no_focus)
+        self.btn_super_edit.Bind(wx.EVT_BUTTON, self.evt_super_edit)
+
+        # Draw Super-Assembly help button
+        self.btn_super_help = wx.StaticBitmap(self, bitmap=wx.Bitmap(fn_path.concat_gui('help.png')))
+        self.btn_super_help.Bind(wx.EVT_LEFT_UP, self.evt_super_help)
+
+        print("rrr", self.root.helper_wgt_sub)
+        print("rtr", self.root.helper_wgt_super)
+
+        # Lists containing sub and super assembly info
+        self.wgt_sub_assm = wx.ListBox(self,
+                                       choices=[i[0] + " r" + i[1] for i in self.root.helper_wgt_sub],
+                                       size=(CompositeMugshot.mug_size//2, -1))# , size=(-1, 200), style=wx.LB_SINGLE)
+        self.wgt_super_assm = wx.ListBox(self,
+                                         choices=[i[0] + " r" + i[1] for i in self.root.helper_wgt_super],
+                                         size=(CompositeMugshot.mug_size//2, -1))# , size=(-1, 200), style=wx.LB_SINGLE)
+
+        # Assembly list binds
+        self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.evt_click_sub_assm)
+        self.wgt_sub_assm.Bind(wx.EVT_MOTION, self.evt_update_tooltip_sub)
+        self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.evt_click_super_assm)
+        self.wgt_super_assm.Bind(wx.EVT_MOTION, self.evt_update_tooltip_super)
+
+        # Assembly and Main Sizers
+        self.szr_sub_assm = wx.BoxSizer(wx.VERTICAL)
+        self.szr_sub_assm.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5,
+                              flag=wx.ALL | wx.EXPAND)
+        self.szr_sub_assm.Add(self.wgt_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_super_assm = wx.BoxSizer(wx.VERTICAL)
+        self.szr_super_assm.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5,
+                                flag=wx.ALL | wx.EXPAND)
+        self.szr_super_assm.Add(self.wgt_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_main = wx.BoxSizer(wx.HORIZONTAL)
+        self.szr_main.Add(self.szr_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_main.Add(self.szr_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+
+        # Set main sizer and recalculate the layout
+        self.SetSizer(self.szr_main)
+        self.Layout()
+
+        # Bind button movement to resize
+        self.Bind(wx.EVT_SIZE, self.evt_resize)
+
+    def evt_click_sub_assm(self, event):
+        """Open a parts tab based on what entry has been clicked
+
+                Args:
+                    self: A reference to the parent wx.object instance
+                    event: A list box click event object passed from the list box when activated
+        """
+
+        # Get the index of the clicked item, and open a new parts tab
+        _index = event.GetSelection()
+        self.root.parent.open_parts_tab(self.root.helper_wgt_sub[_index][0], wx.GetKeyState(wx.WXK_SHIFT))#event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
+
+        # Deselect the clicked entry of the list box
+        event.GetEventObject().SetSelection(wx.NOT_FOUND)
+
+    def evt_click_super_assm(self, event):
+        """Open a parts tab based on what entry has been clicked
+
+                Args:
+                    self: A reference to the parent wx.object instance
+                    event: A list box click event object passed from the list box when activated
+        """
+
+        # Get the index of the clicked item, and open a new parts tab
+        _index = event.GetSelection()
+        self.root.parent.open_parts_tab(self.root.helper_wgt_super[_index][0], wx.GetKeyState(wx.WXK_SHIFT))#event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
+
+        # Deselect the clicked entry of the list box
+        event.GetEventObject().SetSelection(wx.NOT_FOUND)
+
+    def evt_update_tooltip_sub(self, event):
+        """Update the tooltip with the name of the sub-assembly entry the mouse is over
+
+                Args:
+                    self: A reference to the parent wx.object instance
+                    event: A mouse movement event object passed from the movement event
+        """
+
+        # Calculate the index of the item that is under the mouse pointer
+        _item_index = self.wgt_sub_assm.HitTest(event.GetPosition())
+
+        # As long as we have a valid index then update the tooltip, otherwise empty it
+        if _item_index != -1:
+            _num, _rev = self.root.helper_wgt_sub[_item_index]
+            _new_msg = self.root.data_wgt_sub[_num][_rev]
+            if self.wgt_sub_assm.GetToolTipText() != _new_msg:
+                self.wgt_sub_assm.SetToolTip(_new_msg)
+        else:
+            self.wgt_sub_assm.SetToolTip("")
+
+    def evt_update_tooltip_super(self, event):
+        """Update the tooltip with the name of the super-assembly entry the mouse is over
+
+                Args:
+                    self: A reference to the parent wx.object instance
+                    event: A mouse movement event object passed from the movement event
+        """
+
+        # Calculate the index of the item that is under the mouse pointer
+        _item_index = self.wgt_super_assm.HitTest(event.GetPosition())
+
+        # As long as we have a valid index then update the tooltip, otherwise empty it
+        if _item_index != -1:
+            _num, _rev = self.root.helper_wgt_super[_item_index]
+            _new_msg = self.root.data_wgt_super[_num][_rev]
+            if self.wgt_super_assm.GetToolTipText() != _new_msg:
+                self.wgt_super_assm.SetToolTip(_new_msg)
+        else:
+            self.wgt_super_assm.SetToolTip("")
+
+    def event_drawing(self, event):
+        """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
+
+        _dlg = wx.RichMessageDialog(self,
+                                   caption="This feature is not yet implemented",
+                                   message="This feature will load a production drawing of the current part",
+                                   style=wx.OK | wx.ICON_INFORMATION)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+    def evt_sub_edit(self, event):
+        """Show the edit dialog for sub-assemblies
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        _dlg = custom_dialog.EditSubAssemblies(self, self.root)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+    def evt_super_edit(self, event):
+        """Show the edit dialog for super-assemblies
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        _dlg = custom_dialog.EditSuperAssemblies(self, self.root)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+    def evt_sub_help(self, event):
+        """Show the term definition for sub-assembly
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A click event object passed from the click event
+        """
+
+        _dlg = wx.RichMessageDialog(self,
+                                    caption="Help: Term Definition",
+                                    message="A sub-assembly in this context refers to components or assemblies that, "
+                                            "together, assemble into this part.",
+                                    style=wx.OK | wx.ICON_INFORMATION)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+    def evt_super_help(self, event):
+        """Show the term definition for super-assembly
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A click event object passed from the click event
+        """
+
+        _dlg = wx.RichMessageDialog(self,
+                                    caption="Help: Term Definition",
+                                    message="A super-assembly in this context refers to assemblies that contain "
+                                            "this part.",
+                                    style=wx.OK | wx.ICON_INFORMATION)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+    def evt_resize(self, event):
+        """Move the button overlays when re-sized
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A resize event object passed from the resize event
+        """
+
+        _help_shift = 6
+        _help_size = 10
+
+        # Get width and height of the resize and subtract a correction tuple
+        (_w, _h) = event.GetSize() - (1, 1)
+
+        # Move the buttons that edit the assembly lists
+        self.btn_super_edit.SetPosition((_w - CompositeAssemblies.btn_size, _h - CompositeAssemblies.btn_size))
+        self.btn_sub_edit.SetPosition((_w // 2 - CompositeAssemblies.btn_size, _h - CompositeAssemblies.btn_size))
+
+        # Move the buttons that display help for the assembly lists
+        self.btn_super_help.SetPosition((_w - _help_shift - _help_size // 2,
+                                         (self.wgt_sub_assm.GetCharHeight() - _help_size) // 2 + 6))
+        self.btn_sub_help.SetPosition((_w // 2 - _help_shift - _help_size // 2,
+                                       (self.wgt_sub_assm.GetCharHeight() - _help_size) // 2 + 6))
+
+        # Refresh Layout required for unknown reasons - otherwise odd scale behaviour
+        self.Layout()
+
+    def evt_button_no_focus(self, event):
         """Prevents focus from being called on the buttons"""
         pass

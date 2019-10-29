@@ -755,4 +755,346 @@ class ImageAddDialog(ImageDialogBase):
         return hasher.hexdigest() + os.path.splitext(self.image_list[self.image_index])[1]
 
 
+class BaseEditAssemblies(wx.Dialog):
+    """Base class for dialogs to edit the assemblies data for this part
 
+        Args:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+
+        Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+            remove_choices (list: str): List of choices to be shown in the dropdown box
+            title (str): Title to be shown on the dialog window
+    """
+
+    def __init__(self, parent, root):
+        """Constructor"""
+        super().__init__(parent)
+
+        self.parent = parent
+        self.root = root
+
+        # Variables to be overridden in load_data() method
+        self.remove_choices = []
+        self.title = ""
+
+        self.load_data()
+
+        # Add assembly section widgets, with bind
+        self.wgt_txt_add_num = wx.TextCtrl(self, value="")
+        self.wgt_txt_add_rev = wx.TextCtrl(self, size=(80, -1), value="")
+        btn_add = wx.Button(self, size=(80, -1), label="Add Part")
+        btn_add.Bind(wx.EVT_BUTTON, self.evt_add)
+
+        # Add assembly section sizer
+        szr_add = wx.StaticBoxSizer(wx.StaticBox(self, label="Add a Sub-Assembly"), orient=wx.HORIZONTAL)
+        szr_add.Add(self.wgt_txt_add_num, proportion=1, flag=wx.ALL, border=5)
+        szr_add.Add(self.wgt_txt_add_rev, flag=wx.ALL, border=5)
+        szr_add.Add(btn_add, flag=wx.ALL, border=4)
+
+        # Remove assembly section widgets, with bind
+        self.wgt_txt_remove = wx.ComboBox(self, choices=self.remove_choices, style=wx.CB_READONLY)
+        btn_remove = wx.Button(self, size=(80, -1), label="Remove Part")
+        btn_remove.Bind(wx.EVT_BUTTON, self.evt_remove)
+
+        # Remove assembly section sizer
+        szr_remove = wx.StaticBoxSizer(wx.StaticBox(self, label="Remove a Sub-Assembly"), orient=wx.HORIZONTAL)
+        szr_remove.Add(self.wgt_txt_remove, proportion=1, flag=wx.ALL, border=5)
+        szr_remove.Add(btn_remove, flag=wx.ALL, border=4)
+
+        # Done button with bind
+        btn_done = wx.Button(self, label='Done')
+        btn_done.Bind(wx.EVT_BUTTON, self.evt_done)
+
+        # Add everything to master sizer and set sizer for pane
+        szr_main = wx.BoxSizer(wx.VERTICAL)
+        szr_main.Add(szr_add, flag=wx.ALL | wx.EXPAND, border=5)
+        szr_main.Add(szr_remove, flag=wx.ALL | wx.EXPAND, border=5)
+        szr_main.Add(btn_done, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=5)
+
+        # Set main sizer
+        self.SetSizer(szr_main)
+
+        # Set size and title
+        self.SetSize((500, 220))
+        self.SetTitle(self.title)
+
+    def load_data(self):
+        """Load data pertinent to variations of this dialog - overload method in derived classes"""
+
+        pass
+
+    def evt_add(self, event):
+        """Add a part to the assembly list - overload method in derived classes
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        pass
+
+    def evt_remove(self, event):
+        """Remove a part from the assembly list - overload method in derived classes
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        pass
+
+    def evt_done(self, event):
+        """Close the dialog because we are done
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        self.Destroy()
+
+
+class EditSubAssemblies(BaseEditAssemblies):
+    """Opens a dialog to edit the sub-assemblies data for this part
+
+        Args:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+
+        Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+            remove_choices (list: str): List of choices to be shown in the dropdown box
+            title (str): Title to be shown on the dialog window
+    """
+
+    def load_data(self):
+        """Draw the dialog box details - common between subclasses"""
+
+        self.title = "Edit List of Sub-Assemblies"
+        self.remove_choices = ["%s (%s r%s)" % (self.root.data_wgt_sub[i[0]][i[1]], i[0], i[1])
+                               for i in self.root.helper_wgt_sub]
+
+    def evt_add(self, event):
+        """Add a part to the sub-assembly list
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        # Get part number and rev to remove
+        _num = self.wgt_txt_add_num.GetValue()
+        _rev = self.wgt_txt_add_rev.GetValue()
+
+        # Only execute if the two text boxes have been filled out
+        if _num != "" and _rev != "":
+            conn = config.sql_db.connect(config.cfg["db_location"])
+            crsr = conn.cursor()
+
+            # Check if the subassembly is already listed for this part
+            crsr.execute("""SELECT EXISTS
+                            (
+                                SELECT 
+                                    1 
+                                FROM Children 
+                                WHERE part_num=(?) 
+                                    AND part_rev=(?) 
+                                    AND child_num=(?) 
+                                    AND child_rev=(?)
+                            );""", (_num, _rev, self.root.part_num, self.root.part_rev))
+
+            # If the sub-assembly is not yet in the DB, carry out the additions
+            if not crsr.fetchone()[0]:
+                # Add the part from the assembly list on the parts tab
+                self.parent.wgt_sub_assm.Append("%s r%s" % (_num, _rev))
+
+                # Insert the sub-assembly into the DB
+                crsr.execute(
+                    "INSERT INTO Children (part_num, part_rev, child_num, child_rev) VALUES ((?), (?), (?), (?));",
+                    (_num, _rev, self.root.part_num, self.root.part_rev))
+                conn.commit()
+
+                # Get the name of the sub-assembly if it exists
+                crsr.execute("SELECT name FROM Parts WHERE part_num=(?) AND part_rev=(?);", (_num, _rev))
+                try:
+                    _name = crsr.fetchone()[0]
+                except:
+                    _name = None
+
+                crsr.close()
+                conn.close()
+
+                # Add the part to the data structures holding the data for the assembly widget
+                self.root.helper_wgt_sub.append([_num, _rev])
+                if _num not in self.root.data_wgt_sub:
+                    self.root.data_wgt_sub[_num] = {_rev: _name}
+                elif _rev not in self.root.data_wgt_sub[_num]:
+                    self.root.data_wgt_sub[_num][_rev] = _name
+
+                # Clear the dialog widgets of any text
+                self.wgt_txt_add_num.SetLabel("")
+                self.wgt_txt_add_rev.SetLabel("")
+
+    def evt_remove(self, event):
+        """Remove a part from the sub-assembly list
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        # Get index of the selected part
+        _index = self.wgt_txt_remove.GetSelection()
+
+        # Only do anything if something is selected
+        if _index != -1:
+            # Get part number and rev to remove
+            _num, _rev = self.root.helper_wgt_sub[_index]
+
+            # Remove the part from the dialog dropdown list
+            self.wgt_txt_remove.Delete(_index)
+
+            # Remove the part from the assembly list on the parts tab
+            self.parent.wgt_sub_assm.Delete(_index)
+
+            # Remove the part from the SQL database
+            conn = config.sql_db.connect(config.cfg["db_location"])
+            crsr = conn.cursor()
+
+            # Remove image from database
+            crsr.execute("DELETE FROM Children WHERE part_num=(?) AND part_rev=(?) AND child_num=(?) AND child_rev=(?);",
+                         (_num, _rev, self.root.part_num, self.root.part_rev))
+
+            conn.commit()
+            crsr.close()
+            conn.close()
+
+            # Remove the part from the data structures holding the data for the assembly widget
+            del self.root.data_wgt_sub[_num][_rev]
+            del self.root.helper_wgt_sub[int(_index)]
+
+
+class EditSuperAssemblies(BaseEditAssemblies):
+    """Opens a dialog to edit the super-assemblies data for this part
+
+        Args:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+
+        Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+            remove_choices (list: str): List of choices to be shown in the dropdown box
+            title (str): Title to be shown on the dialog window
+    """
+
+    def load_data(self):
+        """Draw the dialog box details - common between subclasses"""
+
+        self.title = "Edit List of Super-Assemblies"
+        self.remove_choices = ["%s (%s r%s)" % (self.root.data_wgt_super[i[0]][i[1]], i[0], i[1])
+                               for i in self.root.helper_wgt_super]
+
+    def evt_add(self, event):
+        """Add a part to the super-assembly list
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        # Get part number and rev to remove
+        _num = self.wgt_txt_add_num.GetValue()
+        _rev = self.wgt_txt_add_rev.GetValue()
+
+        # Only execute if the two text boxes have been filled out
+        if _num != "" and _rev != "":
+            conn = config.sql_db.connect(config.cfg["db_location"])
+            crsr = conn.cursor()
+
+            # Check if the super-assembly is already listed for this part
+            crsr.execute("""SELECT EXISTS 
+                            (
+                                SELECT 
+                                    1 
+                                FROM Children
+                                WHERE part_num=(?) 
+                                    AND part_rev=(?) 
+                                    AND child_num=(?) 
+                                    AND child_rev=(?)
+                            );""", (self.root.part_num, self.root.part_rev, _num, _rev))
+
+            # If the super-assembly is not yet in the DB, carry out the additions
+            if not crsr.fetchone()[0]:
+                # Add the part from the assembly list on the parts tab
+                self.parent.wgt_super_assm.Append("%s r%s" % (_num, _rev))
+
+                # Insert the sub-assembly into the DB
+                crsr.execute(
+                    "INSERT INTO Children (part_num, part_rev, child_num, child_rev) VALUES ((?), (?), (?), (?));",
+                    (self.root.part_num, self.root.part_rev, _num, _rev))
+                conn.commit()
+
+                # Get the name of the sub-assembly if it exists
+                crsr.execute("SELECT name FROM Parts WHERE part_num=(?) AND part_rev=(?);", (_num, _rev))
+                try:
+                    _name = crsr.fetchone()[0]
+                except:
+                    _name = None
+
+                crsr.close()
+                conn.close()
+
+                # Add the part to the data structures holding the data for the assembly widget
+                self.root.helper_wgt_super.append([_num, _rev])
+                if _num not in self.root.data_wgt_super:
+                    self.root.data_wgt_super[_num] = {_rev: _name}
+                elif _rev not in self.root.data_wgt_super[_num]:
+                    self.root.data_wgt_super[_num][_rev] = _name
+
+                # Clear the dialog widgets of any text
+                self.wgt_txt_add_num.SetLabel("")
+                self.wgt_txt_add_rev.SetLabel("")
+
+    def evt_remove(self, event):
+        """Remove a part from the super-assembly list
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        # Get index of the selected part
+        _index = self.wgt_txt_remove.GetSelection()
+
+        # Only do anything if something is selected
+        if _index != -1:
+            # Get part number and rev to remove
+            _num, _rev = self.root.helper_wgt_super[_index]
+
+            # Remove the part from the dialog dropdown list
+            self.wgt_txt_remove.Delete(_index)
+
+            # Remove the part from the assembly list on the parts tab
+            self.parent.wgt_super_assm.Delete(_index)
+
+            # Remove the part from the SQL database
+            conn = config.sql_db.connect(config.cfg["db_location"])
+            crsr = conn.cursor()
+
+            # Remove image from database
+            crsr.execute(
+                "DELETE FROM Children WHERE part_num=(?) AND part_rev=(?) AND child_num=(?) AND child_rev=(?);",
+                (self.root.part_num, self.root.part_rev, _num, _rev))
+
+            conn.commit()
+            crsr.close()
+            conn.close()
+
+            # Remove the part from the data structures holding the data for the assembly widget
+            del self.root.data_wgt_super[_num][_rev]
+            del self.root.helper_wgt_super[int(_index)]
