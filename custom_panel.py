@@ -242,46 +242,64 @@ class PartsTabPanel(wx.Panel):
         self.data_wgt_super = {}
         self.data_wgt_sub = {}
 
-        # populate Sub and Super Assembly lists
+        # Populate Sub Assembly list
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
+        crsr.execute("SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?)",
+                     (self.part_num, self.part_rev))
+        _sub_all = crsr.fetchall()
+
         crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
-                     "(SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?))",
+                      "(SELECT part_num, part_rev FROM Children WHERE child_num=(?) AND child_rev=(?))",
+                      (self.part_num, self.part_rev))
+        _sub_named = crsr.fetchall()
+
+        # Items that have names
+        for _num, _rev, _name in _sub_named:
+            self.helper_wgt_sub.append([_num, _rev])
+
+            if _num not in self.data_wgt_sub:
+                self.data_wgt_sub[_num] = {_rev: _name}
+            elif _rev not in self.data_wgt_sub[_num]:
+                self.data_wgt_sub[_num][_rev] = _name
+
+        # Items that have no names
+        for _num, _rev in set(_sub_all)-set(x[:2] for x in _sub_named):
+            self.helper_wgt_sub.append([_num, _rev])
+
+            if _num not in self.data_wgt_sub:
+                self.data_wgt_sub[_num] = {_rev: None}
+            elif _rev not in self.data_wgt_sub[_num]:
+                self.data_wgt_sub[_num][_rev] = None
+
+        # Populate Super Assembly list
+        crsr.execute("SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?)",
                      (self.part_num, self.part_rev))
+        _super_all = crsr.fetchall()
 
-        a = crsr.fetchall()
-        print(self.part_num, self.part_rev)
-        print("useless", a)
-        for num, rev, name in a:
-
-            self.helper_wgt_sub.append([num, rev])
-
-            if num not in self.data_wgt_sub:
-                self.data_wgt_sub[num] = {rev: name}
-            elif rev not in self.data_wgt_sub[num]:
-                self.data_wgt_sub[num][rev] = name
-
-        print(self.data_wgt_sub)
-        crsr.execute("""
-        SELECT part_num, part_rev, name FROM Parts 
-        WHERE (part_num, part_rev) IN
-            (
-            SELECT child_num, child_rev FROM Children 
-            WHERE part_num=(?) AND part_rev=(?)
-            )
-        """,
+        crsr.execute("SELECT part_num, part_rev, name FROM Parts WHERE (part_num, part_rev) IN"
+                     "(SELECT child_num, child_rev FROM Children WHERE part_num=(?) AND part_rev=(?))",
                      (self.part_num, self.part_rev))
+        _super_named = crsr.fetchall()
 
-        for num, rev, name in crsr.fetchall():
+        # Items that have names
+        for _num, _rev, _name in _super_named:
+            self.helper_wgt_super.append([_num, _rev])
 
-            self.helper_wgt_super.append([num, rev])
+            if _num not in self.data_wgt_super:
+                self.data_wgt_super[_num] = {_rev: _name}
+            elif _rev not in self.data_wgt_super[_num]:
+                self.data_wgt_super[_num][_rev] = _name
 
-            if num not in self.data_wgt_super:
-                self.data_wgt_super[num] = {rev: name}
-            elif rev not in self.data_wgt_super[num]:
-                self.data_wgt_super[num][rev] = name
+        # Items that have no names
+        for _num, _rev in set(_super_all) - set(x[:2] for x in _super_named):
+            self.helper_wgt_super.append([_num, _rev])
 
-        print(self.data_wgt_super)
+            if _num not in self.data_wgt_super:
+                self.data_wgt_super[_num] = {_rev: None}
+            elif _rev not in self.data_wgt_super[_num]:
+                self.data_wgt_super[_num][_rev] = None
+
         conn.close()
 
     def style_null_entry(self, conditional, entry_field):
