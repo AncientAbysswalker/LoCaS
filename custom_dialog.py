@@ -756,7 +756,7 @@ class ImageAddDialog(ImageDialogBase):
 
 
 class BaseEditAssemblies(wx.Dialog):
-    """Opens a dialog to modify an image comment.
+    """Base class for dialogs to edit the assemblies data for this part
 
         Args:
             parent (ref): Reference to the parent wx.object
@@ -858,7 +858,7 @@ class BaseEditAssemblies(wx.Dialog):
 
 
 class EditSubAssemblies(BaseEditAssemblies):
-    """Opens a dialog to modify an image comment.
+    """Opens a dialog to edit the sub-assemblies data for this part
 
         Args:
             parent (ref): Reference to the parent wx.object
@@ -879,7 +879,7 @@ class EditSubAssemblies(BaseEditAssemblies):
                                for i in self.root.helper_wgt_sub]
 
     def evt_add(self, event):
-        """Add a part to the assembly list, overload for super vs sub assemblies
+        """Add a part to the sub-assembly list
 
         Args:
             self: A reference to the parent wx.object instance
@@ -896,8 +896,16 @@ class EditSubAssemblies(BaseEditAssemblies):
             crsr = conn.cursor()
 
             # Check if the subassembly is already listed for this part
-            crsr.execute("SELECT EXISTS (SELECT 1 FROM Children WHERE part_num=(?) AND part_rev=(?) AND child_num=(?) AND child_rev=(?));",
-                         (_num, _rev, self.root.part_num, self.root.part_rev))
+            crsr.execute("""SELECT EXISTS
+                            (
+                                SELECT 
+                                    1 
+                                FROM Children 
+                                WHERE part_num=(?) 
+                                    AND part_rev=(?) 
+                                    AND child_num=(?) 
+                                    AND child_rev=(?)
+                            );""", (_num, _rev, self.root.part_num, self.root.part_rev))
 
             # If the sub-assembly is not yet in the DB, carry out the additions
             if not crsr.fetchone()[0]:
@@ -916,7 +924,6 @@ class EditSubAssemblies(BaseEditAssemblies):
                     _name = crsr.fetchone()[0]
                 except:
                     _name = None
-                print("name", _name)
 
                 crsr.close()
                 conn.close()
@@ -928,15 +935,12 @@ class EditSubAssemblies(BaseEditAssemblies):
                 elif _rev not in self.root.data_wgt_sub[_num]:
                     self.root.data_wgt_sub[_num][_rev] = _name
 
-                print(self.root.data_wgt_sub)
-                print(self.root.helper_wgt_sub)
-
                 # Clear the dialog widgets of any text
                 self.wgt_txt_add_num.SetLabel("")
                 self.wgt_txt_add_rev.SetLabel("")
 
     def evt_remove(self, event):
-        """Remove a part from the assembly list, overload for super vs sub assemblies
+        """Remove a part from the sub-assembly list
 
         Args:
             self: A reference to the parent wx.object instance
@@ -975,7 +979,7 @@ class EditSubAssemblies(BaseEditAssemblies):
 
 
 class EditSuperAssemblies(BaseEditAssemblies):
-    """Opens a dialog to modify an image comment.
+    """Opens a dialog to edit the super-assemblies data for this part
 
         Args:
             parent (ref): Reference to the parent wx.object
@@ -996,21 +1000,101 @@ class EditSuperAssemblies(BaseEditAssemblies):
                                for i in self.root.helper_wgt_super]
 
     def evt_add(self, event):
-        """Add a part to the assembly list, overload for super vs sub assemblies
+        """Add a part to the super-assembly list
 
         Args:
             self: A reference to the parent wx.object instance
             event: A button event object passed from the button click
         """
 
-        pass
+        # Get part number and rev to remove
+        _num = self.wgt_txt_add_num.GetValue()
+        _rev = self.wgt_txt_add_rev.GetValue()
+
+        # Only execute if the two text boxes have been filled out
+        if _num != "" and _rev != "":
+            conn = config.sql_db.connect(config.cfg["db_location"])
+            crsr = conn.cursor()
+
+            # Check if the super-assembly is already listed for this part
+            crsr.execute("""SELECT EXISTS 
+                            (
+                                SELECT 
+                                    1 
+                                FROM Children
+                                WHERE part_num=(?) 
+                                    AND part_rev=(?) 
+                                    AND child_num=(?) 
+                                    AND child_rev=(?)
+                            );""", (self.root.part_num, self.root.part_rev, _num, _rev))
+
+            # If the super-assembly is not yet in the DB, carry out the additions
+            if not crsr.fetchone()[0]:
+                # Add the part from the assembly list on the parts tab
+                self.parent.wgt_super_assm.Append("%s r%s" % (_num, _rev))
+
+                # Insert the sub-assembly into the DB
+                crsr.execute(
+                    "INSERT INTO Children (part_num, part_rev, child_num, child_rev) VALUES ((?), (?), (?), (?));",
+                    (self.root.part_num, self.root.part_rev, _num, _rev))
+                conn.commit()
+
+                # Get the name of the sub-assembly if it exists
+                crsr.execute("SELECT name FROM Parts WHERE part_num=(?) AND part_rev=(?);", (_num, _rev))
+                try:
+                    _name = crsr.fetchone()[0]
+                except:
+                    _name = None
+
+                crsr.close()
+                conn.close()
+
+                # Add the part to the data structures holding the data for the assembly widget
+                self.root.helper_wgt_super.append([_num, _rev])
+                if _num not in self.root.data_wgt_super:
+                    self.root.data_wgt_super[_num] = {_rev: _name}
+                elif _rev not in self.root.data_wgt_super[_num]:
+                    self.root.data_wgt_super[_num][_rev] = _name
+
+                # Clear the dialog widgets of any text
+                self.wgt_txt_add_num.SetLabel("")
+                self.wgt_txt_add_rev.SetLabel("")
 
     def evt_remove(self, event):
-        """Remove a part from the assembly list, overload for super vs sub assemblies
+        """Remove a part from the super-assembly list
 
         Args:
             self: A reference to the parent wx.object instance
             event: A button event object passed from the button click
         """
 
-        pass
+        # Get index of the selected part
+        _index = self.wgt_txt_remove.GetSelection()
+
+        # Only do anything if something is selected
+        if _index != -1:
+            # Get part number and rev to remove
+            _num, _rev = self.root.helper_wgt_super[_index]
+
+            # Remove the part from the dialog dropdown list
+            self.wgt_txt_remove.Delete(_index)
+
+            # Remove the part from the assembly list on the parts tab
+            self.parent.wgt_super_assm.Delete(_index)
+
+            # Remove the part from the SQL database
+            conn = config.sql_db.connect(config.cfg["db_location"])
+            crsr = conn.cursor()
+
+            # Remove image from database
+            crsr.execute(
+                "DELETE FROM Children WHERE part_num=(?) AND part_rev=(?) AND child_num=(?) AND child_rev=(?);",
+                (self.root.part_num, self.root.part_rev, _num, _rev))
+
+            conn.commit()
+            crsr.close()
+            conn.close()
+
+            # Remove the part from the data structures holding the data for the assembly widget
+            del self.root.data_wgt_super[_num][_rev]
+            del self.root.helper_wgt_super[int(_index)]

@@ -745,26 +745,19 @@ class CompositeAssemblies(wx.Panel):
             event: A button event object passed from the button click
         """
 
-        #self.wgt_sub_assm.Append("pork")
         _dlg = custom_dialog.EditSubAssemblies(self, self.root)
         _dlg.ShowModal()
         _dlg.Destroy()
 
     def evt_super_edit(self, event):
-        """Show the edit dialog for sub-assemblies
+        """Show the edit dialog for super-assemblies
 
         Args:
             self: A reference to the parent wx.object instance
             event: A button event object passed from the button click
         """
 
-        self.wgt_sub_assm.Delete(1)
-        pass
-        pass
-        _dlg = custom_dialog.RichMessageDialog(self,
-                                   caption="This feature is not yet implemented",
-                                   message="This feature will load a production drawing of the current part",
-                                   style=wx.OK | wx.ICON_INFORMATION)
+        _dlg = custom_dialog.EditSuperAssemblies(self, self.root)
         _dlg.ShowModal()
         _dlg.Destroy()
 
