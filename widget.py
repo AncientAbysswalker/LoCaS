@@ -667,7 +667,7 @@ class CompositeAssemblies(wx.Panel):
 
         # Get the index of the clicked item, and open a new parts tab
         _index = event.GetSelection()
-        self.root.parent.open_parts_tab(self.root.helper_wgt_sub[_index][0], wx.GetKeyState(wx.WXK_SHIFT))#event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
+        self.root.parent.open_parts_tab(*self.root.helper_wgt_sub[_index], wx.GetKeyState(wx.WXK_SHIFT))
 
         # Deselect the clicked entry of the list box
         event.GetEventObject().SetSelection(wx.NOT_FOUND)
@@ -682,7 +682,7 @@ class CompositeAssemblies(wx.Panel):
 
         # Get the index of the clicked item, and open a new parts tab
         _index = event.GetSelection()
-        self.root.parent.open_parts_tab(self.root.helper_wgt_super[_index][0], wx.GetKeyState(wx.WXK_SHIFT))#event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
+        self.root.parent.open_parts_tab(*self.root.helper_wgt_super[_index], wx.GetKeyState(wx.WXK_SHIFT))
 
         # Deselect the clicked entry of the list box
         event.GetEventObject().SetSelection(wx.NOT_FOUND)

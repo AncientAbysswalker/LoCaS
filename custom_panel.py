@@ -71,18 +71,18 @@ def part_to_dir(pn):
 
 
 class PartsTabPanel(wx.Panel):
-    def __init__(self, pn, *args, **kwargs):
+    def __init__(self, parent, part_num, part_rev, *args, **kwargs):
         """Constructor"""
-        wx.Panel.__init__(self, size=(0, 0), *args, **kwargs)  # Needs size parameter to remove black-square
+        wx.Panel.__init__(self, parent, size=(0, 0), *args, **kwargs)  # Needs size parameter to remove black-square
         self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))  # Ensure that edit cursor does not show by default
 
         print("leadss")
 
         # Variable initialization
-        self.parent = args[0]
-        self.part_num = pn
-        self.part_rev = "0"
+        self.parent = parent
+        self.part_num = part_num
+        self.part_rev = part_rev
         self.part_type = "You Should NEVER See This Text!!"
         self.short_description = "You Should NEVER See This Text!!"
         self.long_description = "You Should NEVER See This Text!!" \
@@ -463,27 +463,28 @@ class InterfaceTabs(wx.Notebook):
         self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
 
         self.panels = []
-        for name in PANELS:
-            panel = PartsTabPanel(name, self)
+        for part_num in PANELS:
+            panel = PartsTabPanel(self, part_num, "0")
             self.panels.append(panel)
-            self.AddPage(panel, name)
+            self.AddPage(panel, part_num)
 
-    def open_parts_tab(self, part_num, opt_stay=False):
+    def open_parts_tab(self, part_num, part_rev="0", opt_stay=False):
         """Open a new tab using the provided part number
 
             Args:
                 part_num (string): The part number to open as a new tab
+                part_rev (string): The part revision to open as a new tab
                 opt_stay (bool): If true, do not change to newly opened tab
         """
 
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
-        crsr.execute("SELECT EXISTS (SELECT 1 FROM Parts WHERE part_num=(?))", (part_num,))
+        crsr.execute("SELECT EXISTS (SELECT 1 FROM Parts WHERE part_num=(?) AND part_rev=(?))", (part_num, part_rev))
         _check = crsr.fetchone()[0]
         conn.close()
 
         if _check:
-            panel = PartsTabPanel(part_num, self)
+            panel = PartsTabPanel(self, part_num, part_rev)
             if part_num not in [pnl.part_num for pnl in self.panels]:
                 self.panels.append(panel)
                 self.AddPage(panel, part_num)
@@ -495,14 +496,14 @@ class InterfaceTabs(wx.Notebook):
             _dlg = wx.RichMessageDialog(self,
                                         caption="Part Not In System",
                                         message="This part is not currently added to the system.\n"
-                                                  "Do you want to add %s to the database?" % (part_num,),
+                                                  "Do you want to add %s r%s to the database?" % (part_num, part_rev),
                                         style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
             if _dlg.ShowModal() == wx.ID_YES:
 
                 conn = config.sql_db.connect(config.cfg["db_location"])
                 crsr = conn.cursor()
                 crsr.execute("INSERT INTO Parts (part_num, part_rev) VALUES ((?), (?));",
-                             (part_num, "0"))
+                             (part_num, part_rev))
                 crsr.close()
                 conn.commit()
 
