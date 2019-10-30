@@ -795,13 +795,13 @@ class BaseEditAssemblies(wx.Dialog):
         szr_add.Add(btn_add, flag=wx.ALL, border=4)
 
         # Remove assembly section widgets, with bind
-        self.wgt_txt_remove = wx.ComboBox(self, choices=self.remove_choices, style=wx.CB_READONLY)
+        self.wgt_drop_remove = wx.ComboBox(self, choices=self.remove_choices, style=wx.CB_READONLY)
         btn_remove = wx.Button(self, size=(80, -1), label="Remove Part")
         btn_remove.Bind(wx.EVT_BUTTON, self.evt_remove)
 
         # Remove assembly section sizer
         szr_remove = wx.StaticBoxSizer(wx.StaticBox(self, label="Remove a Sub-Assembly"), orient=wx.HORIZONTAL)
-        szr_remove.Add(self.wgt_txt_remove, proportion=1, flag=wx.ALL, border=5)
+        szr_remove.Add(self.wgt_drop_remove, proportion=1, flag=wx.ALL, border=5)
         szr_remove.Add(btn_remove, flag=wx.ALL, border=4)
 
         # Done button with bind
@@ -872,7 +872,7 @@ class EditSubAssemblies(BaseEditAssemblies):
     """
 
     def load_data(self):
-        """Draw the dialog box details - common between subclasses"""
+        """Load specific dialog box details - unique between subclasses"""
 
         self.title = "Edit List of Sub-Assemblies"
         self.remove_choices = ["%s (%s r%s)" % (self.root.data_wgt_sub[i[0]][i[1]], i[0], i[1])
@@ -948,7 +948,7 @@ class EditSubAssemblies(BaseEditAssemblies):
         """
 
         # Get index of the selected part
-        _index = self.wgt_txt_remove.GetSelection()
+        _index = self.wgt_drop_remove.GetSelection()
 
         # Only do anything if something is selected
         if _index != -1:
@@ -956,7 +956,7 @@ class EditSubAssemblies(BaseEditAssemblies):
             _num, _rev = self.root.helper_wgt_sub[_index]
 
             # Remove the part from the dialog dropdown list
-            self.wgt_txt_remove.Delete(_index)
+            self.wgt_drop_remove.Delete(_index)
 
             # Remove the part from the assembly list on the parts tab
             self.parent.wgt_sub_assm.Delete(_index)
@@ -993,7 +993,7 @@ class EditSuperAssemblies(BaseEditAssemblies):
     """
 
     def load_data(self):
-        """Draw the dialog box details - common between subclasses"""
+        """Load specific dialog box details - unique between subclasses"""
 
         self.title = "Edit List of Super-Assemblies"
         self.remove_choices = ["%s (%s r%s)" % (self.root.data_wgt_super[i[0]][i[1]], i[0], i[1])
@@ -1069,7 +1069,7 @@ class EditSuperAssemblies(BaseEditAssemblies):
         """
 
         # Get index of the selected part
-        _index = self.wgt_txt_remove.GetSelection()
+        _index = self.wgt_drop_remove.GetSelection()
 
         # Only do anything if something is selected
         if _index != -1:
@@ -1077,7 +1077,7 @@ class EditSuperAssemblies(BaseEditAssemblies):
             _num, _rev = self.root.helper_wgt_super[_index]
 
             # Remove the part from the dialog dropdown list
-            self.wgt_txt_remove.Delete(_index)
+            self.wgt_drop_remove.Delete(_index)
 
             # Remove the part from the assembly list on the parts tab
             self.parent.wgt_super_assm.Delete(_index)
@@ -1098,3 +1098,110 @@ class EditSuperAssemblies(BaseEditAssemblies):
             # Remove the part from the data structures holding the data for the assembly widget
             del self.root.data_wgt_super[_num][_rev]
             del self.root.helper_wgt_super[int(_index)]
+
+
+class EditComponentType(wx.Dialog):
+    """Opens a dialog to edit the component type for this part
+
+        Args:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+
+        Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+            remove_choices (list: str): List of choices to be shown in the dropdown box
+            title (str): Title to be shown on the dialog window
+    """
+
+    def __init__(self, parent, root, old_type):
+        """Constructor"""
+        super().__init__(parent)
+
+        self.parent = parent
+        self.root = root
+
+        # The value of the type value before editing
+        self.old_type = old_type
+
+        # Type selection dropdown, with bind and sizer
+        self.wgt_drop_type = wx.ComboBox(self, choices=["Carrot", "Pea"], style=wx.CB_READONLY)
+        szr_drop = wx.StaticBoxSizer(wx.StaticBox(self, label="Select the type for this part to fall under"), orient=wx.HORIZONTAL)
+        szr_drop.Add(self.wgt_drop_type, proportion=1, flag=wx.ALL, border=5)
+
+        # Set initial selection
+        self.wgt_drop_type.SetValue(self.old_type)
+
+        # Dialog buttons with binds
+        btn_commit = wx.Button(self, label='Commit')
+        btn_commit.Bind(wx.EVT_BUTTON, self.evt_commit)
+        btn_cancel = wx.Button(self, label='Cancel')
+        btn_cancel.Bind(wx.EVT_BUTTON, self.evt_cancel)
+
+        # Dialog button sizer
+        szr_buttons = wx.BoxSizer(wx.HORIZONTAL)
+        szr_buttons.Add(btn_commit)
+        szr_buttons.Add(btn_cancel, flag=wx.LEFT, border=5)
+
+        # Add everything to master sizer and set sizer for pane
+        szr_master = wx.BoxSizer(wx.VERTICAL)
+        szr_master.Add(szr_drop, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        szr_master.Add(szr_buttons, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
+        self.SetSizer(szr_master)
+
+        # Set size and title
+        self.SetSize((500, 160))
+        self.SetTitle("Change the 'type' for this component")
+
+        self.Bind(wx.EVT_CLOSE, self.evt_close)
+
+    def evt_commit(self, event):
+        """Execute when committing a change to the part type
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+
+        # Only carry out the event if any item in the dropdown is selected
+        if self.wgt_drop_type.GetSelection() != -1:
+
+            # The newly selected type
+            _new_type = self.wgt_drop_type.GetValue()
+
+            # If the type has changed then commit the change
+            if self.old_type != _new_type:
+                # Change the widget text to reflect the change
+                self.root.wgt_txt_part_type.SetLabel(_new_type)
+
+                # Connect to the database
+                conn = config.sql_db.connect(config.cfg["db_location"])
+                crsr = conn.cursor()
+
+                # Modify the existing cell in the database for existing part number and desired column
+                crsr.execute("UPDATE Parts SET part_type=(?) WHERE part_num=(?) AND part_rev=(?);",
+                             (_new_type, self.root.part_num, self.root.part_rev))
+
+                conn.commit()
+                crsr.close()
+                conn.close()
+
+            self.evt_close()
+
+    def evt_cancel(self, event):
+        """Remove a part from the sub-assembly list
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+        self.evt_close()
+
+    def evt_close(self, *args):
+        """Remove a part from the sub-assembly list
+
+        Args:
+            self: A reference to the parent wx.object instance
+            event: A button event object passed from the button click
+        """
+        self.Destroy()

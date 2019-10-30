@@ -36,6 +36,7 @@ import fn_path
 import datetime
 
 import widget
+import custom_dialog
 
 
 def crop_square(image, rescale=None):
@@ -161,6 +162,7 @@ class PartsTabPanel(wx.Panel):
 
         # Revision Binds
         self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)  # Short Description Revision
+        self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.edit_type)
 
         # Assembly list binds
         # self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
@@ -206,6 +208,11 @@ class PartsTabPanel(wx.Panel):
 
         # Set Sizer
         self.SetSizer(self.szr_master)
+
+    def edit_type(self, event):
+        _dlg = custom_dialog.EditComponentType(self, self, self.wgt_txt_part_type.GetLabel())
+        _dlg.ShowModal()
+        _dlg.Destroy()
 
     def revision_bind(self, target, field, pn):
         target.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.revision_dialogue(event, pn, field))
