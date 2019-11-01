@@ -6,7 +6,7 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 from math import ceil
 
-import custom_dialog
+import dialog
 import config
 import fn_path
 
@@ -191,9 +191,9 @@ class WidgetGallery(scrolled.ScrolledPanel):
         """
 
         # Load the "image clicked" dialog
-        dialog = custom_dialog.ImageDialog(self, self.root.mugshot, self.root.pnl_mugshot, self.image_list, self.purgelist.index(event.GetEventObject()), self.root.part_num, self.root.part_rev)
-        dialog.ShowModal()
-        dialog.Destroy()
+        _dlg = dialog.EditImage(self, self.root.mugshot, self.root.pnl_mugshot, self.image_list, self.purgelist.index(event.GetEventObject()), self.root.part_num, self.root.part_rev)
+        _dlg.ShowModal()
+        _dlg.Destroy()
 
     def evt_add_image(self, event):
         """Call up dialogs to add an image to the database
@@ -220,9 +220,9 @@ class WidgetGallery(scrolled.ScrolledPanel):
             selected_files = file_dialog.GetPaths()
 
         # Proceed loading the file(s) chosen by the user to the "add image" dialog
-        dialog = custom_dialog.ImageAddDialog(self, selected_files, self.root.part_num, self.root.part_rev)
-        dialog.ShowModal()
-        dialog.Destroy()
+        _dlg = dialog.AddImage(self, selected_files, self.root.part_num, self.root.part_rev)
+        _dlg.ShowModal()
+        _dlg.Destroy()
 
     def evt_resize(self, event):
         """Resize the image grid
@@ -446,29 +446,45 @@ class NotesScrolled(scrolled.ScrolledPanel):
             _tmp_list = [(a[0][:10],)+a[1:] for a in sorted(_tmp_list, key=lambda x: x[0])]
 
         # Add the notes to the grid
-        for i, note in enumerate(_tmp_list):
-            _tmp_item = [wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND),
-                         wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND),
-                         wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END)]
-
-            # Binding for the items in the notes widget
-            for item in _tmp_item:
-                item.Bind(wx.EVT_LEFT_UP, self.evt_edit_notes_trigger)
-                self.szr_grid.Add(item, flag=wx.ALL | wx.EXPAND)
-
-            self.notes_list.append(_tmp_item)
+        for i, note_args in enumerate(_tmp_list):
+            self.add_note(*note_args, i)
+            # _tmp_item = [wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND),
+            #              wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND),
+            #              wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END)]
+            #
+            # # Binding for the items in the notes widget
+            # for item in _tmp_item:
+            #     item.Bind(wx.EVT_LEFT_UP, self.evt_edit_notes_trigger)
+            #     self.szr_grid.Add(item, flag=wx.ALL | wx.EXPAND)
+            #
+            # self.notes_list.append(_tmp_item)
 
     def evt_add_note(self, event):
-        """Event to add entries to the notes widget
+        """Event to trigger the addition of entries to the notes widget
 
                 Args:
                     self: A reference to the parent wx.object instance
                     event: A button event object passed from the button click
         """
 
-        _tmp_item = [wx.StaticText(self, id=7, label="FRY", style=wx.EXPAND),
-                     wx.StaticText(self, size=(40, -1), id=7, label="PORK", style=wx.EXPAND),
-                     wx.StaticText(self, size=(50, -1), id=7, label="NOTE", style=wx.ST_ELLIPSIZE_END)]
+        _dlg = dialog.AddNote(self, self.root)
+        _dlg.ShowModal()
+        _dlg.Destroy()
+
+    def add_note(self, timestamp, user, note, id_set=0):
+        """Add an entry to the notes widget
+
+                Args:
+                    self: A reference to the parent wx.object instance
+                    user: The username that has added the note
+                    timestamp: The timestamp for when the note was added
+                    note: The text for the note to be added
+        """
+
+        # List of wx.objects to add to the notes widget
+        _tmp_item = [wx.StaticText(self, id=id_set, label=timestamp, style=wx.EXPAND),
+                     wx.StaticText(self, size=(40, -1), id=id_set, label=user, style=wx.EXPAND),
+                     wx.StaticText(self, size=(50, -1), id=id_set, label=note, style=wx.ST_ELLIPSIZE_END)]
 
         # Binding for the items in the notes widget
         for item in _tmp_item:
@@ -484,7 +500,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
     def evt_edit_notes_trigger(self, event):
         """Determine which entry in the scrolled panel was clicked and pass that to the method handling the dialog
 
-        Args:
+        Args:a
             event: Click event that triggered this function
         """
 
@@ -745,7 +761,7 @@ class CompositeAssemblies(wx.Panel):
             event: A button event object passed from the button click
         """
 
-        _dlg = custom_dialog.EditSubAssemblies(self, self.root)
+        _dlg = dialog.EditSubAssemblies(self, self.root)
         _dlg.ShowModal()
         _dlg.Destroy()
 
@@ -757,7 +773,7 @@ class CompositeAssemblies(wx.Panel):
             event: A button event object passed from the button click
         """
 
-        _dlg = custom_dialog.EditSuperAssemblies(self, self.root)
+        _dlg = dialog.EditSuperAssemblies(self, self.root)
         _dlg.ShowModal()
         _dlg.Destroy()
 

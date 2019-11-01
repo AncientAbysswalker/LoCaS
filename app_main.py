@@ -3,7 +3,7 @@
 
 import sys
 
-from custom_dialog import *
+from dialog import *
 from cst_pane import *
 
 # Temporary bootstrap for 'current directory' files

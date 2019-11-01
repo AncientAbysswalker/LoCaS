@@ -30,13 +30,13 @@ import random
 #import wx.lib.agw.ultimatelistctrl as ulc
 import wx.lib.scrolledpanel as scrolled
 from math import ceil, floor
-from custom_dialog import *
+from dialog import *
 import config
 import fn_path
 import datetime
 
 import widget
-import custom_dialog
+import dialog
 
 
 def crop_square(image, rescale=None):
@@ -210,7 +210,7 @@ class PartsTabPanel(wx.Panel):
         self.SetSizer(self.szr_master)
 
     def edit_type(self, event):
-        _dlg = custom_dialog.EditComponentType(self, self, self.wgt_txt_part_type.GetLabel())
+        _dlg = dialog.EditComponentType(self, self, self.wgt_txt_part_type.GetLabel())
         _dlg.ShowModal()
         _dlg.Destroy()
 
@@ -405,69 +405,12 @@ class PartsTabPanel(wx.Panel):
         event.Skip()
 
 
-class MugshotPanel(wx.Panel):
-
-    mug_size = 250
-    btn_size = 40
-
-    def __init__(self, parent, *args, **kwargs):
-        """Constructor"""
-        wx.Panel.__init__(self, parent, *args, **kwargs)
-
-        self.parent = parent
-
-        # Primary part image
-        if self.parent.mugshot:
-            image = wx.Image(fn_path.concat_img(self.parent.part_num, self.parent.mugshot), wx.BITMAP_TYPE_ANY)
-        else:
-            image = wx.Image(fn_path.concat_gui('missing_mugshot.png'), wx.BITMAP_TYPE_ANY)
-
-        # Draw button first as first drawn stays on top
-        self.button_dwg = wx.BitmapButton(self,
-                                          bitmap=wx.Bitmap(fn_path.concat_gui('schematic.png')),
-                                          size=(MugshotPanel.btn_size,) * 2,
-                                          pos=(0, MugshotPanel.mug_size - MugshotPanel.btn_size))
-        self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
-        self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
-
-        self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, MugshotPanel.mug_size)))
-
-        self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
-        # self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
-        #self.button_dwg = wx.Button(self, size=(50, 50), pos=(50, 0))
-        #self.sizer_main.Add(self.button_dwg, flag=wx.ALL)
-        #self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
-
-        self.SetSizer(self.sizer_main)
-        self.Layout()
-
-    def refresh(self, new_image=None):
-        if new_image:
-            temp = fn_path.concat_img(self.parent.part_num, new_image)
-        else:
-            temp = fn_path.concat_gui('missing_mugshot.png')
-        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), MugshotPanel.mug_size)))
-
-    def event_drawing(self, event):
-        """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
-
-        _dlg = wx.RichMessageDialog(self,
-                                   caption="This feature is not yet implemented",
-                                   message="This feature will load a production drawing of the current part",
-                                   style=wx.OK | wx.ICON_INFORMATION)
-        _dlg.ShowModal()
-        _dlg.Destroy()
-
-    def event_button_no_focus(self, event):
-        """Prevents focus from being called on the buttons"""
-        pass
-
-
 class InterfaceTabs(wx.Notebook):
     def __init__(self, *args, **kwargs):
         wx.Notebook.__init__(self, *args, **kwargs)
         self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
+
+        self.user = "DEMO"
 
         self.panels = []
         for part_num in PANELS:
