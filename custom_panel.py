@@ -218,7 +218,7 @@ class PartsTabPanel(wx.Panel):
         target.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.revision_dialogue(event, pn, field))
 
     def revision_dialogue(self, event, pn, field):
-        dialog = ModifyPartsFieldDialog(self, event.GetEventObject(), self.part_num, self.part_rev, "name", "Editing {0} of part {1}".format(field, pn))
+        dialog = ModifyField(self, self, event.GetEventObject(), "name", "Editing {0} of part {1}".format(field, pn))
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -457,7 +457,7 @@ class InterfaceTabs(wx.Notebook):
                 crsr.close()
                 conn.commit()
 
-                panel = PartsTabPanel(part_num, self)
+                panel = PartsTabPanel(self, part_num, part_rev)
                 if part_num not in [pnl.part_num for pnl in self.panels]:
                     self.panels.append(panel)
                     self.AddPage(panel, part_num)

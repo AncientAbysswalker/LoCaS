@@ -15,10 +15,6 @@ import config
 import fn_path
 
 
-DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
-UNSELECTEDGRAY = (148, 148, 148)
-
-
 def crop_square(image, rescale=None):
     """Crop an image to a square and resize if desired
 
@@ -44,8 +40,6 @@ def crop_square(image, rescale=None):
         return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
 
 
-
-
 def part_to_dir(pn):
     dir1, temp = pn.split('-')
     dir2 = temp[:2]
@@ -53,96 +47,95 @@ def part_to_dir(pn):
     return [dir1, dir2, dir3]
 
 
-class ModifyFieldDialogBase(wx.Dialog):
-    """Opens a dialog to modify an image comment.
+class BaseModifyField(wx.Dialog):
+    """Base class for dialogs to edit a text field in the application."""
 
-        Args:
-            header_text (str): String to display in the dialog header
-            edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
-
-        Attributes:
-            header_text (str): String to display in the dialog header
-            edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
-            orig_field_text (str): Original text to display when editing
-    """
-
-    def __init__(self, *args, **kw):
+    def __init__(self, parent):
         """Constructor"""
-        super().__init__(*args, **kw)
+        super().__init__(parent)
 
-    def init_dialog(self):
+    def draw_layout(self):
         """Draw the dialog box details - common between subclasses"""
 
         # Editable box and outline box
-        self.editbox = wx.TextCtrl(self, value=self.orig_field_text, style=wx.TE_MULTILINE)
-        sizer_editbox = wx.StaticBoxSizer(wx.StaticBox(self, label=self.header_text), orient=wx.VERTICAL)
-        sizer_editbox.Add(self.editbox, flag=wx.ALL | wx.EXPAND, border=5)
+        self.wgt_editbox = wx.TextCtrl(self, value=self.orig_field_text, style=wx.TE_MULTILINE)
+        szr_editbox = wx.StaticBoxSizer(wx.StaticBox(self, label=self.header_text), orient=wx.VERTICAL)
+        szr_editbox.Add(self.wgt_editbox, flag=wx.ALL | wx.EXPAND, border=5)
 
         # Dialog buttons with binds
-        button_commit = wx.Button(self, label='Commit')
-        button_commit.Bind(wx.EVT_BUTTON, self.event_commit)
-        button_cancel = wx.Button(self, label='Cancel')
-        button_cancel.Bind(wx.EVT_BUTTON, self.event_cancel)
+        btn_commit = wx.Button(self, label='Commit')
+        btn_commit.Bind(wx.EVT_BUTTON, self.evt_commit)
+        bton_cancel = wx.Button(self, label='Cancel')
+        bton_cancel.Bind(wx.EVT_BUTTON, self.evt_cancel)
 
         # Dialog button sizer
-        sizer_buttons = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_buttons.Add(button_commit)
-        sizer_buttons.Add(button_cancel, flag=wx.LEFT, border=5)
+        szr_buttons = wx.BoxSizer(wx.HORIZONTAL)
+        szr_buttons.Add(btn_commit)
+        szr_buttons.Add(bton_cancel, flag=wx.LEFT, border=5)
 
         # Add everything to master sizer and set sizer for pane
-        sizer_master = wx.BoxSizer(wx.VERTICAL)
-        sizer_master.Add(sizer_editbox, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
-        sizer_master.Add(sizer_buttons, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
-        self.SetSizer(sizer_master)
+        szr_master = wx.BoxSizer(wx.VERTICAL)
+        szr_master.Add(szr_editbox, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
+        szr_master.Add(szr_buttons, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
+        self.SetSizer(szr_master)
 
-        self.Bind(wx.EVT_CLOSE, self.event_close)
+        self.Bind(wx.EVT_CLOSE, self.evt_close)
 
-    def event_commit(self, event):
-        """Execute when committing a change - move change to SQL"""
+    def evt_commit(self, event):
+        """Execute when committing a change - move change to SQL
+
+            Args:
+                event: Click event object
+        """
         pass
 
-    def event_cancel(self, event):
-        """Execute when cancelling a change"""
-        self.event_close()
+    def evt_cancel(self, event):
+        """Execute when cancelling a change
 
-    def event_close(self, *args):
-        """Execute when closing the dialog"""
+            Args:
+                event: Click event object
+        """
+        self.evt_close()
+
+    def evt_close(self, *args):
+        """Execute when closing the dialog
+
+            Args:
+                args[0]: Click event object
+        """
         self.Destroy()
 
 
-class ModifyPartsFieldDialog(ModifyFieldDialogBase):
+class ModifyField(BaseModifyField):
     """Opens a dialog to modify an image comment.
 
         Args:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
             header_text (str): String to display in the dialog header
             edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
+            sql_field (str): String name of the field in the SQL database to update
 
         Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
             header_text (str): String to display in the dialog header
             edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
-            orig_field_text (str): Original text to display when editing
+            sql_field (str): String name of the field in the SQL database to update
     """
 
-    def __init__(self, parent, edit_field, part_num, part_rev, sql_field, header_text="", *args, **kw):
+    def __init__(self, parent, root, edit_field, sql_field, header_text=""):
         """Constructor"""
-        super().__init__(None, *args, **kw)
+        super().__init__(parent)
 
+        # Define Attributes
         self.parent = parent
-
+        self.root = root
         self.header_text = header_text
         self.edit_field = edit_field
-        self.part_num = part_num
-        self.part_rev = part_rev
         self.sql_field = sql_field
 
+        # Ensuring that the proper method is called to get the initial value from the root
         try:
             self.orig_field_text = self.edit_field.GetLabel()
             self.rewrite_edit_field = self.edit_field.SetLabel
@@ -150,77 +143,96 @@ class ModifyPartsFieldDialog(ModifyFieldDialogBase):
             self.orig_field_text = self.edit_field.GetValue()
             self.rewrite_edit_field = self.edit_field.SetValue
 
-        if self.orig_field_text == "There is no comment recorded":
+        # If there is no entry, then keep the text field of the dialog empty
+        if self.orig_field_text == "No Entry":
             self.orig_field_text = ""
 
-        self.init_dialog()
-        self.SetSize((500, 160))
+        # Fill out the dialog layout and set the size and title
+        self.draw_layout()
+        self.SetSize((500, 200))
         self.SetTitle(self.header_text)
 
-    def event_commit(self, event):
-        """Execute when committing a change - move change to SQL"""
+    def evt_commit(self, event):
+        """Execute when committing a change - move change to SQL
+
+            Args:
+                event: Click event object
+        """
 
         # Read new value and rewrite original field in UI
-        _rewrite_value = self.editbox.GetValue()
-        self.rewrite_edit_field(_rewrite_value)
+        _rewrite_value = self.wgt_editbox.GetValue().strip()
+        if _rewrite_value:
+            self.rewrite_edit_field(_rewrite_value)
+            self.edit_field.SetForegroundColour(global_colors.black)
+        else:
+            self.rewrite_edit_field("No Entry")
+            self.edit_field.SetForegroundColour(global_colors.no_entry)
 
         # Connect to the database
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
 
         # Modify the existing cell in the database for existing part number and desired column
-        crsr.execute("UPDATE Parts SET (%s)=(?) WHERE part_num=(?) AND part_rev=(?);" % self.sql_field,
-                     (_rewrite_value, self.part_num, self.part_rev))
+        if _rewrite_value:
+            crsr.execute("UPDATE Parts SET (%s)=(?) WHERE part_num=(?) AND part_rev=(?);" % self.sql_field,
+                         (_rewrite_value, self.root.part_num, self.root.part_rev))
+        else:
+            crsr.execute("UPDATE Parts SET (%s)=NULL WHERE part_num=(?) AND part_rev=(?);" % self.sql_field,
+                         (self.root.part_num, self.root.part_rev))
 
         conn.commit()
         crsr.close()
         conn.close()
 
-        self.event_close()
+        self.evt_close()
 
 
-class ModifyImageCommentDialog(ModifyFieldDialogBase):
+class ModifyComment(BaseModifyField):
     """Opens a dialog to modify an image comment.
 
         Args:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
             header_text (str): String to display in the dialog header
             edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
+            image (str): String name of image including file extension
 
         Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
             header_text (str): String to display in the dialog header
             edit_field (wx.obj): Reference to the wx.object we are editing
-            comment_key (str): Key in the image:comment dict
-            comment_path (str): Path of the image:comment dict file
-            orig_field_text (str): Original text to display when editing
+            image (str): String name of image including file extension
     """
 
-    def __init__(self, parent, edit_field, part_num, part_rev, image, header_text="", *args, **kw):
+    def __init__(self, parent, root, edit_field, image, header_text=""):
         """Constructor"""
-        super().__init__(None, *args, **kw)
+        super().__init__(parent)
 
+        # Define Attributes
         self.parent = parent
-
+        self.root = root
         self.header_text = header_text
         self.edit_field = edit_field
-        self.part_num = part_num
-        self.part_rev = part_rev
         self.image = image
 
+        # Get the initial value from the root
         self.orig_field_text = self.edit_field.GetValue()
 
+        # If there is no entry, then keep the text field of the dialog empty
         if self.orig_field_text == "There is no comment recorded":
             self.orig_field_text = ""
 
-        self.init_dialog()
-        self.SetSize((500, 160))
+        # Fill out the dialog layout and set the size and title
+        self.draw_layout()
+        self.SetSize((500, 200))
         self.SetTitle(self.header_text)
 
-    def event_commit(self, event):
+    def evt_commit(self, event):
         """Execute when committing a change - move change to SQL"""
 
-        _rewrite_value = self.editbox.GetValue()
+        # Read new value so we can rewrite the original field
+        _rewrite_value = self.wgt_editbox.GetValue()
 
         # Connect to the database
         conn = config.sql_db.connect(config.cfg["db_location"])
@@ -231,22 +243,18 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
             self.parent.comments[self.image] = _rewrite_value
             self.parent.comment_set_and_style()
             crsr.execute("UPDATE Images SET description=(?) WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
-                         (_rewrite_value, self.part_num, self.part_rev, self.image))
+                         (_rewrite_value, self.root.part_num, self.root.part_rev, self.image))
         else:
             self.parent.comments[self.image] = ""
             self.parent.comment_set_and_style()
             crsr.execute("UPDATE Images SET description=NULL WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
-                         (self.part_num, self.part_rev, self.image))
+                         (self.root.part_num, self.root.part_rev, self.image))
 
         conn.commit()
         crsr.close()
         conn.close()
 
-        # _rewrite_value = self.editbox.GetValue()
-        # _original_value = self.edit_field.GetLabel()
-        # self.edit_field.SetLabel(_rewrite_value)
-
-        self.event_close()
+        self.evt_close()
 
 
 class BaseImage(wx.Dialog):
@@ -446,8 +454,8 @@ class EditImage(BaseImage):
                 event: A click event object
         """
 
-        dialog = ModifyImageCommentDialog(self, event.GetEventObject(), self.root.part_num, self.root.part_rev,
-                                          self.image_list[self.image_index], "Editing image comment")
+        dialog = ModifyComment(self, event.GetEventObject(), self.root.part_num, self.root.part_rev,
+                               self.image_list[self.image_index], "Editing image comment")
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -634,17 +642,17 @@ class AddImage(BaseImage):
         """Define what control buttons are available and their bindings"""
 
         # Submit Image Button
-        self.button_next = wx.Button(self, label='Submit Image')
-        self.button_next.Bind(wx.EVT_BUTTON, self.evt_next_image)
+        self.btn_next = wx.Button(self, label='Submit Image')
+        self.btn_next.Bind(wx.EVT_BUTTON, self.evt_next_image)
 
         # Control button sizer
-        sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_controls.AddStretchSpacer(1)
-        sizer_controls.Add(self.button_next, border=5, flag=wx.ALL | wx.ALIGN_CENTER)
-        sizer_controls.AddStretchSpacer(1)
+        szr_controls = wx.BoxSizer(wx.HORIZONTAL)
+        szr_controls.AddStretchSpacer(1)
+        szr_controls.Add(self.btn_next, border=5, flag=wx.ALL | wx.ALIGN_CENTER)
+        szr_controls.AddStretchSpacer(1)
 
         # Return the collection of buttons
-        return sizer_controls
+        return szr_controls
 
     def draw_field(self):
         """Define the editable field"""
