@@ -4,12 +4,11 @@
 import wx
 # import wx.richtext as wxr
 import os
-import sqlite3
 import hashlib
 import shutil
 import datetime
-import widget
 
+import widget
 import global_colors
 import config
 import fn_path
