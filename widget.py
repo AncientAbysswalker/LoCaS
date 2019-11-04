@@ -149,7 +149,7 @@ class WidgetGallery(scrolled.ScrolledPanel):
 
         # Create a grid sizer to contain image icons
         self.nrows, self.ncols = 1, len(self.images)
-        self.purgelist = []
+        self.img_object_list = []
         self.sizer_grid = wx.GridSizer(rows=self.nrows + 1,
                                        cols=self.ncols,
                                        hgap=WidgetGallery.icon_gap,
@@ -160,9 +160,9 @@ class WidgetGallery(scrolled.ScrolledPanel):
             for c in range(self.ncols):
                 _n = self.ncols * r + c
                 _tmp = crop_square(wx.Image(self.images[_n], wx.BITMAP_TYPE_ANY), WidgetGallery.icon_size)
-                _temp = wx.StaticBitmap(self, id=_n, bitmap=wx.Bitmap(_tmp))
+                _temp = wx.StaticBitmap(self, bitmap=wx.Bitmap(_tmp))
                 _temp.Bind(wx.EVT_LEFT_UP, self.evt_image_click)
-                self.purgelist.append(_temp)
+                self.img_object_list.append(_temp)
                 self.sizer_grid.Add(_temp, wx.EXPAND)
 
         # Main sizer
@@ -191,9 +191,9 @@ class WidgetGallery(scrolled.ScrolledPanel):
         """
 
         # Load the "image clicked" dialog
-        _dlg = dialog.EditImage(self, self.root.mugshot, self.root.pnl_mugshot, self.image_list, self.purgelist.index(event.GetEventObject()), self.root.part_num, self.root.part_rev)
+        _dlg = dialog.EditImage(self, self.root, self.img_object_list.index(event.GetEventObject()))
         _dlg.ShowModal()
-        _dlg.Destroy()
+        if _dlg: _dlg.Destroy()
 
     def evt_add_image(self, event):
         """Call up dialogs to add an image to the database
@@ -220,9 +220,9 @@ class WidgetGallery(scrolled.ScrolledPanel):
             selected_files = file_dialog.GetPaths()
 
         # Proceed loading the file(s) chosen by the user to the "add image" dialog
-        _dlg = dialog.AddImage(self, selected_files, self.root.part_num, self.root.part_rev)
+        _dlg = dialog.AddImage(self, self.root, selected_files)
         _dlg.ShowModal()
-        _dlg.Destroy()
+        if _dlg: _dlg.Destroy()
 
     def evt_resize(self, event):
         """Resize the image grid

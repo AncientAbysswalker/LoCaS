@@ -8,6 +8,7 @@ import sqlite3
 import hashlib
 import shutil
 import datetime
+import widget
 
 import global_colors
 import config
@@ -249,48 +250,51 @@ class ModifyImageCommentDialog(ModifyFieldDialogBase):
 
 
 class BaseImage(wx.Dialog):
-    """Base class for dialogs to display images relating to part. This class should not be called externally."""
+    """Base class for dialogs to edit the assemblies data for this part"""
 
-    def __init__(self, *args, **kw):
+    def __init__(self, parent):
         """Constructor"""
-        super().__init__(*args, **kw)
+        super().__init__(parent)
 
-        self.SetSize((800, 800))
+        # Set the width for the dialog and it's children
+        self.SetMinSize((800, -1))
 
-    def init_dialog(self):
+    def draw_layout(self):
         """Draw the UI for the image dialog"""
 
-        # Set up comment text
-        self.init_field()
+        # Set up the editable field
+        self.draw_field()
 
-        # Create and scale image
+        # Create image and get original size
         tmp_img = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
         (width_orig, height_orig) = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY).GetSize()
 
+        # Calculate expected dimensions
         height_new = min(height_orig, 250)
         width_new = (height_new / height_orig) * width_orig
-        print(height_new, width_new)
+
+        # Store a reference to the wx.obj that can be destroyed later
         self.pnl_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(tmp_img.Scale(width_new, height_new)))
 
         # Add everything to master sizer and set sizer for pane
-        self.sizer_master = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_master.Add(self.pnl_image, border=5, flag=wx.CENTER)
-        self.sizer_master.Add(self.pnl_comment, border=5, flag=wx.ALL | wx.EXPAND)
-        self.sizer_master.Add(self.init_buttons(), border=5, flag=wx.ALL | wx.EXPAND)
-        self.SetSizer(self.sizer_master)
+        self.szr_master = wx.BoxSizer(wx.VERTICAL)
+        self.szr_master.Add(self.pnl_image, border=5, flag=wx.CENTER)
+        self.szr_master.Add(self.pnl_comment, border=5, flag=wx.ALL | wx.EXPAND)
+        self.szr_master.Add(self.draw_buttons(), border=5, flag=wx.ALL | wx.EXPAND)
+        self.SetSizer(self.szr_master)
 
-    def init_buttons(self):
+    def draw_buttons(self):
         """Define what control buttons are available and their bindings"""
         pass
 
-    def init_field(self):
+    def draw_field(self):
         """Define the editable field"""
         pass
 
     def image_refresh(self):
         """Refresh the image panel and ensure correct sizing of panel"""
 
-        # Get original size
+        # Create image and get original size
         tmp_img = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY)
         (width_orig, height_orig) = tmp_img.GetSize()
 
@@ -298,22 +302,23 @@ class BaseImage(wx.Dialog):
         height_new = min(height_orig, 250)
         width_new = (height_new / height_orig) * width_orig
 
-        # Set new image and scale to above calculation
+        # Create new image and scale to above calculation
         tmp_bitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(tmp_img.Scale(width_new, height_new)))
 
         # Replace image in sizer, destroy old image, then change reference to point at new image
-        self.sizer_master.Replace(self.pnl_image, tmp_bitmap, False)
+        self.szr_master.Replace(self.pnl_image, tmp_bitmap, False)
         self.pnl_image.Destroy()
         self.pnl_image = tmp_bitmap
 
     def image_path(self):
-        return fn_path.concat_img(self.part_num, self.image_list[self.image_index])  #os.path.join(DATADIR, 'img', *part_to_dir(self.part_num), self.image_list[self.image_index])
+        """Return the path of the current image"""
+        return fn_path.concat_img(self.root.part_num, self.image_list[self.image_index])
 
-    def event_next_image(self, evt):
+    def evt_next_image(self, evt):
         """If image is not last image, switch to next image"""
         pass
 
-    def event_prev_image(self, evt):
+    def evt_prev_image(self, evt):
         """If image is not first image, switch to previous image"""
         pass
 
@@ -322,181 +327,182 @@ class EditImage(BaseImage):
     """Opens a dialog to display images relating to part
 
         Args:
-            image_list (list of str): List of images file names including file extensions
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
             image_index (int): Index of current image in image_list
-            part_num (str): String representation of part number
-            part_rev (str): String representation of part revision
 
         Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
             image_list (list of str): List of string names of images including file extension
             image_index (int): Index of current image in image_list
-            part_num (str): String representation of part number
-            part_rev (str): String representation of part revision
-            comments (dict of str: str): Dictionary mapping image file names into comments
+            comments (dict): Dictionary mapping of image file names into comments
     """
 
-    def __init__(self, parent, mugshot_file, mugshot_panel, image_list, image_index, part_num, part_rev, *args, **kw):
+    def __init__(self, parent, root, image_index):
         """Constructor"""
-        super().__init__(None, *args, **kw)
+        super().__init__(parent)
 
         # Define Attributes
         self.parent = parent
-        self.mugshot_file = mugshot_file
-        self.mugshot_panel = mugshot_panel
-        self.image_list = image_list
+        self.root = root
+        self.image_list = parent.image_list
         self.image_index = image_index
-        self.part_num = part_num
-        self.part_rev = part_rev
 
         # Load comments for images from database
-        self.comments = {}
-        self.load_data()
-
-        # Draw the UI for the image dialog
-        self.init_dialog()
-
-        self.Show()
-
-    def load_data(self):
-        """Load data from the SQL database"""
-
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
         crsr.execute("SELECT image, description FROM Images WHERE part_num=(?) AND part_rev=(?);",
-                     (self.part_num, self.part_rev))
+                     (self.root.part_num, self.root.part_rev))
 
-        # Resolve data into dictionary mapping image file names into comments
+        # Resolve data into dictionary mapping image file names into comments, then close connection to DB
         self.comments = {x: y for x, y in crsr.fetchall()}
-
         crsr.close()
         conn.close()
 
-    def init_buttons(self):
+        # Draw the UI for the image dialog
+        self.draw_layout()
+
+        # Resize dialog - specifically for fitting bottom edge
+        self.Fit()
+
+    def draw_buttons(self):
         """Define what control buttons are available and their bindings"""
 
-        # Control buttons and their binds
-        button_prev = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('l_arr.png')))
-        button_prev.Bind(wx.EVT_BUTTON, self.event_prev_image)
-        button_prev.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
-        button_mugshot = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('new_mug.png')))
-        button_mugshot.Bind(wx.EVT_BUTTON, self.event_set_mugshot)
-        button_mugshot.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
-        button_remove = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('rem_img.png')))
-        button_remove.Bind(wx.EVT_BUTTON, self.event_remove_img)
-        button_remove.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
-        button_next = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('r_arr.png')))
-        button_next.Bind(wx.EVT_BUTTON, self.event_next_image)
-        button_next.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
+        # Previous Image Button
+        btn_prev = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('l_arr.png')))
+        btn_prev.Bind(wx.EVT_BUTTON, self.evt_prev_image)
+        btn_prev.Bind(wx.EVT_SET_FOCUS, self.evt_btn_no_focus)
+
+        # Use as Mugshot Button
+        btn_mugshot = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('new_mug.png')))
+        btn_mugshot.Bind(wx.EVT_BUTTON, self.evt_set_mugshot)
+        btn_mugshot.Bind(wx.EVT_SET_FOCUS, self.evt_btn_no_focus)
+
+        # Remove Image Button
+        btn_remove = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('rem_img.png')))
+        btn_remove.Bind(wx.EVT_BUTTON, self.evt_remove_img)
+        btn_remove.Bind(wx.EVT_SET_FOCUS, self.evt_btn_no_focus)
+
+        # Next Image Button
+        btn_next = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('r_arr.png')))
+        btn_next.Bind(wx.EVT_BUTTON, self.evt_next_image)
+        btn_next.Bind(wx.EVT_SET_FOCUS, self.evt_btn_no_focus)
 
         # Control button sizer
-        sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_controls.Add(button_prev, border=5, flag=wx.ALL | wx.EXPAND)
-        sizer_controls.Add(button_mugshot, border=5, flag=wx.ALL | wx.EXPAND)
-        sizer_controls.Add(button_remove, border=5, flag=wx.ALL | wx.EXPAND)
-        sizer_controls.Add(button_next, border=5, flag=wx.ALL | wx.EXPAND)
+        szr_buttons = wx.BoxSizer(wx.HORIZONTAL)
+        szr_buttons.Add(btn_prev, border=5, flag=wx.ALL | wx.EXPAND)
+        szr_buttons.Add(btn_mugshot, border=5, flag=wx.ALL | wx.EXPAND)
+        szr_buttons.Add(btn_remove, border=5, flag=wx.ALL | wx.EXPAND)
+        szr_buttons.Add(btn_next, border=5, flag=wx.ALL | wx.EXPAND)
 
-        return sizer_controls
+        # Return the collection of buttons
+        return szr_buttons
 
-    def init_field(self):
+    def draw_field(self):
         """Define the editable field"""
 
-        # Set image comment
-        self.pnl_comment = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
-                                       style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
+        # Set image comment box
+        self.pnl_comment = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 48),
+                                       style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.TE_READONLY | wx.BORDER_NONE)
 
         # If database entry is null, make text color gray. Otherwise change text. Set background color
         self.comment_set_and_style()
-        self.pnl_comment.Bind(wx.EVT_SET_FOCUS, self.event_ctrlbox_no_focus)
-        self.pnl_comment.Bind(wx.EVT_LEFT_DCLICK, self.event_comment_edit)
+        self.pnl_comment.Bind(wx.EVT_SET_FOCUS, self.evt_ctrlbox_no_focus)
+        self.pnl_comment.Bind(wx.EVT_LEFT_DCLICK, self.evt_comment_edit)
 
-    def event_ctrlbox_no_focus(self, event):
-        """Set cursor to default and pass before default on-focus method"""
+    def comment_set_and_style(self):
+        """Check if the comment is null and style accordingly if NULL"""
+        try:
+            if not self.comments[self.image_list[self.image_index]]:
+                raise TypeError
+            self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
+            self.pnl_comment.SetForegroundColour(global_colors.black)
+        except TypeError:
+            self.pnl_comment.SetValue("There is no comment recorded")
+            self.pnl_comment.SetForegroundColour(global_colors.no_entry)
+
+    def evt_ctrlbox_no_focus(self, event):
+        """Set cursor to default and pass before default on-focus method
+
+            Args:
+                event: A focus event object
+        """
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
         pass
 
-    def event_button_no_focus(self, event):
-        """Prevents focus from being called on the buttons"""
+    def evt_btn_no_focus(self, event):
+        """Prevents focus from being called on the buttons
+
+            Args:
+                event: A focus event object
+        """
         pass
 
-    def image_in_db(self):
-        """Checks if the image already exists in the database"""
+    def evt_comment_edit(self, event):
+        """Open dialog to revise image comment
 
-        # Hash current image data
-        image_hash = self.hash_image()
+            Args:
+                event: A click event object
+        """
 
-        # Connect to the database
-        conn = config.sql_db.connect(config.cfg["db_location"])
-        crsr = conn.cursor()
-
-        # Check if the current image is already hashed into the database
-        crsr.execute("SELECT EXISTS (SELECT 1 FROM Images WHERE part_num=(?) AND part_rev=(?) AND image=(?));",
-                     (self.part_num, self.part_rev, image_hash))
-        in_db = crsr.fetchone()[0]
-
-        crsr.close()
-        conn.close()
-
-        return in_db
-
-    def check_image_valid(self):
-        """Throw a warning dialog if image is already in database, and pass over current image"""
-
-        if self.image_in_db():
-            wx.MessageBox("This image is already added to this part. You may not have duplicate images.",
-                          "Image cannot be added.", wx.OK | wx.ICON_ERROR)
-            self.event_next_image()
-
-    def hash_image(self):
-        """Hash image data and digest into HEX"""
-
-        hasher = hashlib.md5()
-        with open(self.image_list[self.image_index], 'rb') as image:
-            buffer = image.read()
-            hasher.update(buffer)
-        return hasher.hexdigest() + os.path.splitext(self.image_list[self.image_index])[1]
-
-    def event_comment_edit(self, event):
-        """Open dialog to revise image comment"""
-
-        dialog = ModifyImageCommentDialog(self, event.GetEventObject(), self.part_num, self.part_rev,
+        dialog = ModifyImageCommentDialog(self, event.GetEventObject(), self.root.part_num, self.root.part_rev,
                                           self.image_list[self.image_index], "Editing image comment")
         dialog.ShowModal()
         dialog.Destroy()
-        self.sizer_master.RecalcSizes()
 
-    def event_next_image(self, *args):
-        """If image is not last image, switch to next image"""
+    def evt_next_image(self, *args):
+        """If image is not last image, switch to next image
+
+            Args:
+                args[0]: Null, or a click event object
+        """
 
         if self.image_index < len(self.image_list) - 1:
             self.image_index += 1
             self.image_refresh()
             self.comment_set_and_style()
 
-            self.sizer_master.Layout()
-            self.sizer_master.RecalcSizes()
+            # Refit dialog height and layout
+            self.Fit()
+            self.szr_master.RecalcSizes()
 
-    def event_refresh_image(self, *args):
-        """Reload this same image index"""
+    def evt_refresh_image(self, *args):
+        """Reload this same image index
+
+            Args:
+                args[0]: Null, or a click event object
+        """
 
         if len(self.image_list) != 0:
             self.image_refresh()
             self.comment_set_and_style()
 
-            self.sizer_master.Layout()
-            self.sizer_master.RecalcSizes()
+            # Refit dialog height and layout
+            self.Fit()
+            self.szr_master.RecalcSizes()
 
-    def event_prev_image(self, *args):
-        """If image is not first image, switch to previous image"""
+    def evt_prev_image(self, *args):
+        """If image is not first image, switch to previous image
+
+            Args:
+                args[0]: Null, or a click event object
+        """
         if self.image_index > 0:
             self.image_index -= 1
             self.image_refresh()
             self.comment_set_and_style()
 
-            self.sizer_master.Layout()
-            self.sizer_master.RecalcSizes()
+            # Refit dialog height and layout
+            self.Fit()
+            self.szr_master.RecalcSizes()
 
-    def event_set_mugshot(self, *args):
-        """Allows the user to change the mugshot for the part"""
+    def evt_set_mugshot(self, *args):
+        """Allows the user to change the mugshot for the part
+
+            Args:
+                args[0]: Null, or a click event object
+        """
 
         # Show confirmation dialog if not hidden in config
         if not config.cfg["dlg_hide_change_mugshot"]:
@@ -515,22 +521,26 @@ class EditImage(BaseImage):
                 return
 
         # Refresh Mugshot
-        self.mugshot_panel.refresh(self.image_list[self.image_index])
+        self.root.pnl_mugshot.refresh(self.image_list[self.image_index])
 
         # Connect to the database
         conn = config.sql_db.connect(config.cfg["db_location"])
         crsr = conn.cursor()
 
-        # Modify the existing cell in the database for existing part number and desired column
+        # Modify the existing mugshot in the database for existing part number
         crsr.execute("UPDATE Parts SET mugshot=(?) WHERE part_num=(?) AND part_rev=(?);",
-                     (self.image_list[self.image_index], self.part_num, self.part_rev))
+                     (self.image_list[self.image_index], self.root.part_num, self.root.part_rev))
 
         conn.commit()
         crsr.close()
         conn.close()
 
-    def event_remove_img(self, *args):
-        """Removes an image from the image grid and """
+    def evt_remove_img(self, *args):
+        """Removes an image from the image grid and potentially the mugshot
+
+            Args:
+                args[0]: Null, or a click event object
+        """
 
         # Show confirmation dialog if not hidden in config
         if not config.cfg["dlg_hide_remove_image"]:
@@ -553,32 +563,32 @@ class EditImage(BaseImage):
         crsr = conn.cursor()
 
         # Refresh Mugshot if needed and update SQL
-        if self.image_list[self.image_index] == self.mugshot_file:
-            self.mugshot_panel.refresh()
+        if self.image_list[self.image_index] == self.root.mugshot:
+            self.root.pnl_mugshot.refresh()
 
             crsr.execute("UPDATE Parts SET mugshot=NULL WHERE part_num=(?) AND part_rev=(?);",
-                         (self.part_num, self.part_rev))
+                         (self.root.part_num, self.root.part_rev))
 
         # Remove image from database
         crsr.execute("DELETE FROM Images WHERE part_num=(?) AND part_rev=(?) AND image=(?);",
-                     (self.part_num, self.part_rev, self.image_list[self.image_index],))
+                     (self.root.part_num, self.root.part_rev, self.image_list[self.image_index],))
 
         # Remove image physically from defined storage area
-        os.remove(fn_path.concat_img(self.part_num, self.image_list[self.image_index]))
+        os.remove(fn_path.concat_img(self.root.part_num, self.image_list[self.image_index]))
 
         # Update image grid to remove destroyed image from grid
         _r, _c = self.parent.sizer_grid.GetRows(), self.parent.sizer_grid.GetCols()
-        self.parent.purgelist[self.image_index].Destroy()
-        self.parent.purgelist.pop(self.image_index)
-        self.parent.image_list.pop(self.image_index)
+        self.parent.img_object_list[self.image_index].Destroy()
+        self.parent.img_object_list.pop(self.image_index)
+        self.image_list.pop(self.image_index)
 
-        # Kick back one image in this dialog since this one is no longer present
+        # Kick back one image in this dialog since this one is no longer present. If this is the last image, close me
         if self.image_index != 0:
-            self.event_prev_image()
+            self.evt_prev_image()
         elif len(self.image_list) == 0:
             self.Destroy()
         else:
-            self.event_refresh_image()
+            self.evt_refresh_image()
 
         # Update image grid layout
         self.parent.sizer_grid.Layout()
@@ -587,56 +597,45 @@ class EditImage(BaseImage):
         crsr.close()
         conn.close()
 
-    def comment_set_and_style(self):
-        """Check if the comment is null and style accordingly if NULL"""
-        try:
-            if not self.comments[self.image_list[self.image_index]]:
-                raise TypeError
-            self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
-            self.pnl_comment.SetForegroundColour(global_colors.black)
-        except TypeError:
-            self.pnl_comment.SetValue("There is no comment recorded")
-            self.pnl_comment.SetForegroundColour(global_colors.no_entry)
-
 
 class AddImage(BaseImage):
     """Opens a dialog to display images to be added to the database
 
         Args:
-            image_list (list of str): List of images file names including file extensions
-            part_num (str): String representation of part number
-            part_rev (str): String representation of part revision
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
+            image_list (list of str): List of string names of images including file extension
+            image_index (int): Index of current image in image_list
 
         Attributes:
+            parent (ref): Reference to the parent wx.object
+            root (ref): Reference to the root parts tab
             image_list (list of str): List of string names of images including file extension
-            image_index (int): Index of current image in image_list, starting 0 and counting up
-            part_num (str): String representation of part number
-            part_rev (str): String representation of part revision
-            comments (dict of str: str): Dictionary mapping image file names into comments
+            image_index (int): Index of current image in image_list
     """
 
-    def __init__(self, parent, image_list, part_num, part_rev, *args, **kw):
+    def __init__(self, parent, root, image_list):
         """Constructor"""
-        super().__init__(parent, *args, **kw)
+        super().__init__(parent)
 
         self.parent = parent
+        self.root = root
         self.image_list = image_list
         self.image_index = 0
-        self.part_num = part_num
-        self.part_rev = part_rev
 
-        self.init_dialog()
+        self.draw_layout()
 
         self.Show()
 
+        self.Fit()
         self.check_image_valid()
 
-    def init_buttons(self):
+    def draw_buttons(self):
         """Define what control buttons are available and their bindings"""
 
         # Submit Image Button
         self.button_next = wx.Button(self, label='Submit Image')
-        self.button_next.Bind(wx.EVT_BUTTON, self.event_next_image)
+        self.button_next.Bind(wx.EVT_BUTTON, self.evt_next_image)
 
         # Control button sizer
         sizer_controls = wx.BoxSizer(wx.HORIZONTAL)
@@ -644,38 +643,41 @@ class AddImage(BaseImage):
         sizer_controls.Add(self.button_next, border=5, flag=wx.ALL | wx.ALIGN_CENTER)
         sizer_controls.AddStretchSpacer(1)
 
+        # Return the collection of buttons
         return sizer_controls
 
-    def init_field(self):
+    def draw_field(self):
         """Define the editable field"""
-        # TODO: Generalize with function
-        # Set image comment
-        self.pnl_comment = wx.TextCtrl(self, value="There is no comment recorded", size=(-1, 35),
-                                       style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.BORDER_NONE | wx.TE_NO_VSCROLL)
 
-        self.pnl_comment.SetBackgroundColour(global_colors.edit_field)  # set text back color
+        # Define editable field and initial text
+        self.pnl_comment = wx.TextCtrl(self, value="", size=(-1, 48),
+                                       style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.BORDER_NONE)
 
-    def event_next_image(self, *args):
-        """If image is not last image, switch to next image"""
+        # Set text background color
+        self.pnl_comment.SetBackgroundColour(global_colors.edit_field)
+
+    def evt_next_image(self, *args):
+        """If image is not last image, switch to next image
+
+            Args:
+                args[0]: Null, or a click event object
+        """
 
         if not self.image_in_db():
             # Hash current image data and commit to
             image_hash = self.hash_image()
 
             # Make directory if needed
-            _path = fn_path.concat_img(self.part_num, image_hash)
+            _path = fn_path.concat_img(self.root.part_num, image_hash)
             if not os.path.exists(os.path.dirname(_path)):
                 os.makedirs(os.path.dirname(_path))
 
             # Copy file
             shutil.copy2(self.image_list[self.image_index],
-                         fn_path.concat_img(self.part_num, image_hash))
+                         fn_path.concat_img(self.root.part_num, image_hash))
 
-            # Sterilize input to ensure blank input instead of 'no comment' text
-            if self.pnl_comment.GetValue() == "There is no comment recorded":
-                _commit_text = ""
-            else:
-                _commit_text = self.pnl_comment.GetValue()
+            # Get text to add to database
+            _commit_text = self.pnl_comment.GetValue()
 
             # Connect to the database
             conn = config.sql_db.connect(config.cfg["db_location"])
@@ -684,38 +686,41 @@ class AddImage(BaseImage):
             # Check if the image comment should be considered void, and commit the change
             if _commit_text.strip():
                 crsr.execute("INSERT INTO Images (part_num, part_rev, image, description) VALUES ((?), (?), (?), (?));",
-                            (self.part_num, self.part_rev, image_hash, _commit_text))
+                             (self.root.part_num, self.root.part_rev, image_hash, _commit_text))
             else:
                 crsr.execute("INSERT INTO Images (part_num, part_rev, image, description) VALUES ((?), (?), (?), NULL);",
-                             (self.part_num, self.part_rev, image_hash))
+                             (self.root.part_num, self.root.part_rev, image_hash))
             crsr.close()
             conn.commit()
 
-            # TODO: Fix row/col is smaller array than width
+            # Add image object to image grid, adding the bind
             _n = len(self.parent.images)
-            _tmp = crop_square(wx.Image(fn_path.concat_img(self.part_num, image_hash), wx.BITMAP_TYPE_ANY), 120)  # TODO: ImgGridPanel.icon_size)
-            _temp = wx.StaticBitmap(self.parent, id=_n, bitmap=wx.Bitmap(_tmp))
+            _tmp = crop_square(wx.Image(fn_path.concat_img(self.root.part_num, image_hash)), widget.WidgetGallery.icon_size)
+            _temp = wx.StaticBitmap(self.parent, bitmap=wx.Bitmap(_tmp))
             _temp.Bind(wx.EVT_LEFT_UP, self.parent.evt_image_click)
             self.parent.sizer_grid.Add(_temp, wx.EXPAND)
-            self.parent.image_list.append(image_hash)
+            self.image_list.append(image_hash)
 
             # Add image hash to list of images in sizer
-            self.parent.purgelist.append(_temp)
+            self.parent.img_object_list.append(_temp)
 
-            # Needed to actually update grid
+            # Need to actually update grid
             self.parent.Layout()
 
+        # Load next image and reset comment to empty, or close the dialog if the image-to-add list is over
         if self.image_index < len(self.image_list) - 1:
             self.image_index += 1
             self.image_refresh()
-            self.pnl_comment.SetValue("There is no comment recorded")
+            self.pnl_comment.SetValue("")
 
-            self.sizer_master.Layout()
-            self.sizer_master.RecalcSizes()
+            self.szr_master.Layout()
+            self.szr_master.RecalcSizes()
         else:
             self.Destroy()
             return
 
+        # Check if the next entry is valid or not (and fit the dialog of course)
+        self.Fit()
         self.check_image_valid()
 
     def image_in_db(self):
@@ -730,21 +735,22 @@ class AddImage(BaseImage):
 
         # Check if the current image is already hashed into the database
         crsr.execute("SELECT EXISTS (SELECT 1 FROM Images WHERE part_num=(?) AND part_rev=(?) AND image=(?));",
-                     (self.part_num, self.part_rev, image_hash))
+                     (self.root.part_num, self.root.part_rev, image_hash))
 
         in_db = crsr.fetchone()[0]
         crsr.close()
         conn.close()
 
+        # Return boolean for if the image already exists in the database
         return in_db
 
     def check_image_valid(self):
-        """Throw dialog if image is already in database, and pass over it"""
+        """Throw error dialog if image is already in database, and pass over adding it"""
 
         if self.image_in_db():
             wx.MessageBox("This image is already added to this part. You may not have duplicate images.",
                           "Image cannot be added", wx.OK | wx.ICON_ERROR)
-            self.event_next_image()
+            self.evt_next_image()
 
     def hash_image(self):
         """Hash image data and digest into HEX"""
@@ -830,9 +836,8 @@ class BaseEditAssemblies(wx.Dialog):
     def evt_add(self, event):
         """Add a part to the assembly list - overload method in derived classes
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         pass
@@ -840,9 +845,8 @@ class BaseEditAssemblies(wx.Dialog):
     def evt_remove(self, event):
         """Remove a part from the assembly list - overload method in derived classes
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         pass
@@ -850,9 +854,8 @@ class BaseEditAssemblies(wx.Dialog):
     def evt_done(self, event):
         """Close the dialog because we are done
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         self.Destroy()
@@ -882,9 +885,8 @@ class EditSubAssemblies(BaseEditAssemblies):
     def evt_add(self, event):
         """Add a part to the sub-assembly list
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         # Get part number and rev to remove
@@ -943,9 +945,8 @@ class EditSubAssemblies(BaseEditAssemblies):
     def evt_remove(self, event):
         """Remove a part from the sub-assembly list
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         # Get index of the selected part
@@ -1003,9 +1004,8 @@ class EditSuperAssemblies(BaseEditAssemblies):
     def evt_add(self, event):
         """Add a part to the super-assembly list
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         # Get part number and rev to remove
@@ -1064,9 +1064,8 @@ class EditSuperAssemblies(BaseEditAssemblies):
     def evt_remove(self, event):
         """Remove a part from the super-assembly list
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         # Get index of the selected part
@@ -1159,9 +1158,8 @@ class EditComponentType(wx.Dialog):
     def evt_commit(self, event):
         """Execute when committing a change to the part type
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         # Only carry out the event if any item in the dropdown is selected
@@ -1191,9 +1189,8 @@ class EditComponentType(wx.Dialog):
     def evt_cancel(self, event):
         """Cancel the change and close the dialog
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         self.evt_close()
@@ -1201,9 +1198,8 @@ class EditComponentType(wx.Dialog):
     def evt_close(self, *args):
         """Close the dialog
 
-        Args:
-            self: A reference to the parent wx.object instance
-            args[0]: Null, or an event object passed from the calling event
+            Args:
+                args[0]: Null, or an event object passed from the calling event
         """
 
         self.Destroy()
@@ -1259,9 +1255,8 @@ class AddNote(wx.Dialog):
     def evt_commit(self, event):
         """Execute when committing a new note to the part
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         # Only carry out the event if the textbox contains text
@@ -1292,9 +1287,8 @@ class AddNote(wx.Dialog):
     def evt_cancel(self, event):
         """Cancel the change and close the dialog
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         self.evt_close()
@@ -1302,9 +1296,8 @@ class AddNote(wx.Dialog):
     def evt_close(self, *args):
         """Close the dialog
 
-        Args:
-            self: A reference to the parent wx.object instance
-            args[0]: Null, or an event object passed from the calling event
+          Args:
+              args[0]: Null, or an event object passed from the calling event
         """
 
         self.Destroy()
