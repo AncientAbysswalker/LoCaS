@@ -36,13 +36,6 @@ def crop_square(image, rescale=None):
         return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
 
 
-def part_to_dir(pn):
-    dir1, temp = pn.split('-')
-    dir2 = temp[:2]
-    dir3 = temp[2:]
-    return [dir1, dir2, dir3]
-
-
 class CompositeGallery(wx.Panel):
     """Custom widget that overlays an "add image" button on top of the WidgetGallery custom widget
 
@@ -636,16 +629,13 @@ class CompositeAssemblies(wx.Panel):
         self.btn_super_help = wx.StaticBitmap(self, bitmap=wx.Bitmap(fn_path.concat_gui('help.png')))
         self.btn_super_help.Bind(wx.EVT_LEFT_UP, self.evt_super_help)
 
-        print("rrr", self.root.helper_wgt_sub)
-        print("rtr", self.root.helper_wgt_super)
-
         # Lists containing sub and super assembly info
         self.wgt_sub_assm = wx.ListBox(self,
                                        choices=[i[0] + " r" + i[1] for i in self.root.helper_wgt_sub],
-                                       size=(CompositeMugshot.mug_size//2, -1))# , size=(-1, 200), style=wx.LB_SINGLE)
+                                       size=(CompositeMugshot.mug_size//2, -1), style=wx.LB_SINGLE | wx.LB_ALWAYS_SB)
         self.wgt_super_assm = wx.ListBox(self,
                                          choices=[i[0] + " r" + i[1] for i in self.root.helper_wgt_super],
-                                         size=(CompositeMugshot.mug_size//2, -1))# , size=(-1, 200), style=wx.LB_SINGLE)
+                                         size=(CompositeMugshot.mug_size//2, -1), style=wx.LB_SINGLE | wx.LB_ALWAYS_SB)
 
         # Assembly list binds
         self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.evt_click_sub_assm)
@@ -823,9 +813,9 @@ class CompositeAssemblies(wx.Panel):
         # Get width and height of the resize and subtract a correction tuple
         (_w, _h) = event.GetSize() - (1, 1)
 
-        # Move the buttons that edit the assembly lists
-        self.btn_super_edit.SetPosition((_w - CompositeAssemblies.btn_size, _h - CompositeAssemblies.btn_size))
-        self.btn_sub_edit.SetPosition((_w // 2 - CompositeAssemblies.btn_size, _h - CompositeAssemblies.btn_size))
+        # Move the buttons that edit the assembly lists, and correct to exclude the scrollbar width (17)
+        self.btn_super_edit.SetPosition((_w - CompositeAssemblies.btn_size - 17, _h - CompositeAssemblies.btn_size))
+        self.btn_sub_edit.SetPosition((_w // 2 - CompositeAssemblies.btn_size - 17, _h - CompositeAssemblies.btn_size))
 
         # Move the buttons that display help for the assembly lists
         self.btn_super_help.SetPosition((_w - _help_shift - _help_size // 2,

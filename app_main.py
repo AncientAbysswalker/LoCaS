@@ -49,6 +49,7 @@ class InterfaceWindow(wx.Frame):
         self.menubar.Append(menu_help, "Help")
         self.SetMenuBar(self.menubar)
 
+        self.SetMinSize((700, 500))
         self.SetSizer(self.sizer_login)
         self.Show()
 

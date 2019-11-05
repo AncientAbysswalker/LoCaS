@@ -39,13 +39,6 @@ def crop_square(image, rescale=None):
         return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
 
 
-def part_to_dir(pn):
-    dir1, temp = pn.split('-')
-    dir2 = temp[:2]
-    dir3 = temp[2:]
-    return [dir1, dir2, dir3]
-
-
 class BaseModifyField(wx.Dialog):
     """Base class for dialogs to edit a text field in the application."""
 

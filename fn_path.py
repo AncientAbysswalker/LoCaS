@@ -4,6 +4,7 @@
 import config
 import os
 
+
 def part_to_dir(pn):
     dir1, temp = pn.split('-')
     dir2 = temp[:2]

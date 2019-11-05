@@ -11,32 +11,15 @@ Attributes:
         with it.
 """
 
-COLORS = ["red", "blue", "black", "yellow", "green"]
-NUMBERS = ["{:<6}|{:>25}|{}".format('JA1','23-JAN-2019', 'moretext for my othershit'), "{:<6}|{:<25}|{}".format('J1','23-J019','moretext for my othershit'), '2', '3', '4']
-PANELS = ["107-00107"]#, "G39-00107", "777-00107"]
-SUPLIST = ["999-00107", "G39-00107", "767-00107"]
-SUBLIST = ["456-00107", "G39-06767", "776-04577"]
-DATADIR = r'C:\Users\Ancient Abysswalker\PycharmProjects\LoCaS'
-
-# Import global colors
-import global_colors
-
 import wx
-import glob
-import os
 
-import random
-#import wx.lib.agw.flatnotebook as fnb
-#import wx.lib.agw.ultimatelistctrl as ulc
-import wx.lib.scrolledpanel as scrolled
-from math import ceil, floor
-from dialog import *
 import config
-import fn_path
-import datetime
-
 import widget
 import dialog
+
+import global_colors
+
+PANELS = ["107-00107"]#, "G39-00107", "777-00107"]
 
 
 def crop_square(image, rescale=None):
@@ -64,21 +47,12 @@ def crop_square(image, rescale=None):
         return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
 
 
-def part_to_dir(pn):
-    dir1, temp = pn.split('-')
-    dir2 = temp[:2]
-    dir3 = temp[2:]
-    return [dir1, dir2, dir3]
-
-
 class PartsTabPanel(wx.Panel):
-    def __init__(self, parent, part_num, part_rev, *args, **kwargs):
+    def __init__(self, parent, part_num, part_rev):
         """Constructor"""
-        wx.Panel.__init__(self, parent, size=(0, 0), *args, **kwargs)  # Needs size parameter to remove black-square
+        wx.Panel.__init__(self, parent, size=(0, 0))  # Needs size parameter to remove black-square
         self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))  # Ensure that edit cursor does not show by default
-
-        print("leadss")
 
         # Variable initialization
         self.parent = parent
@@ -104,24 +78,18 @@ class PartsTabPanel(wx.Panel):
         # Method to load data
         self.load_data()
 
-        # Top row of information
+        # Top row of informational text widgets, and binds
         self.wgt_txt_part_num = wx.StaticText(self, label=self.part_num, style=wx.ALIGN_CENTER)
-        self.wgt_txt_part_rev = wx.StaticText(self, label="R" + self.part_rev, style=wx.ALIGN_CENTER)
+        self.wgt_txt_part_rev = wx.StaticText(self, label="r" + self.part_rev, style=wx.ALIGN_CENTER)
         self.wgt_txt_part_type = self.style_null_entry(self.part_type,
                                                        wx.StaticText(self,
                                                                      size=(100, -1),
                                                                      style=wx.ALIGN_CENTER))
         self.wgt_txt_description_short = self.style_null_entry(self.short_description,
                                                                wx.StaticText(self,
-                                                                             size=(-1, -1),
                                                                              style=wx.ST_ELLIPSIZE_END))
-        self.wgt_txt_description_long = self.style_null_entry(self.long_description,
-                                                              wx.TextCtrl(self,
-                                                                          size=(-1, 35),
-                                                                          style=wx.TE_MULTILINE |
-                                                                                wx.TE_WORDWRAP |
-                                                                                wx.TE_READONLY |
-                                                                                wx.BORDER_NONE))
+        self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)
+        self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.edit_type)
 
         # Revision number buttons and bindings
         self.wgt_btn_rev_next = wx.Button(self, size=(10, -1))
@@ -129,7 +97,7 @@ class PartsTabPanel(wx.Panel):
         self.wgt_btn_rev_next.Bind(wx.EVT_BUTTON, self.event_rev_next)
         self.wgt_btn_rev_prev.Bind(wx.EVT_BUTTON, self.event_rev_prev)
 
-        # Sizer for top row of information
+        # Sizer for top row of information, including revision buttons
         self.szr_infoline = wx.BoxSizer(wx.HORIZONTAL)
         self.szr_infoline.Add(self.wgt_txt_part_num, border=5, flag=wx.ALL)
         self.szr_infoline.Add(self.wgt_btn_rev_prev, flag=wx.ALL)
@@ -141,49 +109,34 @@ class PartsTabPanel(wx.Panel):
         self.szr_infoline.Add(wx.StaticLine(self, style=wx.LI_VERTICAL), flag=wx.EXPAND)
         self.szr_infoline.Add(self.wgt_txt_description_short, proportion=1, border=5, flag=wx.ALL | wx.EXPAND)
 
-
-        # Lists containing sub and super assembly info
-        # self.wgt_sub_assm = wx.ListBox(self, size=(MugshotPanel.mug_size/2, -1), choices=[i[0] for i in self.helper_wgt_sub])#, size=(-1, 200), style=wx.LB_SINGLE)
-        # self.wgt_super_assm = wx.ListBox(self, size=(MugshotPanel.mug_size/2, -1), choices=[i[0] for i in self.helper_wgt_super])#, size=(-1, 200), style=wx.LB_SINGLE)
-
-
+        # Long description widget, sizer, and bind
+        self.wgt_txt_description_long = self.style_null_entry(self.long_description,
+                                                              wx.TextCtrl(self,
+                                                                          size=(-1, 35),
+                                                                          style=wx.TE_MULTILINE |
+                                                                                wx.TE_WORDWRAP |
+                                                                                wx.TE_READONLY |
+                                                                                wx.BORDER_NONE))
         self.szr_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
         self.szr_long_descrip.Add(self.wgt_txt_description_long, flag=wx.ALL | wx.EXPAND)
         self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.onfocus)
+        self.revision_bind(self.wgt_txt_description_long, 'Long Description', self.part_num)
 
-        # Notes Panel
-        self.pnl_notes = widget.CompositeNotes(self, self)
+        # Notes widget and sizer
+        self.wgt_notes = widget.CompositeNotes(self, self)
         self.szr_notes = wx.StaticBoxSizer(wx.StaticBox(self, label='Notes'), orient=wx.VERTICAL)
-        self.szr_notes.Add(self.pnl_notes, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_notes.Add(self.wgt_notes, proportion=1, flag=wx.ALL | wx.EXPAND)
 
-        self.pnl_icon_grid = widget.CompositeGallery(self, self)
+        # Gallery widget and sizer
+        self.wgt_gallery = widget.CompositeGallery(self, self)
         self.szr_gallery = wx.StaticBoxSizer(wx.StaticBox(self, label='Image Gallery'), orient=wx.VERTICAL)
-        self.szr_gallery.Add(self.pnl_icon_grid, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_gallery.Add(self.wgt_gallery, proportion=1, flag=wx.ALL | wx.EXPAND)
 
-        # Revision Binds
-        self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)  # Short Description Revision
-        self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.edit_type)
+        # Mugshot widget
+        self.wgt_mugshot = widget.CompositeMugshot(self, self)
 
-        # Assembly list binds
-        # self.wgt_sub_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
-        # self.wgt_sub_assm.Bind(wx.EVT_MOTION, self.update_tooltip_sub)
-        # self.wgt_super_assm.Bind(wx.EVT_LISTBOX, self.event_click_assm_lists)
-        # self.wgt_super_assm.Bind(wx.EVT_MOTION, self.update_tooltip_super)
-
-        self.pnl_mugshot = widget.CompositeMugshot(self, self)
-
-        # Assembly List Sizers
-        # self.szr_sub_assm = wx.BoxSizer(wx.VERTICAL)
-        # self.szr_sub_assm.Add(wx.StaticText(self, label="Sub-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
-        # # self.szr_sub_assm.Add(self.wgt_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
-        # self.szr_super_assm = wx.BoxSizer(wx.VERTICAL)
-        # self.szr_super_assm.Add(wx.StaticText(self, label="Super-Assemblies", style=wx.ALIGN_CENTER), border=5, flag=wx.ALL | wx.EXPAND)
-        # self.szr_super_assm.Add(self.wgt_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
-        # self.szr_assm = wx.BoxSizer(wx.HORIZONTAL)
-        # self.szr_assm.Add(self.szr_sub_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
-        # self.szr_assm.Add(self.szr_super_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
-
-        self.szr_assm = widget.CompositeAssemblies(self, self)
+        # Assemblies info widget
+        self.wgt_assm = widget.CompositeAssemblies(self, self)
 
         # Left Master Sizer
         self.szr_master_left = wx.BoxSizer(wx.VERTICAL)
@@ -197,8 +150,8 @@ class PartsTabPanel(wx.Panel):
 
         # Right Master Sizer
         self.szr_master_right = wx.BoxSizer(wx.VERTICAL)
-        self.szr_master_right.Add(self.pnl_mugshot, flag=wx.ALL)
-        self.szr_master_right.Add(self.szr_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
+        self.szr_master_right.Add(self.wgt_mugshot, flag=wx.ALL)
+        self.szr_master_right.Add(self.wgt_assm, proportion=1, flag=wx.ALL | wx.EXPAND)
 
         # Master Sizer
         self.szr_master = wx.BoxSizer(wx.HORIZONTAL)
@@ -212,15 +165,15 @@ class PartsTabPanel(wx.Panel):
     def edit_type(self, event):
         _dlg = dialog.EditComponentType(self, self, self.wgt_txt_part_type.GetLabel())
         _dlg.ShowModal()
-        _dlg.Destroy()
+        if _dlg: _dlg.Destroy()
 
     def revision_bind(self, target, field, pn):
         target.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.revision_dialogue(event, pn, field))
 
     def revision_dialogue(self, event, pn, field):
-        dialog = ModifyField(self, self, event.GetEventObject(), "name", "Editing {0} of part {1}".format(field, pn))
-        dialog.ShowModal()
-        dialog.Destroy()
+        _dlg = dialog.ModifyField(self, self, event.GetEventObject(), "name", "Editing {0} of part {1} r{2}".format(field, pn, pn))
+        _dlg.ShowModal()
+        if _dlg: _dlg.Destroy()
 
     def load_data(self):
         """Load the part data from the database"""
@@ -411,6 +364,7 @@ class InterfaceTabs(wx.Notebook):
         self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
 
         self.user = "DEMO"
+        self.parent = args[0]
 
         self.panels = []
         for part_num in PANELS:
@@ -466,3 +420,4 @@ class InterfaceTabs(wx.Notebook):
                 elif not opt_stay:
                     self.SetSelection([pnl.part_num for pnl in self.panels].index(part_num))
             _dlg.Destroy()
+
