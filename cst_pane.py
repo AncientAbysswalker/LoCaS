@@ -4,7 +4,7 @@
 import wx
 
 import login
-import custom_panel
+import tabs
 import fn_path
 
 
@@ -30,7 +30,7 @@ class MainPane(wx.Panel):
         btn_search = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('search2.png')), size=(25, 25))
         btn_search.Bind(wx.EVT_BUTTON, self.event_search)
         btn_search.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
-        self.wgt_notebook = custom_panel.InterfaceTabs(self)
+        self.wgt_notebook = tabs.InterfaceTabs(self)
 
         # Searchbar Bind
         self.wgt_searchbar.Bind(wx.EVT_TEXT_ENTER, self.event_search)

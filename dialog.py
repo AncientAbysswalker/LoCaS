@@ -52,7 +52,7 @@ class BaseModifyField(wx.Dialog):
         # Editable box and outline box
         self.wgt_editbox = wx.TextCtrl(self, value=self.orig_field_text, style=wx.TE_MULTILINE)
         szr_editbox = wx.StaticBoxSizer(wx.StaticBox(self, label=self.header_text), orient=wx.VERTICAL)
-        szr_editbox.Add(self.wgt_editbox, flag=wx.ALL | wx.EXPAND, border=5)
+        szr_editbox.Add(self.wgt_editbox, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
 
         # Dialog buttons with binds
         btn_commit = wx.Button(self, label='Commit')
@@ -129,11 +129,11 @@ class ModifyField(BaseModifyField):
 
         # Ensuring that the proper method is called to get the initial value from the root
         try:
-            self.orig_field_text = self.edit_field.GetLabel()
-            self.rewrite_edit_field = self.edit_field.SetLabel
-        except AttributeError:
             self.orig_field_text = self.edit_field.GetValue()
             self.rewrite_edit_field = self.edit_field.SetValue
+        except AttributeError:
+            self.orig_field_text = self.edit_field.GetLabel()
+            self.rewrite_edit_field = self.edit_field.SetLabel
 
         # If there is no entry, then keep the text field of the dialog empty
         if self.orig_field_text == "No Entry":
@@ -185,7 +185,6 @@ class ModifyComment(BaseModifyField):
         Args:
             parent (ref): Reference to the parent wx.object
             root (ref): Reference to the root parts tab
-            header_text (str): String to display in the dialog header
             edit_field (wx.obj): Reference to the wx.object we are editing
             image (str): String name of image including file extension
 
@@ -197,14 +196,14 @@ class ModifyComment(BaseModifyField):
             image (str): String name of image including file extension
     """
 
-    def __init__(self, parent, root, edit_field, image, header_text=""):
+    def __init__(self, parent, root, edit_field, image):
         """Constructor"""
         super().__init__(parent)
 
         # Define Attributes
         self.parent = parent
         self.root = root
-        self.header_text = header_text
+        self.header_text = "Editing Image Comment"
         self.edit_field = edit_field
         self.image = image
 
@@ -446,8 +445,7 @@ class EditImage(BaseImage):
                 event: A click event object
         """
 
-        dialog = ModifyComment(self, event.GetEventObject(), self.root.part_num, self.root.part_rev,
-                               self.image_list[self.image_index], "Editing image comment")
+        dialog = ModifyComment(self, self.root, event.GetEventObject(), self.image_list[self.image_index])
         dialog.ShowModal()
         dialog.Destroy()
 

@@ -666,9 +666,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_click_sub_assm(self, event):
         """Open a parts tab based on what entry has been clicked
 
-                Args:
-                    self: A reference to the parent wx.object instance
-                    event: A list box click event object passed from the list box when activated
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A list box click event object passed from the list box when activated
         """
 
         # Get the index of the clicked item, and open a new parts tab
@@ -681,9 +681,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_click_super_assm(self, event):
         """Open a parts tab based on what entry has been clicked
 
-                Args:
-                    self: A reference to the parent wx.object instance
-                    event: A list box click event object passed from the list box when activated
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A list box click event object passed from the list box when activated
         """
 
         # Get the index of the clicked item, and open a new parts tab
@@ -696,9 +696,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_update_tooltip_sub(self, event):
         """Update the tooltip with the name of the sub-assembly entry the mouse is over
 
-                Args:
-                    self: A reference to the parent wx.object instance
-                    event: A mouse movement event object passed from the movement event
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A mouse movement event object passed from the movement event
         """
 
         # Calculate the index of the item that is under the mouse pointer
@@ -716,9 +716,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_update_tooltip_super(self, event):
         """Update the tooltip with the name of the super-assembly entry the mouse is over
 
-                Args:
-                    self: A reference to the parent wx.object instance
-                    event: A mouse movement event object passed from the movement event
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A mouse movement event object passed from the movement event
         """
 
         # Calculate the index of the item that is under the mouse pointer
@@ -746,9 +746,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_sub_edit(self, event):
         """Show the edit dialog for sub-assemblies
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A button event object passed from the button click
         """
 
         _dlg = dialog.EditSubAssemblies(self, self.root)
@@ -758,9 +758,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_super_edit(self, event):
         """Show the edit dialog for super-assemblies
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A button event object passed from the button click
         """
 
         _dlg = dialog.EditSuperAssemblies(self, self.root)
@@ -770,9 +770,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_sub_help(self, event):
         """Show the term definition for sub-assembly
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A click event object passed from the click event
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A click event object passed from the click event
         """
 
         _dlg = wx.RichMessageDialog(self,
@@ -786,9 +786,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_super_help(self, event):
         """Show the term definition for super-assembly
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A click event object passed from the click event
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A click event object passed from the click event
         """
 
         _dlg = wx.RichMessageDialog(self,
@@ -802,9 +802,9 @@ class CompositeAssemblies(wx.Panel):
     def evt_resize(self, event):
         """Move the button overlays when re-sized
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A resize event object passed from the resize event
+            Args:
+                self: A reference to the parent wx.object instance
+                event: A resize event object passed from the resize event
         """
 
         _help_shift = 6

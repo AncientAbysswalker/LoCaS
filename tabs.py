@@ -47,7 +47,7 @@ def crop_square(image, rescale=None):
         return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
 
 
-class PartsTabPanel(wx.Panel):
+class TabPartInfo(wx.Panel):
     def __init__(self, parent, part_num, part_rev):
         """Constructor"""
         wx.Panel.__init__(self, parent, size=(0, 0))  # Needs size parameter to remove black-square
@@ -88,8 +88,8 @@ class PartsTabPanel(wx.Panel):
         self.wgt_txt_description_short = self.style_null_entry(self.short_description,
                                                                wx.StaticText(self,
                                                                              style=wx.ST_ELLIPSIZE_END))
-        self.revision_bind(self.wgt_txt_description_short, 'Short Description', self.part_num)
-        self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.edit_type)
+        self.revision_bind(self.wgt_txt_description_short, 'Short Description')
+        self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.ect_edit_type)
 
         # Revision number buttons and bindings
         self.wgt_btn_rev_next = wx.Button(self, size=(10, -1))
@@ -120,7 +120,7 @@ class PartsTabPanel(wx.Panel):
         self.szr_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
         self.szr_long_descrip.Add(self.wgt_txt_description_long, flag=wx.ALL | wx.EXPAND)
         self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.onfocus)
-        self.revision_bind(self.wgt_txt_description_long, 'Long Description', self.part_num)
+        self.revision_bind(self.wgt_txt_description_long, 'Long Description')
 
         # Notes widget and sizer
         self.wgt_notes = widget.CompositeNotes(self, self)
@@ -162,16 +162,36 @@ class PartsTabPanel(wx.Panel):
         # Set Sizer
         self.SetSizer(self.szr_master)
 
-    def edit_type(self, event):
+    def ect_edit_type(self, event):
+        """Open a dialog to edit the parts type
+
+            Args:
+                event: A double-click event
+        """
+
         _dlg = dialog.EditComponentType(self, self, self.wgt_txt_part_type.GetLabel())
         _dlg.ShowModal()
         if _dlg: _dlg.Destroy()
 
-    def revision_bind(self, target, field, pn):
-        target.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.revision_dialogue(event, pn, field))
+    def revision_bind(self, target, field_name):
+        """Bind a double click along with a string parameter to a given widget
 
-    def revision_dialogue(self, event, pn, field):
-        _dlg = dialog.ModifyField(self, self, event.GetEventObject(), "name", "Editing {0} of part {1} r{2}".format(field, pn, pn))
+            Args:
+                target: A double-click event
+                field_name (str): The name of the field to populate into the dialog for editing
+        """
+
+        target.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.evt_revision_dialogue(event, field_name))
+
+    def evt_revision_dialogue(self, event, field_name):
+        """Open a dialog to edit a parts field, provided a field name and a double-click event on the widget
+
+            Args:
+                event: A double-click event
+                field_name (str): The name of the field to populate into the dialog for editing
+        """
+
+        _dlg = dialog.ModifyField(self, self, event.GetEventObject(), "name", "Editing {0} of part {1} r{2}".format(field_name, self.part_num, self.part_rev))
         _dlg.ShowModal()
         if _dlg: _dlg.Destroy()
 
@@ -368,7 +388,7 @@ class InterfaceTabs(wx.Notebook):
 
         self.panels = []
         for part_num in PANELS:
-            panel = PartsTabPanel(self, part_num, "0")
+            panel = TabPartInfo(self, part_num, "0")
             self.panels.append(panel)
             self.AddPage(panel, part_num)
 
@@ -388,7 +408,7 @@ class InterfaceTabs(wx.Notebook):
         conn.close()
 
         if _check:
-            panel = PartsTabPanel(self, part_num, part_rev)
+            panel = TabPartInfo(self, part_num, part_rev)
             if part_num not in [pnl.part_num for pnl in self.panels]:
                 self.panels.append(panel)
                 self.AddPage(panel, part_num)
@@ -411,7 +431,7 @@ class InterfaceTabs(wx.Notebook):
                 crsr.close()
                 conn.commit()
 
-                panel = PartsTabPanel(self, part_num, part_rev)
+                panel = TabPartInfo(self, part_num, part_rev)
                 if part_num not in [pnl.part_num for pnl in self.panels]:
                     self.panels.append(panel)
                     self.AddPage(panel, part_num)
