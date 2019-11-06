@@ -447,7 +447,7 @@ class EditImage(BaseImage):
 
         dialog = ModifyComment(self, self.root, event.GetEventObject(), self.image_list[self.image_index])
         dialog.ShowModal()
-        dialog.Destroy()
+        if _dlg: _dlg.Destroy()
 
     def evt_next_image(self, *args):
         """If image is not last image, switch to next image

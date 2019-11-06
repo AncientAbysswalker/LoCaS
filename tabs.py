@@ -88,7 +88,7 @@ class TabPartInfo(wx.Panel):
         self.wgt_txt_description_short = self.style_null_entry(self.short_description,
                                                                wx.StaticText(self,
                                                                              style=wx.ST_ELLIPSIZE_END))
-        self.revision_bind(self.wgt_txt_description_short, 'Short Description')
+        self.revision_bind(self.wgt_txt_description_short, "Short Description", "name")
         self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.ect_edit_type)
 
         # Revision number buttons and bindings
@@ -117,10 +117,10 @@ class TabPartInfo(wx.Panel):
                                                                                 wx.TE_WORDWRAP |
                                                                                 wx.TE_READONLY |
                                                                                 wx.BORDER_NONE))
-        self.szr_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label='Extended Description'), orient=wx.VERTICAL)
+        self.szr_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label="Extended Description"), orient=wx.VERTICAL)
         self.szr_long_descrip.Add(self.wgt_txt_description_long, flag=wx.ALL | wx.EXPAND)
         self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.onfocus)
-        self.revision_bind(self.wgt_txt_description_long, 'Long Description')
+        self.revision_bind(self.wgt_txt_description_long, "Long Description", "description")
 
         # Notes widget and sizer
         self.wgt_notes = widget.CompositeNotes(self, self)
@@ -173,25 +173,28 @@ class TabPartInfo(wx.Panel):
         _dlg.ShowModal()
         if _dlg: _dlg.Destroy()
 
-    def revision_bind(self, target, field_name):
+    def revision_bind(self, target, field_name, sql_field):
         """Bind a double click along with a string parameter to a given widget
 
             Args:
                 target: A double-click event
                 field_name (str): The name of the field to populate into the dialog for editing
+                sql_field (str): The sql field to update
         """
 
-        target.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.evt_revision_dialogue(event, field_name))
+        target.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.evt_revision_dialogue(event, field_name, sql_field))
 
-    def evt_revision_dialogue(self, event, field_name):
+    def evt_revision_dialogue(self, event, field_name, sql_field):
         """Open a dialog to edit a parts field, provided a field name and a double-click event on the widget
 
             Args:
                 event: A double-click event
                 field_name (str): The name of the field to populate into the dialog for editing
+                sql_field (str): The sql field to update
         """
 
-        _dlg = dialog.ModifyField(self, self, event.GetEventObject(), "name", "Editing {0} of part {1} r{2}".format(field_name, self.part_num, self.part_rev))
+        _dlg = dialog.ModifyField(self, self, event.GetEventObject(), sql_field,
+                                  "Editing {0} of part {1} r{2}".format(field_name, self.part_num, self.part_rev))
         _dlg.ShowModal()
         if _dlg: _dlg.Destroy()
 
@@ -217,8 +220,11 @@ class TabPartInfo(wx.Panel):
             self.drawing \
                 = _tmp_sql_data
 
+        # Dictionary of dictionaries. part_num: part_rev: short_description
         self.helper_wgt_super = []
         self.helper_wgt_sub = []
+
+        # List of 2-entry lists, in order with widgets. Each entry of form [part_num, part_rev]
         self.data_wgt_super = {}
         self.data_wgt_sub = {}
 
@@ -279,6 +285,9 @@ class TabPartInfo(wx.Panel):
                 self.data_wgt_super[_num] = {_rev: None}
             elif _rev not in self.data_wgt_super[_num]:
                 self.data_wgt_super[_num][_rev] = None
+
+        print(self.data_wgt_super)
+        print(self.helper_wgt_super)
 
         conn.close()
 

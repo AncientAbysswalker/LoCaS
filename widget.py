@@ -462,7 +462,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
 
         _dlg = dialog.AddNote(self, self.root)
         _dlg.ShowModal()
-        _dlg.Destroy()
+        if _dlg: _dlg.Destroy()
 
     def add_note(self, timestamp, user, note, id_set=0):
         """Add an entry to the notes widget
@@ -753,7 +753,7 @@ class CompositeAssemblies(wx.Panel):
 
         _dlg = dialog.EditSubAssemblies(self, self.root)
         _dlg.ShowModal()
-        _dlg.Destroy()
+        if _dlg: _dlg.Destroy()
 
     def evt_super_edit(self, event):
         """Show the edit dialog for super-assemblies
@@ -765,7 +765,7 @@ class CompositeAssemblies(wx.Panel):
 
         _dlg = dialog.EditSuperAssemblies(self, self.root)
         _dlg.ShowModal()
-        _dlg.Destroy()
+        if _dlg: _dlg.Destroy()
 
     def evt_sub_help(self, event):
         """Show the term definition for sub-assembly
