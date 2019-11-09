@@ -671,7 +671,7 @@ class CompositeAssemblies(wx.Panel):
                 event: A list box click event object passed from the list box when activated
         """
 
-        # Get the index of the clicked item, and open a new parts tab
+        # Get the index of the clicked item, and open a new parts tab, based on part_num and part_rev
         _index = event.GetSelection()
         self.root.parent.open_parts_tab(*self.root.helper_wgt_sub[_index], wx.GetKeyState(wx.WXK_SHIFT))
 
@@ -686,7 +686,7 @@ class CompositeAssemblies(wx.Panel):
                 event: A list box click event object passed from the list box when activated
         """
 
-        # Get the index of the clicked item, and open a new parts tab
+        # Get the index of the clicked item, and open a new parts tab, based on part_num and part_rev
         _index = event.GetSelection()
         self.root.parent.open_parts_tab(*self.root.helper_wgt_super[_index], wx.GetKeyState(wx.WXK_SHIFT))
 

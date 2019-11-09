@@ -89,7 +89,7 @@ class TabPartInfo(wx.Panel):
                                                                wx.StaticText(self,
                                                                              style=wx.ST_ELLIPSIZE_END))
         self.revision_bind(self.wgt_txt_description_short, "Short Description", "name")
-        self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.ect_edit_type)
+        self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.evt_edit_type)
 
         # Revision number buttons and bindings
         self.wgt_btn_rev_next = wx.Button(self, size=(10, -1))
@@ -119,7 +119,7 @@ class TabPartInfo(wx.Panel):
                                                                                 wx.BORDER_NONE))
         self.szr_long_descrip = wx.StaticBoxSizer(wx.StaticBox(self, label="Extended Description"), orient=wx.VERTICAL)
         self.szr_long_descrip.Add(self.wgt_txt_description_long, flag=wx.ALL | wx.EXPAND)
-        self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.onfocus)
+        self.wgt_txt_description_long.Bind(wx.EVT_SET_FOCUS, self.evt_onfocus)
         self.revision_bind(self.wgt_txt_description_long, "Long Description", "description")
 
         # Notes widget and sizer
@@ -162,7 +162,7 @@ class TabPartInfo(wx.Panel):
         # Set Sizer
         self.SetSizer(self.szr_master)
 
-    def ect_edit_type(self, event):
+    def evt_edit_type(self, event):
         """Open a dialog to edit the parts type
 
             Args:
@@ -286,13 +286,15 @@ class TabPartInfo(wx.Panel):
             elif _rev not in self.data_wgt_super[_num]:
                 self.data_wgt_super[_num][_rev] = None
 
-        print(self.data_wgt_super)
-        print(self.helper_wgt_super)
-
         conn.close()
 
     def style_null_entry(self, conditional, entry_field):
-        """Style a text entry based on its SQL counterpart being NULL"""
+        """Style a text entry based on its SQL counterpart being NULL
+
+            Args:
+                conditional (str): The string being used in the field
+                entry_field (ptr): Reference to the wx field being styled
+        """
 
         # Determine if SetValue or SetLabel is required to change text
         try:
@@ -301,7 +303,7 @@ class TabPartInfo(wx.Panel):
         except AttributeError:
             edit_field = entry_field.SetLabel
 
-        # Set the color and text according to if NULL
+        # Set the color and text according to if string passed is NULL
         if conditional:
             edit_field(conditional)
         else:
@@ -310,54 +312,23 @@ class TabPartInfo(wx.Panel):
 
         return entry_field
 
-    def event_click_assm_lists(self, event):
-        index = event.GetSelection()
-        self.parent.open_parts_tab(event.GetEventObject().GetString(index), wx.GetKeyState(wx.WXK_SHIFT))
-        event.GetEventObject().SetSelection(wx.NOT_FOUND)
+    def evt_onfocus(self, event):
+        """Set cursor to default instead of the 'I' type of cursor
 
-    def update_tooltip_super(self, event):
-        """
-        Update the tooltip to show part name
+            Args:
+                event: A focus event from the bound widget receiving focus
         """
 
-        mouse_pos = self.wgt_super_assm.ScreenToClient(wx.GetMousePosition())
-        item_index = self.wgt_super_assm.HitTest(mouse_pos)
-
-        if item_index != -1:
-            num, rev = self.helper_wgt_super[item_index]
-            new_msg = self.data_wgt_super[num][rev]
-            if self.wgt_super_assm.GetToolTipText() != new_msg:
-                self.wgt_super_assm.SetToolTip(new_msg)
-        else:
-            self.wgt_super_assm.SetToolTip("")
-
-        event.Skip()
-
-    def update_tooltip_sub(self, event):
-        """
-        Update the tooltip to show part name
-        """
-
-        mouse_pos = self.wgt_sub_assm.ScreenToClient(wx.GetMousePosition())
-        item_index = self.wgt_sub_assm.HitTest(mouse_pos)
-
-        if item_index != -1:
-            num, rev = self.helper_wgt_sub[item_index]
-            new_msg = self.data_wgt_sub[num][rev]
-            if self.wgt_sub_assm.GetToolTipText() != new_msg:
-                self.wgt_sub_assm.SetToolTip(new_msg)
-        else:
-            self.wgt_sub_assm.SetToolTip("")
-
-        event.Skip()
-
-    def onfocus(self, event):
-        """Set cursor to default and pass before default on-focus method"""
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
-        pass
 
     def event_rev_next(self, event):
-        """Toggle to next revision if possible"""
+        """Toggle to next revision if possible
+
+            Args:
+                event: A click event
+        """
+
+        # TODO: Implement revision control in-tab
         return
 
         if True:
@@ -372,7 +343,13 @@ class TabPartInfo(wx.Panel):
         event.Skip()
 
     def event_rev_prev(self, event):
-        """Toggle to next revision if possible"""
+        """Toggle to next revision if possible
+
+            Args:
+                event: A click event
+        """
+
+        # TODO: Implement revision control in-tab
         return
 
         if self.part_rev > 0:
