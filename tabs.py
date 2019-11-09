@@ -25,6 +25,7 @@ class Notebook(wx.Notebook):
     """
 
     def __init__(self, parent):
+        """Constructor"""
         wx.Notebook.__init__(self, parent)
         self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
 

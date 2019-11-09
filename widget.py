@@ -60,9 +60,8 @@ class CompositeGallery(wx.Panel):
     def evt_resize(self, event):
         """Move the button overlay when resized
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A resize event object passed from the resize event
+            Args:
+                event: A resize event object passed from the resize event
         """
 
         # Get width and height of the resize and subtract a tuple representing the scrollbar size
@@ -75,7 +74,11 @@ class CompositeGallery(wx.Panel):
         self.Layout()
 
     def evt_btn_no_focus(self, event):
-        """Prevents focus from being called on the buttons"""
+        """Prevents focus from being called on the buttons
+
+            Args:
+                event: A focus event
+        """
         pass
 
 
@@ -155,9 +158,8 @@ class WidgetGallery(scrolled.ScrolledPanel):
     def evt_image_click(self, event):
         """Call up the dialog for when an image is clicked
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: The triggering click event object
+            Args:
+                event: The triggering click event object
         """
 
         # Load the "image clicked" dialog
@@ -168,9 +170,8 @@ class WidgetGallery(scrolled.ScrolledPanel):
     def evt_add_image(self, event):
         """Call up dialogs to add an image to the database
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         # Open an explorer dialog to select images to import
@@ -199,9 +200,8 @@ class WidgetGallery(scrolled.ScrolledPanel):
 
         Retrieves width and height of the grid panel and adds/removes grid columns/rows to fit panel nicely.
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A resize event object passed from the resize event
+            Args:
+                event: A resize event object passed from the resize event
         """
 
         # Get width and height of the resize
@@ -217,8 +217,8 @@ class WidgetGallery(scrolled.ScrolledPanel):
     def evt_scroll(self, event):
         """Adds forced recalculation of layout on scroll - as default repainting of frames does not work here
 
-        Args:
-            event: Scroll event
+            Args:
+                event: Scroll event
         """
 
         wx.CallAfter(self.Layout)
@@ -227,7 +227,7 @@ class WidgetGallery(scrolled.ScrolledPanel):
 
 class CompositeNotes(wx.Panel):
     """Custom widget that overlays an "add note" button on top of the WidgetNotes custom widget as well as
-    governs the column header behavior
+        governs the column header behavior
 
         Class Variables:
             btn_size (int): Size of the "add image" button in the overlay
@@ -283,7 +283,6 @@ class CompositeNotes(wx.Panel):
             wx.StaticText(self,
                           label="Author", style=wx.ALIGN_LEFT))
         self.header_list.append(wx.StaticText(self, label="Note", style=wx.ALIGN_LEFT))
-        # self.header_list.append(wx.StaticText(self, label="", style=wx.ALIGN_CENTER))  # TODO: Line removal failure
 
         self.szr_title.Add(self.header_list[0])
         self.szr_title.Add(self.header_list[1])
@@ -316,9 +315,8 @@ class CompositeNotes(wx.Panel):
     def evt_edit_note(self, event):
         """Determine where in the scrolled panel was clicked and pass that to the method handling the dialog
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A resize event object passed from the click event
+            Args:
+                event: A resize event object passed from the click event
         """
 
         # Mouse positions within the overall panel, corrected for scroll. The math signage is odd, but works out
@@ -331,9 +329,8 @@ class CompositeNotes(wx.Panel):
     def evt_resize(self, event):
         """Move the button overlay when resized
 
-        Args:
-            self: A reference to the parent wx.object instance
-            event: A resize event object passed from the resize event
+            Args:
+                event: A resize event object passed from the resize event
         """
 
         # Get width and height of the resize and subtract a tuple representing the scrollbar size
@@ -346,7 +343,11 @@ class CompositeNotes(wx.Panel):
         self.Layout()
 
     def evt_button_no_focus(self, event):
-        """Prevents focus from being called on the buttons"""
+        """Prevents focus from being called on the buttons
+
+            Args:
+                event: A focus event
+        """
         pass
 
 
@@ -418,23 +419,12 @@ class NotesScrolled(scrolled.ScrolledPanel):
         # Add the notes to the grid
         for i, note_args in enumerate(_tmp_list):
             self.add_note(*note_args, i)
-            # _tmp_item = [wx.StaticText(self, id=i, label=note[0], style=wx.EXPAND),
-            #              wx.StaticText(self, size=(40, -1), id=i, label=note[1], style=wx.EXPAND),
-            #              wx.StaticText(self, size=(50, -1), id=i, label=note[2], style=wx.ST_ELLIPSIZE_END)]
-            #
-            # # Binding for the items in the notes widget
-            # for item in _tmp_item:
-            #     item.Bind(wx.EVT_LEFT_UP, self.evt_edit_notes_trigger)
-            #     self.szr_grid.Add(item, flag=wx.ALL | wx.EXPAND)
-            #
-            # self.notes_list.append(_tmp_item)
 
     def evt_add_note(self, event):
         """Event to trigger the addition of entries to the notes widget
 
-                Args:
-                    self: A reference to the parent wx.object instance
-                    event: A button event object passed from the button click
+            Args:
+                event: A button event object passed from the button click
         """
 
         _dlg = dialog.AddNote(self, self.root)
@@ -444,11 +434,11 @@ class NotesScrolled(scrolled.ScrolledPanel):
     def add_note(self, timestamp, user, note, id_set=0):
         """Add an entry to the notes widget
 
-                Args:
-                    self: A reference to the parent wx.object instance
-                    user: The username that has added the note
-                    timestamp: The timestamp for when the note was added
-                    note: The text for the note to be added
+            Args:
+                self: A reference to the parent wx.object instance
+                user: The username that has added the note
+                timestamp: The timestamp for when the note was added
+                note: The text for the note to be added
         """
 
         # List of wx.objects to add to the notes widget
@@ -470,19 +460,21 @@ class NotesScrolled(scrolled.ScrolledPanel):
     def evt_edit_notes_trigger(self, event):
         """Determine which entry in the scrolled panel was clicked and pass that to the method handling the dialog
 
-        Args:a
-            event: Click event that triggered this function
+            Args:
+                event: Click event that triggered this function
         """
 
+        pass
         self.edit_notes(event.GetEventObject().GetId())
 
     def edit_notes(self, my_index):
         """Method to edit an existing note, based on the provided index in the list
 
-        Args:
-            my_index (int): Index for the notes entry you want to edit
+            Args:
+                my_index (int): Index for the notes entry you want to edit
         """
 
+        pass
         print(self.notes_list[my_index][0].GetLabel(), self.notes_list[my_index][1].GetLabel(), self.notes_list[my_index][2].GetLabel())
         #dialog = ImageDialog(self.image_list, event.GetEventObject().GetId(), self.parent.part_num, self.parent.part_rev)
         #dialog.ShowModal()
@@ -491,8 +483,8 @@ class NotesScrolled(scrolled.ScrolledPanel):
     def evt_scroll(self, event):
         """Adds forced recalculation of layout on scroll - as default repainting of frames does not work here
 
-        Args:
-            event: Scroll event
+            Args:
+                event: Scroll event
         """
 
         wx.CallAfter(self.Layout)
@@ -523,30 +515,37 @@ class CompositeMugshot(wx.Panel):
                                           size=(CompositeMugshot.btn_size,) * 2,
                                           pos=(0, CompositeMugshot.mug_size - CompositeMugshot.btn_size))
         self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
-        self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
+        self.button_dwg.Bind(wx.EVT_BUTTON, self.evt_blueprint)
 
         self.imageBitmap = wx.StaticBitmap(self, bitmap=wx.Bitmap(fn_gfx.crop_square(image, CompositeMugshot.mug_size)))
 
         self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
-        # self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
-        #self.button_dwg = wx.Button(self, size=(50, 50), pos=(50, 0))
-        #self.sizer_main.Add(self.button_dwg, flag=wx.ALL)
-        #self.button_dwg2 = wx.Button(self, size=(500, 500), pos=(50, 0))
 
         self.SetSizer(self.sizer_main)
         self.Layout()
         self.Fit()
 
     def refresh(self, new_image=None):
+        """Updates the mugshot to the image hash provided, directs to the no-image if None is provided
+
+            Args:
+                new_image (str): Image filename for mugshot to display
+        """
         if new_image:
             temp = fn_path.concat_img(self.parent.part_num, new_image)
         else:
             temp = fn_path.concat_gui('missing_mugshot.png')
+
+        # Update image
         self.imageBitmap.SetBitmap(wx.Bitmap(fn_gfx.crop_square(wx.Image(temp), CompositeMugshot.mug_size)))
 
-    def event_drawing(self, event):
-        """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
+    def evt_blueprint(self, event):
+        """Loads a dialog or opens a program (unsure) showing the production drawing of said part
+
+            Args:
+                event: Button click event
+        """
 
         _dlg = wx.RichMessageDialog(self,
                                    caption="This feature is not yet implemented",
@@ -556,7 +555,11 @@ class CompositeMugshot(wx.Panel):
         _dlg.Destroy()
 
     def event_button_no_focus(self, event):
-        """Prevents focus from being called on the buttons"""
+        """Prevents focus from being called on the buttons
+
+            Args:
+                event: A focus event
+        """
         pass
 
 
@@ -644,7 +647,6 @@ class CompositeAssemblies(wx.Panel):
         """Open a parts tab based on what entry has been clicked
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A list box click event object passed from the list box when activated
         """
 
@@ -659,7 +661,6 @@ class CompositeAssemblies(wx.Panel):
         """Open a parts tab based on what entry has been clicked
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A list box click event object passed from the list box when activated
         """
 
@@ -674,7 +675,6 @@ class CompositeAssemblies(wx.Panel):
         """Update the tooltip with the name of the sub-assembly entry the mouse is over
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A mouse movement event object passed from the movement event
         """
 
@@ -694,7 +694,6 @@ class CompositeAssemblies(wx.Panel):
         """Update the tooltip with the name of the super-assembly entry the mouse is over
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A mouse movement event object passed from the movement event
         """
 
@@ -710,21 +709,10 @@ class CompositeAssemblies(wx.Panel):
         else:
             self.wgt_super_assm.SetToolTip("")
 
-    def event_drawing(self, event):
-        """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
-
-        _dlg = wx.RichMessageDialog(self,
-                                   caption="This feature is not yet implemented",
-                                   message="This feature will load a production drawing of the current part",
-                                   style=wx.OK | wx.ICON_INFORMATION)
-        _dlg.ShowModal()
-        _dlg.Destroy()
-
     def evt_sub_edit(self, event):
         """Show the edit dialog for sub-assemblies
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A button event object passed from the button click
         """
 
@@ -736,7 +724,6 @@ class CompositeAssemblies(wx.Panel):
         """Show the edit dialog for super-assemblies
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A button event object passed from the button click
         """
 
@@ -748,7 +735,6 @@ class CompositeAssemblies(wx.Panel):
         """Show the term definition for sub-assembly
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A click event object passed from the click event
         """
 
@@ -764,7 +750,6 @@ class CompositeAssemblies(wx.Panel):
         """Show the term definition for super-assembly
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A click event object passed from the click event
         """
 
@@ -780,7 +765,6 @@ class CompositeAssemblies(wx.Panel):
         """Move the button overlays when re-sized
 
             Args:
-                self: A reference to the parent wx.object instance
                 event: A resize event object passed from the resize event
         """
 
@@ -804,5 +788,9 @@ class CompositeAssemblies(wx.Panel):
         self.Layout()
 
     def evt_button_no_focus(self, event):
-        """Prevents focus from being called on the buttons"""
+        """Prevents focus from being called on the buttons
+
+            Args:
+                event: A focus event
+        """
         pass
