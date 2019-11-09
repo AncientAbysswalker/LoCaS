@@ -2,6 +2,9 @@
 """This module defines and imports configuration variables
 
         Attributes:
+            sql_db (module): A link to the python module for the chosen SQL type, for interoperability
+
+
             directory_split (str): Used for RegEx on part numbers. Currently unused
             db_location (str): Path to SQL database file or server
             img_archive (str): Location of image database (storage)
@@ -40,7 +43,7 @@ def load_config(application):
 
     # Read user YAML file into config.opt dictionary, and automatically create if absent (all false)
     try:
-        with open(os.path.join(app_root, 'testuser' + '_config.yaml'), 'r', encoding='utf8') as stream:
+        with open(os.path.join(app_root, 'demo' + '_config.yaml'), 'r', encoding='utf8') as stream:
             _loaded = yaml.safe_load(stream)
 
             # Load in variables intended for import if available
@@ -81,7 +84,7 @@ def load_config(application):
         else:
             exit()
 
-    if len(_missing_config) != 0: # AND IS VALID
+    if len(_missing_config) != 0:  # AND IS VALID
         dlg = wx.RichMessageDialog(None,
                                    caption="Missing Config Values",
                                    message="Some variables are missing from the config file. Please update them now.",

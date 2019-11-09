@@ -9,34 +9,11 @@ import shutil
 import datetime
 
 import widget
-import global_colors
+
 import config
+import global_colors
 import fn_path
-
-
-def crop_square(image, rescale=None):
-    """Crop an image to a square and resize if desired
-
-        Args:
-            image (wx.Image): The wx.Image object to crop and scale
-            rescale (int): Square size to scale the image to. None if not desired
-    """
-
-    # Determine direction to cut and cut
-    if image.Height > image.Width:
-        min_edge = image.Width
-        posx = 0
-        posy = int((image.Height - image.Width) / 2)
-    else:
-        min_edge = image.Height
-        posx = int((image.Width - image.Height) / 2)
-        posy = 0
-
-    # Determine if scaling is desired and scale. Return square image
-    if rescale:
-        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge)).Rescale(*(rescale,) * 2)
-    else:
-        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
+import fn_gfx
 
 
 class BaseModifyField(wx.Dialog):
@@ -155,7 +132,7 @@ class ModifyField(BaseModifyField):
         _rewrite_value = self.wgt_editbox.GetValue().strip()
         if _rewrite_value:
             self.rewrite_edit_field(_rewrite_value)
-            self.edit_field.SetForegroundColour(global_colors.black)
+            self.edit_field.SetForegroundColour(global_colors.standard)
         else:
             self.rewrite_edit_field("No Entry")
             self.edit_field.SetForegroundColour(global_colors.no_entry)
@@ -416,7 +393,7 @@ class EditImage(BaseImage):
             if not self.comments[self.image_list[self.image_index]]:
                 raise TypeError
             self.pnl_comment.SetValue(self.comments[self.image_list[self.image_index]])
-            self.pnl_comment.SetForegroundColour(global_colors.black)
+            self.pnl_comment.SetForegroundColour(global_colors.standard)
         except TypeError:
             self.pnl_comment.SetValue("There is no comment recorded")
             self.pnl_comment.SetForegroundColour(global_colors.no_entry)
@@ -445,8 +422,8 @@ class EditImage(BaseImage):
                 event: A click event object
         """
 
-        dialog = ModifyComment(self, self.root, event.GetEventObject(), self.image_list[self.image_index])
-        dialog.ShowModal()
+        _dlg = ModifyComment(self, self.root, event.GetEventObject(), self.image_list[self.image_index])
+        _dlg.ShowModal()
         if _dlg: _dlg.Destroy()
 
     def evt_next_image(self, *args):
@@ -503,7 +480,7 @@ class EditImage(BaseImage):
         """
 
         # Show confirmation dialog if not hidden in config
-        if not config.cfg["dlg_hide_change_mugshot"]:
+        if not config.opt["dlg_hide_change_mugshot"]:
             dlg = wx.RichMessageDialog(self,
                                        caption="Update Mugshot?",
                                        message="Are you sure you would like to change the mugshot for this part?",
@@ -514,7 +491,7 @@ class EditImage(BaseImage):
             if dlg.ShowModal() == wx.ID_OK:
                 if dlg.IsCheckBoxChecked():
                     # Set config to hide this dialog next time
-                    config.cfg["dlg_hide_change_mugshot"] = True
+                    config.opt["dlg_hide_change_mugshot"] = True
             else:
                 return
 
@@ -541,7 +518,7 @@ class EditImage(BaseImage):
         """
 
         # Show confirmation dialog if not hidden in config
-        if not config.cfg["dlg_hide_remove_image"]:
+        if not config.opt["dlg_hide_remove_image"]:
             dlg = wx.RichMessageDialog(self,
                                        caption="Remove parts image?",
                                        message="Are you sure you would like to remove this image?",
@@ -552,7 +529,7 @@ class EditImage(BaseImage):
             if dlg.ShowModal() == wx.ID_OK:
                 if dlg.IsCheckBoxChecked():
                     # Set config to hide this dialog next time
-                    config.cfg["dlg_hide_remove_image"] = True
+                    config.opt["dlg_hide_remove_image"] = True
             else:
                 return
 
@@ -693,11 +670,12 @@ class AddImage(BaseImage):
 
             # Add image object to image grid, adding the bind
             _n = len(self.parent.images)
-            _tmp = crop_square(wx.Image(fn_path.concat_img(self.root.part_num, image_hash)), widget.WidgetGallery.icon_size)
+            _tmp = fn_gfx.crop_square(wx.Image(fn_path.concat_img(self.root.part_num, image_hash)),
+                                      widget.WidgetGallery.icon_size)
             _temp = wx.StaticBitmap(self.parent, bitmap=wx.Bitmap(_tmp))
             _temp.Bind(wx.EVT_LEFT_UP, self.parent.evt_image_click)
             self.parent.sizer_grid.Add(_temp, wx.EXPAND)
-            self.image_list.append(image_hash)
+            self.parent.image_list.append(image_hash)
 
             # Add image hash to list of images in sizer
             self.parent.img_object_list.append(_temp)

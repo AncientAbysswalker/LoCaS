@@ -1,53 +1,116 @@
 # -*- coding: utf-8 -*-
-"""This module contains custom dialog boxes to work with the main code base.
-
-Attributes:
-    module_level_variable1 (int): Module level variables may be documented in
-        either the ``Attributes`` section of the module docstring, or in an
-        inline docstring immediately following the variable.
-
-        Either form is acceptable, but the two should not be mixed. Choose
-        one convention to document module level variables and be consistent
-        with it.
-"""
+"""This module contains the main Notebook class and all Tab classes that the notebook can display"""
 
 import wx
 
-import config
 import widget
 import dialog
 
+import config
 import global_colors
 
-PANELS = ["107-00107"]#, "G39-00107", "777-00107"]
+# Hard-coded for demo, but will be changed later to be a user-based option
+PANELS = [("107-00107", "0")]
 
 
-def crop_square(image, rescale=None):
-    """Crop an image to a square and resize if desired
+class Notebook(wx.Notebook):
+    """Notebook class that contains various Tab-type classes within itself
 
-        Args:
-            image (wx.Image): The wx.Image object to crop and scale
-            rescale (int): Square size to scale the image to. None if not desired
+            Args:
+                parent (ref): Reference to the parent wx.object
+
+            Attributes:
+                user (str): The logged-in user. Currently hard-coded to "demo"
+                parent (ref): Reference to the parent wx.object
     """
 
-    # Determine direction to cut and cut
-    if image.Height > image.Width:
-        min_edge = image.Width
-        posx = 0
-        posy = int((image.Height - image.Width) / 2)
-    else:
-        min_edge = image.Height
-        posx = int((image.Width - image.Height) / 2)
-        posy = 0
+    def __init__(self, parent):
+        wx.Notebook.__init__(self, parent)
+        self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
 
-    # Determine if scaling is desired and scale. Return square image
-    if rescale:
-        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge)).Rescale(*(rescale,) * 2)
-    else:
-        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
+        self.user = "demo"
+        self.parent = parent
+
+        # Define the open panels and load any that should be opened on start
+        self.open_tabs = []
+        for part_to_open in PANELS:
+            self.open_parts_tab(*part_to_open)
+
+    def open_parts_tab(self, part_num, part_rev="0", opt_stay=False):
+        """Open a new tab using the provided part number and revision
+
+            Args:
+                part_num (string): The part number to open as a new tab
+                part_rev (string): The part revision to open as a new tab - default revision 0
+                opt_stay (bool): If true, do not change to newly opened tab - default change tabs
+        """
+
+        # Open the database to quickly check if the part and revision exists
+        conn = config.sql_db.connect(config.cfg["db_location"])
+        crsr = conn.cursor()
+        crsr.execute("SELECT EXISTS (SELECT 1 FROM Parts WHERE part_num=(?) AND part_rev=(?))", (part_num, part_rev))
+        _check = crsr.fetchone()[0]
+        conn.close()
+
+        # Check if the part and revision exists; if not inquire if you would like to add one
+        if _check:
+            # If there is not yet a tab for this part number then create one, otherwise redirect to the existing
+            if part_num not in [tab.part_num for tab in self.open_tabs]:
+                new_tab = TabPartInfo(self, part_num, part_rev)
+                self.open_tabs.append(new_tab)
+                self.AddPage(new_tab, part_num)
+
+                # Handles whether to stay on current tab or move to newly opened tab
+                if not opt_stay:
+                    self.SetSelection(self.GetPageCount() - 1)
+            elif not opt_stay:
+                self.SetSelection([pnl.part_num for pnl in self.open_tabs].index(part_num))
+        else:
+            _dlg = wx.RichMessageDialog(self,
+                                        caption="Part Not In System",
+                                        message="This part is not currently added to the system.\n"
+                                                  "Do you want to add %s r%s to the database?" % (part_num, part_rev),
+                                        style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+
+            # If the user selects that they want to add the part, then add the part
+            if _dlg.ShowModal() == wx.ID_YES:
+
+                conn = config.sql_db.connect(config.cfg["db_location"])
+                crsr = conn.cursor()
+                crsr.execute("INSERT INTO Parts (part_num, part_rev) VALUES ((?), (?));",
+                             (part_num, part_rev))
+                crsr.close()
+                conn.commit()
+
+                # If there is not yet a tab for this part number then create one, otherwise redirect to the existing
+                if part_num not in [tab.part_num for tab in self.open_tabs]:
+                    new_tab = TabPartInfo(self, part_num, part_rev)
+                    self.open_tabs.append(new_tab)
+                    self.AddPage(new_tab, part_num)
+
+                    # Handles whether to stay on current tab or move to newly opened tab
+                    if not opt_stay:
+                        self.SetSelection(self.GetPageCount() - 1)
+                elif not opt_stay:
+                    self.SetSelection([pnl.part_num for pnl in self.open_tabs].index(part_num))
+            _dlg.Destroy()
 
 
 class TabPartInfo(wx.Panel):
+    """Tab class that displays info relating to parts. It is important to note that classes that have a "root" attribute
+        are referring to this or other Tab-level classes
+
+        Args:
+            parent (ref): Reference to the parent wx.object
+            part_num (str): The part number that the tab loads the relevant information for
+            part_rev (str): The revision number that the tab loads the relevant information for
+
+        Attributes:
+            parent (ref): Reference to the parent wx.object
+            part_num (str): The part number that the tab loads the relevant information for
+            part_rev (str): The revision number that the tab loads the relevant information for
+    """
+
     def __init__(self, parent, part_num, part_rev):
         """Constructor"""
         wx.Panel.__init__(self, parent, size=(0, 0))  # Needs size parameter to remove black-square
@@ -362,68 +425,3 @@ class TabPartInfo(wx.Panel):
             # Hook a refresh()
 
         event.Skip()
-
-
-class InterfaceTabs(wx.Notebook):
-    def __init__(self, *args, **kwargs):
-        wx.Notebook.__init__(self, *args, **kwargs)
-        self.SetDoubleBuffered(True)  # Remove slight strobing on tab switch
-
-        self.user = "DEMO"
-        self.parent = args[0]
-
-        self.panels = []
-        for part_num in PANELS:
-            panel = TabPartInfo(self, part_num, "0")
-            self.panels.append(panel)
-            self.AddPage(panel, part_num)
-
-    def open_parts_tab(self, part_num, part_rev="0", opt_stay=False):
-        """Open a new tab using the provided part number
-
-            Args:
-                part_num (string): The part number to open as a new tab
-                part_rev (string): The part revision to open as a new tab
-                opt_stay (bool): If true, do not change to newly opened tab
-        """
-
-        conn = config.sql_db.connect(config.cfg["db_location"])
-        crsr = conn.cursor()
-        crsr.execute("SELECT EXISTS (SELECT 1 FROM Parts WHERE part_num=(?) AND part_rev=(?))", (part_num, part_rev))
-        _check = crsr.fetchone()[0]
-        conn.close()
-
-        if _check:
-            panel = TabPartInfo(self, part_num, part_rev)
-            if part_num not in [pnl.part_num for pnl in self.panels]:
-                self.panels.append(panel)
-                self.AddPage(panel, part_num)
-                if not opt_stay:
-                    self.SetSelection(self.GetPageCount() - 1)
-            elif not opt_stay:
-                self.SetSelection([pnl.part_num for pnl in self.panels].index(part_num))
-        else:
-            _dlg = wx.RichMessageDialog(self,
-                                        caption="Part Not In System",
-                                        message="This part is not currently added to the system.\n"
-                                                  "Do you want to add %s r%s to the database?" % (part_num, part_rev),
-                                        style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
-            if _dlg.ShowModal() == wx.ID_YES:
-
-                conn = config.sql_db.connect(config.cfg["db_location"])
-                crsr = conn.cursor()
-                crsr.execute("INSERT INTO Parts (part_num, part_rev) VALUES ((?), (?));",
-                             (part_num, part_rev))
-                crsr.close()
-                conn.commit()
-
-                panel = TabPartInfo(self, part_num, part_rev)
-                if part_num not in [pnl.part_num for pnl in self.panels]:
-                    self.panels.append(panel)
-                    self.AddPage(panel, part_num)
-                    if not opt_stay:
-                        self.SetSelection(self.GetPageCount() - 1)
-                elif not opt_stay:
-                    self.SetSelection([pnl.part_num for pnl in self.panels].index(part_num))
-            _dlg.Destroy()
-

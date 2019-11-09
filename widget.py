@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module contains widgets (composite panels) to be used in the main application frame."""
+"""This module contains custom widgets (composite panels) to be used in the main application frame."""
 
 
 import wx
@@ -7,33 +7,10 @@ import wx.lib.scrolledpanel as scrolled
 from math import ceil
 
 import dialog
+
 import config
 import fn_path
-
-
-def crop_square(image, rescale=None):
-    """Crop an image to a square and resize if desired
-
-        Args:
-            image (wx.Image): The wx.Image object to crop and scale
-            rescale (int): Square size to scale the image to. None if not desired
-    """
-
-    # Determine direction to cut and cut
-    if image.Height > image.Width:
-        min_edge = image.Width
-        posx = 0
-        posy = int((image.Height - image.Width) / 2)
-    else:
-        min_edge = image.Height
-        posx = int((image.Width - image.Height) / 2)
-        posy = 0
-
-    # Determine if scaling is desired and scale. Return square image
-    if rescale:
-        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge)).Rescale(*(rescale,) * 2)
-    else:
-        return image.GetSubImage(wx.Rect(posx, posy, min_edge, min_edge))
+import fn_gfx
 
 
 class CompositeGallery(wx.Panel):
@@ -152,7 +129,7 @@ class WidgetGallery(scrolled.ScrolledPanel):
         for r in range(self.nrows):
             for c in range(self.ncols):
                 _n = self.ncols * r + c
-                _tmp = crop_square(wx.Image(self.images[_n], wx.BITMAP_TYPE_ANY), WidgetGallery.icon_size)
+                _tmp = fn_gfx.crop_square(wx.Image(self.images[_n]), WidgetGallery.icon_size)
                 _temp = wx.StaticBitmap(self, bitmap=wx.Bitmap(_tmp))
                 _temp.Bind(wx.EVT_LEFT_UP, self.evt_image_click)
                 self.img_object_list.append(_temp)
@@ -548,7 +525,7 @@ class CompositeMugshot(wx.Panel):
         self.button_dwg.Bind(wx.EVT_SET_FOCUS, self.event_button_no_focus)
         self.button_dwg.Bind(wx.EVT_BUTTON, self.event_drawing)
 
-        self.imageBitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(crop_square(image, CompositeMugshot.mug_size)))
+        self.imageBitmap = wx.StaticBitmap(self, bitmap=wx.Bitmap(fn_gfx.crop_square(image, CompositeMugshot.mug_size)))
 
         self.sizer_main = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer_main.Add(self.imageBitmap, flag=wx.ALL)
@@ -566,7 +543,7 @@ class CompositeMugshot(wx.Panel):
             temp = fn_path.concat_img(self.parent.part_num, new_image)
         else:
             temp = fn_path.concat_gui('missing_mugshot.png')
-        self.imageBitmap.SetBitmap(wx.Bitmap(crop_square(wx.Image(temp, wx.BITMAP_TYPE_ANY), CompositeMugshot.mug_size)))
+        self.imageBitmap.SetBitmap(wx.Bitmap(fn_gfx.crop_square(wx.Image(temp), CompositeMugshot.mug_size)))
 
     def event_drawing(self, event):
         """Loads a dialog or opens a program (unsure) showing the production drawing of said part"""
