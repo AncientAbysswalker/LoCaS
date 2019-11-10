@@ -227,7 +227,7 @@ class WidgetGallery(scrolled.ScrolledPanel):
 
 class CompositeNotes(wx.Panel):
     """Custom widget that overlays an "add note" button on top of the WidgetNotes custom widget as well as
-        governs the column header behavior
+    governs the column header behavior
 
         Class Variables:
             btn_size (int): Size of the "add image" button in the overlay
@@ -492,6 +492,20 @@ class NotesScrolled(scrolled.ScrolledPanel):
 
 
 class CompositeMugshot(wx.Panel):
+    """Custom widget that overlays a "show schematic" button on top of the Mugshot widget
+
+            Class Variables:
+                mug_size (int): The size of the mugshot photo
+                btn_size (int): Size of the "show schematic" button in the overlay
+
+            Args:
+                parent (ref): Reference to the parent wx.object
+                root (ref): Reference to the root parts tab
+
+            Attributes:
+                parent (ref): Reference to the parent wx.object
+                root (ref): Reference to the root parts tab
+    """
 
     mug_size = 250
     btn_size = 40

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines login panels and various login behaviours"""
+"""This module defines login widgets and their associated login behaviours"""
 
 import wx
 import hashlib
@@ -21,60 +21,68 @@ class LoginDebug(wx.Panel):
 
         Attributes:
             parent (ptr): Reference to the wx.object this panel belongs to
-            sizer_landing (ptr): Reference to the sizer (of the parent) the landing pane belongs to
+            szr_landing (ptr): Reference to the sizer (of the parent) the landing pane belongs to
             pane_landing (ptr): Reference to the landing pane
-            login_user (ptr): Reference to the "user" textbox
-            login_pass (ptr): Reference to the "passkey" textbox
+            wgt_txt_login_user (ptr): Reference to the "user" textbox
+            wgt_txt_login_pass (ptr): Reference to the "passkey" textbox
     """
 
-    def __init__(self, parent, sizer_landing, pane_landing, bound_text="Please enter registry info",
-                 user_last="", pass_last="", user_text="Username:", pass_text="Password:", *args, **kwargs):
+    def __init__(self, parent, szr_landing, pane_landing, bound_text="Please enter registry info",
+                 user_last="", pass_last="", user_text="Username:", pass_text="Password:"):
         """Constructor"""
-        wx.Panel.__init__(self, parent, *args, **kwargs)
+        wx.Panel.__init__(self, parent)
 
+        # Variable Definition
         self.parent = parent
-        self.sizer_landing = sizer_landing
+        self.szr_landing = szr_landing
         self.pane_landing = pane_landing
         self.invalid_text = None
         self.invalid_count = 0
 
         # Login Widget Objects
-        button = wx.Button(self, size=(75, 25), label="SUBMIT")
-        self.Bind(wx.EVT_BUTTON, self.event_login, button)
-        self.login_user = wx.TextCtrl(self, value=user_last, size=(400, 20))
-        self.login_pass = wx.TextCtrl(self, value=pass_last, size=(400, 20))
+        btn_submit = wx.Button(self, size=(75, 25), label="SUBMIT")
+        self.Bind(wx.EVT_BUTTON, self.evt_login, btn_submit)
+        self.wgt_txt_login_user = wx.TextCtrl(self, value=user_last, size=(400, 20))
+        self.wgt_txt_login_pass = wx.TextCtrl(self, value=pass_last, size=(400, 20))
 
         # Login Widget Sizers
         self.temp_space = 10  # To make modifying spacing easier
-        self.sizer_login_inner = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_login_inner.AddSpacer(self.temp_space)
-        self.sizer_login_inner.Add(wx.StaticText(self, size=(-1, -1), label=user_text), flag=wx.EXPAND)
-        self.sizer_login_inner.Add(self.login_user, flag=wx.EXPAND)
-        self.sizer_login_inner.AddSpacer(self.temp_space)
-        self.sizer_login_inner.Add(wx.StaticText(self, size=(-1, -1), label=pass_text), flag=wx.EXPAND)
-        self.sizer_login_inner.Add(self.login_pass, flag=wx.EXPAND)
-        self.sizer_login_inner.AddSpacer(self.temp_space)
-        self.sizer_login_inner.Add(button, flag=wx.CENTER)
-        self.sizer_login_inner.AddSpacer(self.temp_space)
+        self.szr_login_inner = wx.BoxSizer(wx.VERTICAL)
+        self.szr_login_inner.AddSpacer(self.temp_space)
+        self.szr_login_inner.Add(wx.StaticText(self, label=user_text), flag=wx.EXPAND)
+        self.szr_login_inner.Add(self.wgt_txt_login_user, flag=wx.EXPAND)
+        self.szr_login_inner.AddSpacer(self.temp_space)
+        self.szr_login_inner.Add(wx.StaticText(self, label=pass_text), flag=wx.EXPAND)
+        self.szr_login_inner.Add(self.wgt_txt_login_pass, flag=wx.EXPAND)
+        self.szr_login_inner.AddSpacer(self.temp_space)
+        self.szr_login_inner.Add(btn_submit, flag=wx.CENTER)
+        self.szr_login_inner.AddSpacer(self.temp_space)
 
         # Login Widget Box Sizer
-        sizer_login = wx.StaticBoxSizer(wx.StaticBox(self, label=bound_text), orient=wx.HORIZONTAL)
-        sizer_login.AddSpacer(self.temp_space)
-        sizer_login.Add(self.sizer_login_inner, flag=wx.EXPAND)
-        sizer_login.AddSpacer(self.temp_space)
+        szr_login = wx.StaticBoxSizer(wx.StaticBox(self, label=bound_text), orient=wx.HORIZONTAL)
+        szr_login.AddSpacer(self.temp_space)
+        szr_login.Add(self.szr_login_inner, flag=wx.EXPAND)
+        szr_login.AddSpacer(self.temp_space)
 
-        self.SetSizer(sizer_login)
+        # Set main sizer
+        self.SetSizer(szr_login)
 
-    def event_login(self, event):
-        """Execute when attempting to login - Always hides login pane and shows landing pane"""
+    def evt_login(self, event):
+        """Execute when attempting to login - Always hides login pane and shows landing pane
+
+            Args:
+                event: A button click event
+        """
+
+        # Hide current pane, show PaneMain, then reset the active sizer and call Layout()
         self.parent.Hide()
         self.pane_landing.Show()
-        self.parent.parent.SetSizer(self.sizer_landing)
+        self.parent.parent.SetSizer(self.szr_landing)
         self.parent.parent.Layout()
 
 
 class LoginCrypto(LoginDebug):
-    """Crypto login panel class. Uses cryptographic hashing to determine if a valid passkey is entered
+    """Crypto login panel class. Uses cryptographic hashing to determine if a valid passkey is entered.
 
             Args:
                 parent (ptr): Reference to the wx.object this panel belongs to
@@ -94,19 +102,23 @@ class LoginCrypto(LoginDebug):
                 login_pass (ptr): Reference to the "passkey" textbox
     """
 
-    def event_login(self, event):
-        """Execute when attempting to login - Hide login pane and show landing pane if cryptographically correct"""
-        if self.pair_correct(self.login_user.GetValue(), self.login_pass.GetValue()):
+    def evt_login(self, event):
+        """Execute when attempting to login - Hide login pane and show landing pane if cryptographically correct
+
+            Args:
+                event: A button click event
+        """
+        if self.pair_correct(self.wgt_txt_login_user.GetValue(), self.wgt_txt_login_pass.GetValue()):
             self.parent.Hide()
             self.pane_landing.Show()
-            self.parent.parent.SetSizer(self.sizer_landing)
+            self.parent.parent.SetSizer(self.szr_landing)
             self.parent.parent.Layout()
         else:
             if self.invalid_text == None:
                 self.invalid_text = wx.StaticText(self, size=(60, -1), label="INVALID USER/PASSKEY PAIR", style=wx.ALIGN_CENTER)
                 self.invalid_text.SetBackgroundColour('red')
-                self.sizer_login_inner.Add(self.invalid_text, flag=wx.EXPAND)
-                self.sizer_login_inner.AddSpacer(self.temp_space)
+                self.szr_login_inner.Add(self.invalid_text, flag=wx.EXPAND)
+                self.szr_login_inner.AddSpacer(self.temp_space)
                 self.Fit()
             else:
                 self.invalid_text.SetLabel("C'mon, I said it's not a bloody valid passkey")

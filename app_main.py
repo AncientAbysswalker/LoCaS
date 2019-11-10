@@ -4,75 +4,84 @@
 import sys
 
 from dialog import *
-from cst_pane import *
+from pane import *
+import mode
 
 # Temporary bootstrap for 'current directory' files
-if getattr(sys, 'frozen', False):
-    app_root = sys._MEIPASS
-    fn_path.frozen = True
-    fn_path.app_root = app_root
-else:
-    app_root = os.path.dirname(os.path.abspath(__file__))
-    fn_path.frozen = False
-config.app_root = app_root
+# if getattr(sys, 'frozen', False):
+#     mode.mode.app_root = sys._MEIPASS
+#     fn_path.frozen = True
+#     # fn_path.mode.app_root = mode.app_root
+# else:
+#     mode.app_root = os.path.dirname(os.path.abspath(__file__))
+#     fn_path.frozen = False
+# config.mode.app_root = mode.app_root
 
 
-class InterfaceWindow(wx.Frame):
-    """Base class for dialogs to display images relating to part. This class should not be called externally."""
+class WindowFrame(wx.Frame):
+    """Base class defining the application window (frame)"""
 
     def __init__(self, *args, **kwargs):
         """Constructor"""
         wx.Frame.__init__(self, *args, **kwargs)
 
-        self.sizer_login = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_parts = wx.BoxSizer(wx.VERTICAL)
+        # Define the two primary sizers for different panes
+        self.szr_login = wx.BoxSizer(wx.VERTICAL)
+        self.szr_main = wx.BoxSizer(wx.VERTICAL)
 
-        self.pane_parts = MainPane(self)
-        self.pane_parts.Hide()
-        self.sizer_parts.Add(self.pane_parts, proportion=1, flag=wx.EXPAND)
+        # Define the main pane, hide until after login, add to sizer
+        self.pane_main = PaneMain(self)
+        self.pane_main.Hide()
+        self.szr_main.Add(self.pane_main, proportion=1, flag=wx.EXPAND)
 
-        self.pane_login = LoginPane(self, self.sizer_parts, self.pane_parts)
+        # Define the login pane, add to sizer
+        self.pane_login = PaneLogin(self, self.szr_main, self.pane_main)
+        self.szr_login.Add(self.pane_login, proportion=1, flag=wx.EXPAND)
 
-        self.sizer_login.Add(self.pane_login, proportion=1, flag=wx.EXPAND)
+        # Define lower status bar
+        self.status = self.CreateStatusBar(1)
+        self.status.SetStatusText("Written by Ancient Abysswalker")
 
-        self.status = self.CreateStatusBar() #???Bottom bar
+        # Disable menu bar for the moment as I don't have a need for it
+        # self.menubar = wx.MenuBar()
+        # menu_file = wx.Menu()
+        # menu_edit = wx.Menu()
+        # menu_help = wx.Menu()
+        # menu_file.Append(wx.NewId(), "New", "Creates A new file")
+        # append_item = menu_file.Append(wx.NewId(), "Add ID", "Add an ID")
+        # self.Bind(wx.EVT_MENU, self.evt_on_add, append_item)
+        # self.menubar.Append(menu_file, "File")
+        # self.menubar.Append(menu_edit, "Edit")
+        # self.menubar.Append(menu_help, "Help")
+        # self.SetMenuBar(self.menubar)
 
-        self.menubar = wx.MenuBar()
-        menu_file = wx.Menu()
-        menu_edit = wx.Menu()
-        menu_help = wx.Menu()
-        menu_file.Append(wx.NewId(), "New", "Creates A new file")
-        buttonfish = menu_file.Append(wx.NewId(), "ADID", "Yo")
-        self.Bind(wx.EVT_MENU, self.onAdd, buttonfish)
-        self.menubar.Append(menu_file, "File")
-        self.menubar.Append(menu_edit, "Edit")
-        self.menubar.Append(menu_help, "Help")
-        self.SetMenuBar(self.menubar)
-
+        # Set window minimum size, set starting sizer and show window
         self.SetMinSize((700, 500))
-        self.SetSizer(self.sizer_login)
+        self.SetSizer(self.szr_login)
         self.Show()
 
-    def onAdd(self, event):
-        del self.pane_login
-        self.pane_login = MainPane(self)
-        #self.panel.notebook.fuck("fuck")
-        #PANELS.append("rrr")
-        #print("sdgsrg")
+    # def evt_on_add(self, event):
+    #     pass
 
 
 if __name__ == '__main__':
     """Launch the application."""
 
+    # Set build number to display
     build = "1.0.0"
+
+    # First set build/dev mode
+    mode.set_mode(getattr(sys, 'frozen', False))
+
+    # Define appliction and call config
     app = wx.App(False)
     config.load_config(app)
 
-    if getattr(sys, 'frozen', False):
-        config.cfg["db_location"] = os.path.join(os.getcwd(), 'LoCaS.sqlite')
-        config.cfg["img_archive"] = os.getcwd()
+    # if getattr(sys, 'frozen', False):
+    #     config.cfg["db_location"] = os.path.join(os.getcwd(), 'LoCaS.sqlite')
+    #     config.cfg["img_archive"] = os.getcwd()
 
-    #app = wx.App(False)
-    win = InterfaceWindow(None, size=(1200, 600))
+    # Define window size and frame, and start the main application loop
+    win = WindowFrame(None, size=(1200, 600))
     win.SetTitle("LoCaS - Build " + build)
     app.MainLoop()

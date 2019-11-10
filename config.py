@@ -17,6 +17,8 @@ import yaml
 import os
 import wx
 
+import mode
+
 # Defining & Initializing config variables
 cfg = {}
 opt = {}
@@ -43,7 +45,7 @@ def load_config(application):
 
     # Read user YAML file into config.opt dictionary, and automatically create if absent (all false)
     try:
-        with open(os.path.join(app_root, 'demo' + '_config.yaml'), 'r', encoding='utf8') as stream:
+        with open(os.path.join(mode.app_root, 'demo' + '_config.yaml'), 'r', encoding='utf8') as stream:
             _loaded = yaml.safe_load(stream)
 
             # Load in variables intended for import if available
@@ -54,17 +56,17 @@ def load_config(application):
             if len(set(cfg_user_import).difference(_keys)) != 0:
                 for undefined in set(cfg_user_import).difference(_keys):
                     globals()['opt'][undefined] = False
-                with open(os.path.join(app_root, 'testuser' + '_config.yaml'), 'w', encoding='utf8') as stream:
+                with open(os.path.join(mode.app_root, 'testuser' + '_config.yaml'), 'w', encoding='utf8') as stream:
                     yaml.dump(globals()['opt'], stream, default_flow_style=False)
     # If all user variables or the file are missing
     except (AttributeError, FileNotFoundError):
         globals()['opt'] = {x: False for x in cfg_user_import}
-        with open(os.path.join(app_root, 'testuser' + '_config.yaml'), 'w', encoding='utf8') as stream:
+        with open(os.path.join(mode.app_root, 'testuser' + '_config.yaml'), 'w', encoding='utf8') as stream:
             yaml.dump(globals()['opt'], stream, default_flow_style=False)
 
     # Read application YAML file into config.cfg dictionary, and prompt to create if absent
     try:
-        with open(os.path.join(app_root, 'app_config.yaml'), 'r', encoding='utf8') as stream:
+        with open(os.path.join(mode.app_root, 'app_config.yaml'), 'r', encoding='utf8') as stream:
             _loaded = yaml.safe_load(stream)
 
             # Load in variables intended for import if available
@@ -221,7 +223,7 @@ class DialogConfigSQL(wx.Dialog):
         # RegEx
         globals()['cfg']['directory_split'] = self.wgt_entry_regex.GetValue()
 
-        with open(os.path.join(app_root, 'app_config.yaml'), 'w', encoding='utf8') as stream:
+        with open(os.path.join(mode.app_root, 'app_config.yaml'), 'w', encoding='utf8') as stream:
             yaml.dump(globals()['cfg'], stream, default_flow_style=False)
 
         self.Destroy()

@@ -56,7 +56,7 @@ class Notebook(wx.Notebook):
         # Check if the part and revision exists; if not inquire if you would like to add one
         if _check:
             # If there is not yet a tab for this part number then create one, otherwise redirect to the existing
-            if part_num not in [tab.part_num for tab in self.open_tabs]:
+            if part_num not in [_tab.part_num for _tab in self.open_tabs]:
                 new_tab = TabPartInfo(self, part_num, part_rev)
                 self.open_tabs.append(new_tab)
                 self.AddPage(new_tab, part_num)
@@ -84,7 +84,7 @@ class Notebook(wx.Notebook):
                 conn.commit()
 
                 # If there is not yet a tab for this part number then create one, otherwise redirect to the existing
-                if part_num not in [tab.part_num for tab in self.open_tabs]:
+                if part_num not in [_tab.part_num for _tab in self.open_tabs]:
                     new_tab = TabPartInfo(self, part_num, part_rev)
                     self.open_tabs.append(new_tab)
                     self.AddPage(new_tab, part_num)
@@ -99,7 +99,7 @@ class Notebook(wx.Notebook):
 
 class TabPartInfo(wx.Panel):
     """Tab class that displays info relating to parts. It is important to note that classes that have a "root" attribute
-        are referring to this or other Tab-level classes
+    are referring to this or other Tab-level classes
 
         Args:
             parent (ref): Reference to the parent wx.object
