@@ -496,7 +496,7 @@ class EditImage(BaseImage):
                 return
 
         # Refresh Mugshot
-        self.root.pnl_mugshot.refresh(self.image_list[self.image_index])
+        self.root.wgt_mugshot.refresh(self.image_list[self.image_index])
 
         # Connect to the database
         conn = config.sql_db.connect(config.cfg["db_location"])
@@ -1241,6 +1241,9 @@ class AddNote(wx.Dialog):
             self.parent.add_note(datetime.datetime.now().strftime("%Y-%m-%d"),
                                  self.root.parent.user,
                                  self.wgt_txt_note.GetValue())
+
+            # Specifically call the refresh_header method in the composite notes widget, for when it starts empty
+            self.parent.parent.refresh_headers()
 
             # Connect to the database
             conn = config.sql_db.connect(config.cfg["db_location"])

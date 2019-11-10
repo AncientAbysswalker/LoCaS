@@ -7,10 +7,11 @@ import widget
 import dialog
 
 import config
+import fn_path
 import global_colors
 
 # Hard-coded for demo, but will be changed later to be a user-based option
-PANELS = [("107-00107", "0")]
+PANELS = [("207-10107", "0")]
 
 
 class Notebook(wx.Notebook):
@@ -101,6 +102,9 @@ class TabPartInfo(wx.Panel):
     """Tab class that displays info relating to parts. It is important to note that classes that have a "root" attribute
     are referring to this or other Tab-level classes
 
+        Class Variables:
+            btn_rev_size (int): Size (height) of the revision toggle buttons
+
         Args:
             parent (ref): Reference to the parent wx.object
             part_num (str): The part number that the tab loads the relevant information for
@@ -111,6 +115,8 @@ class TabPartInfo(wx.Panel):
             part_num (str): The part number that the tab loads the relevant information for
             part_rev (str): The revision number that the tab loads the relevant information for
     """
+
+    btn_rev_size = 26
 
     def __init__(self, parent, part_num, part_rev):
         """Constructor"""
@@ -156,10 +162,16 @@ class TabPartInfo(wx.Panel):
         self.wgt_txt_part_type.Bind(wx.EVT_LEFT_DCLICK, self.evt_edit_type)
 
         # Revision number buttons and bindings
-        self.wgt_btn_rev_next = wx.Button(self, size=(10, -1))
-        self.wgt_btn_rev_prev = wx.Button(self, size=(10, -1))
+        self.wgt_btn_rev_next = wx.BitmapButton(self,
+                                             bitmap=wx.Bitmap(fn_path.concat_gui('r_arr_rev.png')),
+                                             size=(10, TabPartInfo.btn_rev_size))
+        self.wgt_btn_rev_prev = wx.BitmapButton(self,
+                                             bitmap=wx.Bitmap(fn_path.concat_gui('l_arr_rev.png')),
+                                             size=(10, TabPartInfo.btn_rev_size))
         self.wgt_btn_rev_next.Bind(wx.EVT_BUTTON, self.event_rev_next)
         self.wgt_btn_rev_prev.Bind(wx.EVT_BUTTON, self.event_rev_prev)
+        self.wgt_btn_rev_next.Bind(wx.EVT_SET_FOCUS, self.evt_btn_no_focus)
+        self.wgt_btn_rev_prev.Bind(wx.EVT_SET_FOCUS, self.evt_btn_no_focus)
 
         # Sizer for top row of information, including revision buttons
         self.szr_infoline = wx.BoxSizer(wx.HORIZONTAL)
@@ -384,6 +396,14 @@ class TabPartInfo(wx.Panel):
         """
 
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+
+    def evt_btn_no_focus(self, event):
+        """Prevents focus from being called on the buttons
+
+            Args:
+                event: A focus event
+        """
+        pass
 
     def event_rev_next(self, event):
         """Toggle to next revision if possible
