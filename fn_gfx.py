@@ -10,6 +10,9 @@ def crop_square(image, rescale=None):
         Args:
             image (wx.Image): The wx.Image object to crop and scale
             rescale (int): Square size to scale the image to. None if not desired
+
+        Returns:
+            (wx.image): Returns the image croppped and possibly scaled
     """
 
     # Determine direction to cut and cut

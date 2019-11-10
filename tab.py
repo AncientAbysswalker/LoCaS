@@ -370,6 +370,9 @@ class TabPartInfo(wx.Panel):
             Args:
                 conditional (str): The string being used in the field
                 entry_field (ptr): Reference to the wx field being styled
+
+            Returns:
+                (wx.object): Returns the passed object styled according to the conditional
         """
 
         # Determine if SetValue or SetLabel is required to change text

@@ -343,7 +343,11 @@ class EditImage(BaseImage):
         self.Fit()
 
     def draw_buttons(self):
-        """Define what control buttons are available and their bindings"""
+        """Define what control buttons are available and their bindings
+
+            Returns:
+                (wx.sizer): A wx sizer containing the buttons for this dialog
+        """
 
         # Previous Image Button
         btn_prev = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('l_arr.png')))
@@ -606,7 +610,11 @@ class AddImage(BaseImage):
         self.check_image_valid()
 
     def draw_buttons(self):
-        """Define what control buttons are available and their bindings"""
+        """Define what control buttons are available and their bindings
+
+            Returns:
+                (wx.sizer): A wx sizer containing the buttons for this dialog
+        """
 
         # Submit Image Button
         self.btn_next = wx.Button(self, label='Submit Image')
@@ -700,7 +708,11 @@ class AddImage(BaseImage):
         self.check_image_valid()
 
     def image_in_db(self):
-        """Checks if the image already exists in the database"""
+        """Checks if the image already exists in the database
+
+            Returns:
+                (bool): Returns whether the image is in the database or not
+        """
 
         # Hash current image data
         image_hash = self.hash_image()
@@ -729,7 +741,11 @@ class AddImage(BaseImage):
             self.evt_next_image()
 
     def hash_image(self):
-        """Hash image data and digest into HEX"""
+        """Hash image data and digest into HEX
+
+            Returns:
+                (str): Returns the hexidecimal hash of the image at this index
+        """
 
         hasher = hashlib.md5()
         with open(self.image_list[self.image_index], 'rb') as image:
