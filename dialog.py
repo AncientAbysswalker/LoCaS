@@ -360,7 +360,7 @@ class EditImage(BaseImage):
         btn_mugshot.Bind(wx.EVT_SET_FOCUS, self.evt_btn_no_focus)
 
         # Remove Image Button
-        btn_remove = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('rem_img.png')))
+        btn_remove = wx.BitmapButton(self, bitmap=wx.Bitmap(fn_path.concat_gui('trash.png')))
         btn_remove.Bind(wx.EVT_BUTTON, self.evt_remove_img)
         btn_remove.Bind(wx.EVT_SET_FOCUS, self.evt_btn_no_focus)
 
