@@ -11,16 +11,6 @@ import mode
 import config
 import fn_path
 
-# Temporary bootstrap for 'current directory' files
-# if getattr(sys, 'frozen', False):
-#     mode.mode.app_root = sys._MEIPASS
-#     fn_path.frozen = True
-#     # fn_path.mode.app_root = mode.app_root
-# else:
-#     mode.app_root = os.path.dirname(os.path.abspath(__file__))
-#     fn_path.frozen = False
-# config.mode.app_root = mode.app_root
-
 
 class WindowFrame(wx.Frame):
     """Base class defining the application window (frame)"""
