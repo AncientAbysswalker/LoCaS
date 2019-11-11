@@ -396,7 +396,7 @@ class NotesScrolled(scrolled.ScrolledPanel):
         self.SetWindowStyle(wx.VSCROLL)
 
         # Not clear as to why this is needed, but without it the scrollbar is missing in some circumstances
-        self.SetScrollbars(1, 1, 1, 1)
+        self.SetScrollbars(10, 10, 10, 10)
 
         # Bind layout recalculation to scrolling
         self.Bind(wx.EVT_SCROLLWIN, self.evt_scroll)

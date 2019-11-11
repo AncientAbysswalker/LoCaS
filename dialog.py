@@ -246,7 +246,7 @@ class BaseImage(wx.Dialog):
         (width_orig, height_orig) = wx.Image(self.image_path(), wx.BITMAP_TYPE_ANY).GetSize()
 
         # Calculate expected dimensions
-        height_new = min(height_orig, 250)
+        height_new = min(height_orig, 400)
         width_new = (height_new / height_orig) * width_orig
 
         # Store a reference to the wx.obj that can be destroyed later
@@ -1175,6 +1175,9 @@ class EditComponentType(wx.Dialog):
                 conn.commit()
                 crsr.close()
                 conn.close()
+
+                # Color the text black after submitting the edit
+                self.root.wgt_txt_part_type.SetForegroundColour(global_colors.standard)
 
             self.evt_close()
 

@@ -2,10 +2,14 @@
 """Main Interface Window and Application Launch"""
 
 import sys
+import wx
 
-from dialog import *
-from pane import *
+import dialog
+import pane
 import mode
+
+import config
+import fn_path
 
 # Temporary bootstrap for 'current directory' files
 # if getattr(sys, 'frozen', False):
@@ -30,12 +34,12 @@ class WindowFrame(wx.Frame):
         self.szr_main = wx.BoxSizer(wx.VERTICAL)
 
         # Define the main pane, hide until after login, add to sizer
-        self.pane_main = PaneMain(self)
+        self.pane_main = pane.PaneMain(self)
         self.pane_main.Hide()
         self.szr_main.Add(self.pane_main, proportion=1, flag=wx.EXPAND)
 
         # Define the login pane, add to sizer
-        self.pane_login = PaneLogin(self, self.szr_main, self.pane_main)
+        self.pane_login = pane.PaneLogin(self, self.szr_main, self.pane_main)
         self.szr_login.Add(self.pane_login, proportion=1, flag=wx.EXPAND)
 
         # Define lower status bar
@@ -54,6 +58,9 @@ class WindowFrame(wx.Frame):
         # self.menubar.Append(menu_edit, "Edit")
         # self.menubar.Append(menu_help, "Help")
         # self.SetMenuBar(self.menubar)
+
+        # Set icon
+        self.SetIcon(wx.Icon(fn_path.concat_gui('icon.png')))
 
         # Set window minimum size, set starting sizer and show window
         self.SetMinSize((700, 500))
