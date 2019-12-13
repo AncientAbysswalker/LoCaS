@@ -40,6 +40,12 @@ cfg_user_import = [
                   ]
 
 
+def dump_opt_config():
+    """Write optional configs for this user"""
+    with open(os.path.join(mode.exe_location, 'demo' + '_config.yaml'), 'w', encoding='utf8') as stream:
+        yaml.dump(globals()['opt'], stream, default_flow_style=False)
+
+
 def load_config(application):
     """Read a yaml file into config dictionary"""
 
@@ -56,12 +62,12 @@ def load_config(application):
             if len(set(cfg_user_import).difference(_keys)) != 0:
                 for undefined in set(cfg_user_import).difference(_keys):
                     globals()['opt'][undefined] = False
-                with open(os.path.join(mode.exe_location, 'testuser' + '_config.yaml'), 'w', encoding='utf8') as stream:
+                with open(os.path.join(mode.exe_location, 'demo' + '_config.yaml'), 'w', encoding='utf8') as stream:
                     yaml.dump(globals()['opt'], stream, default_flow_style=False)
     # If all user variables or the file are missing
     except (AttributeError, FileNotFoundError):
         globals()['opt'] = {x: False for x in cfg_user_import}
-        with open(os.path.join(mode.exe_location, 'testuser' + '_config.yaml'), 'w', encoding='utf8') as stream:
+        with open(os.path.join(mode.exe_location, 'demo' + '_config.yaml'), 'w', encoding='utf8') as stream:
             yaml.dump(globals()['opt'], stream, default_flow_style=False)
 
     # Read application YAML file into config.cfg dictionary, and prompt to create if absent
@@ -112,6 +118,8 @@ def load_config(application):
     # Special handling for missing required variables
 
     # Special handling for missing optional variables
+
+    print(globals()['opt'])
 
 
 def call_config_dialog():

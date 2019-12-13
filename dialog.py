@@ -496,6 +496,9 @@ class EditImage(BaseImage):
                 if dlg.IsCheckBoxChecked():
                     # Set config to hide this dialog next time
                     config.opt["dlg_hide_change_mugshot"] = True
+
+                    # Write option change
+                    config.dump_opt_config()
             else:
                 return
 
@@ -534,6 +537,9 @@ class EditImage(BaseImage):
                 if dlg.IsCheckBoxChecked():
                     # Set config to hide this dialog next time
                     config.opt["dlg_hide_remove_image"] = True
+
+                    # Write option change
+                    config.dump_opt_config()
             else:
                 return
 

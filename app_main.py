@@ -4,7 +4,6 @@
 import sys
 import wx
 
-import dialog
 import pane
 import mode
 

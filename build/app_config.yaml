@@ -1,0 +1,4 @@
+db_location: .\LoCaS.sqlite
+directory_split: ''
+img_archive: .\image_database
+sql_type: SQLite

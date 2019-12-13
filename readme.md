@@ -1,38 +1,84 @@
 # LoCaS Project
 
+## Working Demo
+A working demo can be found at the following for download:
+
+https://github.com/AncientAbysswalker/LoCaS/tree/master/build
+
 ## Problem Statement
-This project arose from one of my previous career positions. The company in question was very averse to change, and part of that meant that all of the software, databases, and parts information was based off of methods and software decades superceded. As my job dealt extensively with many of these areas, my resulting headaches had me thinking - "for sure I could make something better than this‽"
+This project arose from my time with a previous employer. The company I was working with at the time used a number of 
+legacy systems that were based off of methods and software that were severely outdated. The company worked in the 
+mechanical sector and was thus involved with parts and parts assemblies. Being able to determine the relationship 
+between a part number (and revision) and various parameters related to that part was essential, and there was no
+convenient and consistent way to do so. As my job often dealt with these areas, my resulting headaches had me consider 
+whether I could possibly build a solution to help the situation.
 
 ## Solution
-I decided to try my hand at making a sort of parts-cataloging software, to display the information that, in my experience, is very useful and should be readily accessible - which it unfortunately was not. I decided that the data should be logically organized and readily displayed in a way that it is easy to navigate and find out what parts inherit from others - which is also something that was a nightmare to try to figure out. Thus was born the name - Logical Cataloging Software, or LoCaS. Honestly a bit uninspired, but at least it's easy to say...
+I decided that it would be invaluable if I were to write a parts cataloging software to display information pertinent 
+to any given part in a logically organized, readily displayed, and easily navigable manner. The shorthand name 'LoCaS' 
+comes from my original name for the program - Logical Cataloging Software.
 
-The vision for this project and the structural logic is outlined in the following points. The features and vision below will be implemented incrementally as I have time.
+## Implementation
 
-Logic
-* The essential idea behind mechanical assemblies is that every part should have a unique identification id (part number) and iteration on its design (revision number). These help to ensure that information is unique, identifiable, and traceable. When this is not the case, major issues come to bear with difficulties regarding what parts are actually being referred to.
-* Parts can either stand alone, or can have inheritance: assemblies (what I call super-assemblies) can inherit from stand-alonme parts or other sub-assemblies
-* Parts of the same part number but different revisions are most often part of the same assemblies, but due to how things are not always so clean-cut I have opted to handle revisions individually.
+The essential concept that I employed for mechanical assemblies is that every part should have a unique identification 
+(part number) and iteration on its design (revision number); these help to ensure that information is unique, 
+identifiable, and traceable. When this is not the case, major issues come to bear with difficulties regarding what 
+parts are being referred to. Parts can either stand alone, be assembled from other parts, or be used in other 
+assemblies.
 
-Function
-* The program can open multiple parts in parallel, controllable by the tabs on top.
-* Each parts panel will contain essential information regarding the part, including:
-  * Part Number
-  * Part Revision
-  * Part Classification (type, like Purchased Component, Manufactured Component, Assembly, etc.)
-  * Part Name
-  * Extended Part Description
-  * Notes
-  * Images of the part
-  * A primary Mugshot image of the part
-  * List of sub and super assemblies
-  * List of spare parts and repair kits
+The program acts as a front-end application interface to a SQL database that stores all of the data. The program 
+shows information on tabs, like a web browser, where each tab corresponds to a part number. For each of these 
+information fields, the intent is that the field can be updated through the interface. Each tab will show the 
+essential information regarding the part, including:
+* Part Number
+* Part Revision
+* Part Classification, or type (Purchased Component, Manufactured Component, Assembly, etc.)
+* Part Name
+* Extended Part Description
+* Notes
+* Images of the part
+* A primary 'Mugshot' image of the part
+* List of sub-assemblies and super-assemblies
+* List of spare parts and repair kits
 * For each of these fields, the intent is that the field can be updated through the interface.
-* Eventually I believe I will add more features to track full parts assemblies using a tree type architecture
 
-## Known Bugs
-* The PDF open button still receives focus even though it should not
-* Behavior between multiple tabs is not intended to function yet. Some features, like adding images, may work. They also may break the same features on the sample tab... -_-
-* The '+' button to add images is tied to the wrong frame, and as such it scrolls down when there are enough images to allow scroll.
-* Scaling formula for the images in the dedicated image dialog are a bit wonky; this will need to be tweaked
-* There is currently no handling for images being physically missing. Such an occurrence currently causes a crash
-* There is some duplication in image handling for the image display dialog that will need to be addressed
+## Nuances of Operation
+
+I tried to keep the user interface ergonomic and fairly simple so that most tasks could be easily accomplished. The UI 
+operates under several assumptions that are held to the interface. Those are:
+
+* Double-clicking on a text field will open a dialog box to allow you to edit that text field in most cases.
+* Clicking on an image in the bottom left grid will open a larger copy of the image, affording a better look at the image and allowing one to 
+edit the comment for the image.
+* Clicking on an entry in the sub-assembly or super-assembly lists will open a tab for that part. If you hold shift, 
+it will not change focus to that tab.
+* Pressing a "+" button will allow you to add an entry to the list or grid the button overlays
+* Pressing a pencil button will allow you to edit the entries of the list or grid the button overlays
+
+## Status: On Hold
+I have gotten this program to a level of functionality that I am satisfied with. There are still features that I would 
+like to implement, but I am opting to put this on hold so that I can build my skills in other languages such as 
+TypeScript and React. Due to the difficulties I have encountered in building this program, I have realized that 
+building a program like this would be much simpler in a language intended for building applications - namely C#, React, 
+or Angular.
+
+## Known Shortfalls and Bugs
+A current list of bugs can be found [here](https://github.com/AncientAbysswalker/LoCaS/issues)
+* Program Login behaviour is currently not implemented.
+* Behavior of image dialog is slightly less ergonomic than I'd like, and this should be looked into.
+* There is currently no handling for images being physically missing from the database. Such an occurrence currently 
+causes a full crash of the application
+
+## Planned Features
+The project Kanban can be found [here](https://github.com/AncientAbysswalker/LoCaS/projects/1)
+* Program Login behaviour is currently not implemented.
+* Implement a RegEx type parsing to convert part numbers to a directory structure.
+* Implement functionality for opening a parts drawing.
+* Clicking on notes in the application should open up a dialog to edit the note
+* It is not currently possible to close any tabs.
+* Handling to toggle between the revisions for a part number is not implemented yet.
+* The problem of configuration files is an area that I have realized is an interesting problem in and of itself. 
+I've discussed the problem a bit and have some ideas as to what I'd like to do regarding a more full implementation, 
+but in the meantime I've split configuration between application-specific config (database location, etc.) that 
+should be restricted to modification by the server application, and user-specific config (whether or not to dismiss 
+warnings) generated by the program for each new user.
