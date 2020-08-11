@@ -17,8 +17,6 @@ whether I could possibly build a solution to help the situation.
 I decided that it would be invaluable if I were to write a parts cataloging software to display information pertinent 
 to any given part in a logically organized, readily displayed, and easily navigable manner.
 
-![Example Photo](https://raw.githubusercontent.com/AncientAbysswalker/LoCaS/master/md/001_window.png)
-
 #### Origin of the Name
 The shorthand name 'LoCaS' comes as a contraction of my original name for the program - Logical Cataloging Software.
 
@@ -29,6 +27,8 @@ The essential concept that I employed for mechanical assemblies is that every pa
 identifiable, and traceable. When this is not the case, major issues come to bear with difficulties regarding what 
 parts are being referred to. Parts can either stand alone, be assembled from other parts, or be used in other 
 assemblies.
+
+![Example Photo](https://raw.githubusercontent.com/AncientAbysswalker/LoCaS/master/md/001_window.png)
 
 The program acts as a front-end application interface to a SQL database that stores all of the data. The program 
 shows information on tabs, like a web browser, where each tab corresponds to a part number. For each of these 
