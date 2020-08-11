@@ -17,6 +17,8 @@ whether I could possibly build a solution to help the situation.
 I decided that it would be invaluable if I were to write a parts cataloging software to display information pertinent 
 to any given part in a logically organized, readily displayed, and easily navigable manner.
 
+![Example Photo](https://raw.githubusercontent.com/AncientAbysswalker/LoCaS/master/md/001_window.png)
+
 #### Origin of the Name
 The shorthand name 'LoCaS' comes as a contraction of my original name for the program - Logical Cataloging Software.
 
